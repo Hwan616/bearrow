@@ -25,7 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     newArchEnabled: true,
     ios: { bundleIdentifier: variant.id, supportsTablet: true },
     android: { package: variant.id },
-    plugins: ["expo-secure-store"],
+    plugins: ["expo-secure-store", "expo-sqlite"],
     extra: {
       appEnv: APP_ENV,
     },

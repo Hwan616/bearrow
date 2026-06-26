@@ -17,7 +17,7 @@
   - 파일: `src/theme/tokens.ts`, `src/theme/index.ts`, `src/theme/__tests__/`
   - 요구사항: `UI-002`, `NFR-CON-001`
   - 프롬프트: "0.4 디자인 토큰·테마 골격 작업 진행해"
-- [ ] **0.5 로컬 DB 부트스트랩**
+- [x] **0.5 로컬 DB 부트스트랩**
   - 완료: expo-sqlite + Drizzle 연결, 마이그레이션 러너, 빈 스키마 모듈.
   - 파일: `src/db/client.ts`, `src/db/schema.ts`, `src/db/__tests__/`
   - 요구사항: `NFR-CON-002`, `NFR-REL-001`
