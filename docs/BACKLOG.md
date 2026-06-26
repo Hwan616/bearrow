@@ -29,7 +29,7 @@
   - 완료: `events` 테이블 스키마 + 생성/조회(기간)/수정/삭제 함수 + 테스트.
   - 파일: `src/db/schema.ts`, `src/features/calendar/api/`, `__tests__/`
   - 요구사항: `FR-CAL-001`, `FR-CAL-003`
-- [ ] **1.2 월(Month) 뷰**
+- [x] **1.2 월(Month) 뷰**
   - 완료: 월 그리드 렌더, 날짜별 일정 점/칩 표시, 월 이동.
   - 파일: `src/features/calendar/components/MonthView.tsx`
   - 요구사항: `FR-CAL-002`, `UI-001`
