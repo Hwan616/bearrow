@@ -1,7 +1,21 @@
-// Phase 1+ 에서 테이블 정의를 추가한다.
-// 예: export { events }  from './tables/events'
-//     export { todos }   from './tables/todos'
-//     export { categories } from './tables/categories'
+import { int, text, sqliteTable } from "drizzle-orm/sqlite-core";
 
-// 공통 컬럼 헬퍼 — 모든 테이블이 id·updated_at을 가지도록 강제
+import { commonColumns } from "./helpers";
+
 export { commonColumns } from "./helpers";
+
+export const events = sqliteTable("events", {
+  ...commonColumns,
+  title: text("title").notNull(),
+  note: text("note"),
+  isAllDay: int("is_all_day", { mode: "boolean" }).notNull().default(false),
+  startsAt: int("starts_at", { mode: "timestamp" }).notNull(),
+  endsAt: int("ends_at", { mode: "timestamp" }).notNull(),
+  categoryId: text("category_id"),
+  source: text("source", { enum: ["local", "google", "apple"] })
+    .notNull()
+    .default("local"),
+  externalId: text("external_id"),
+});
+
+// Phase 2+ 에서 추가 예정: categories, todos

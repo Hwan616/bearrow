@@ -5,9 +5,26 @@ export interface Migration {
   sql: string;
 }
 
-// Phase 1+ 에서 테이블 생성 SQL을 순서대로 추가한다.
-// 이름은 '0001_create_events' 형식으로 일관되게 유지한다.
-const MIGRATIONS: Migration[] = [];
+// 테이블 생성 SQL을 순서대로 추가한다. 이름은 '0001_create_xxx' 형식.
+const MIGRATIONS: Migration[] = [
+  {
+    name: "0001_create_events",
+    sql: `
+      CREATE TABLE IF NOT EXISTS events (
+        id          TEXT    NOT NULL PRIMARY KEY,
+        title       TEXT    NOT NULL,
+        note        TEXT,
+        is_all_day  INTEGER NOT NULL DEFAULT 0,
+        starts_at   INTEGER NOT NULL,
+        ends_at     INTEGER NOT NULL,
+        category_id TEXT,
+        source      TEXT    NOT NULL DEFAULT 'local',
+        external_id TEXT,
+        updated_at  INTEGER NOT NULL
+      )
+    `,
+  },
+];
 
 // 앱 시작 시 한 번 호출한다 (예: App.tsx useEffect).
 // 적용 완료된 마이그레이션은 재실행하지 않는다.

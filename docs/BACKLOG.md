@@ -25,7 +25,7 @@
 
 ## Phase 1 — 캘린더 코어
 
-- [ ] **1.1 Event 데이터 모델·로컬 CRUD**
+- [x] **1.1 Event 데이터 모델·로컬 CRUD**
   - 완료: `events` 테이블 스키마 + 생성/조회(기간)/수정/삭제 함수 + 테스트.
   - 파일: `src/db/schema.ts`, `src/features/calendar/api/`, `__tests__/`
   - 요구사항: `FR-CAL-001`, `FR-CAL-003`
