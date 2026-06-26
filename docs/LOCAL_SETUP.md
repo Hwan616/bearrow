@@ -25,14 +25,19 @@ git remote add origin https://github.com/<계정>/bearrow.git
 git push -u origin main
 ```
 
-## CI/CD 활성화 (GitHub에서)
+## CI/CD 활성화 (GitHub에서) — 완전 무료(GitHub Actions + Fastlane)
 
 `README.md` 의 "최초 설정" 참고. 요약:
 
-1. `eas login && eas init` → `EAS_PROJECT_ID` 발급.
-2. GitHub repo → Settings → Secrets: `EXPO_TOKEN` 등록(필요 시 `EAS_PROJECT_ID`).
-3. Settings → Environments → `production` 생성 + 승인자 지정(릴리즈 게이트).
-4. `eas.json` 의 `submit.production` 에 스토어 자격증명 입력.
+1. GitHub repo 생성 후 원격 연결·push → `ci.yml` 자동 검증 시작. (public 저장소 권장 — Actions·macOS 무료)
+2. Settings → Environments → `production` 생성 + 승인자 지정(릴리즈 게이트).
+3. (출시 직전) Settings → Secrets 에 스토어 시크릿 등록:
+   - Android: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `PLAY_SERVICE_ACCOUNT_JSON`
+   - iOS: App Store Connect API Key (Apple Developer 계정 필요)
+   - `fastlane/Appfile` 식별자(번들 ID·Apple ID·Team ID) 입력.
+
+> Expo/EAS 클라우드 계정은 더 이상 필요하지 않다. 빌드는 GitHub Actions 러너에서 무료로 수행된다.
+> (스토어 등록 비용 — Apple $99/년, Google Play $25 1회 — 은 도구와 무관한 스토어 자체 비용.)
 
 ## 이후 개발 (Claude에게 프롬프트)
 

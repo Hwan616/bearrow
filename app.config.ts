@@ -12,10 +12,6 @@ const VARIANTS = {
   production: { name: "BeArrow", id: "app.bearrow" },
 } as const;
 
-// EAS 프로젝트 생성 후 `eas init` 이 채워주는 값. CI 에서는 환경변수로 주입.
-const EAS_PROJECT_ID =
-  process.env.EAS_PROJECT_ID ?? "00000000-0000-0000-0000-000000000000";
-
 export default ({ config }: ConfigContext): ExpoConfig => {
   const variant = VARIANTS[APP_ENV];
   return {
@@ -30,11 +26,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: { bundleIdentifier: variant.id, supportsTablet: true },
     android: { package: variant.id },
     plugins: ["expo-secure-store"],
-    updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
-    runtimeVersion: { policy: "appVersion" },
     extra: {
       appEnv: APP_ENV,
-      eas: { projectId: EAS_PROJECT_ID },
     },
   };
 };

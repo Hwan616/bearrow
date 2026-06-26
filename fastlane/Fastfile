@@ -1,0 +1,49 @@
+# Fastfile — 무료 빌드/배포 (GitHub Actions + Fastlane)
+# 네이티브 프로젝트는 `npx expo prebuild` 로 생성된 ios/ · android/ 를 사용한다.
+
+# ---------------------------------------------------------------------------
+# Android (Google Play)
+# 서명: ANDROID_KEYSTORE_BASE64 등 시크릿을 CI 에서 keystore 로 복원해 사용.
+# ---------------------------------------------------------------------------
+platform :android do
+  desc "Release AAB 빌드"
+  lane :build do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android/",
+    )
+  end
+
+  desc "Play 내부 테스트 트랙 업로드"
+  lane :beta do
+    build
+    upload_to_play_store(
+      track: "internal",
+      skip_upload_apk: true,
+      json_key: ENV["PLAY_SERVICE_ACCOUNT_JSON"] || "play-service-account.json",
+    )
+  end
+end
+
+# ---------------------------------------------------------------------------
+# iOS (App Store / TestFlight) — macOS 러너 필요 (Apple Developer 계정 필수)
+# 서명: App Store Connect API Key 또는 match 사용 권장.
+# ---------------------------------------------------------------------------
+platform :ios do
+  desc "Release IPA 빌드"
+  lane :build do
+    setup_ci if ENV["CI"]
+    build_app(
+      workspace: "ios/BeArrow.xcworkspace",
+      scheme: "BeArrow",
+      export_method: "app-store",
+    )
+  end
+
+  desc "TestFlight 업로드"
+  lane :beta do
+    build
+    upload_to_testflight(skip_waiting_for_build_processing: true)
+  end
+end

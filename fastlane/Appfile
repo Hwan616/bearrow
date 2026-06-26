@@ -1,0 +1,10 @@
+# Fastlane Appfile — 스토어 식별자
+# 실제 값은 출시 직전에 채운다. CI 에서는 환경변수/시크릿으로 주입 가능.
+
+# Android (Google Play)
+package_name(ENV["ANDROID_PACKAGE"] || "app.bearrow")
+
+# iOS (App Store)
+app_identifier(ENV["IOS_BUNDLE_ID"] || "app.bearrow")
+apple_id(ENV["APPLE_ID"] || "YOUR_APPLE_ID_EMAIL")
+team_id(ENV["APPLE_TEAM_ID"] || "YOUR_APPLE_TEAM_ID")

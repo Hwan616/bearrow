@@ -1,0 +1,41 @@
+name: Android Build (free)
+
+# develop 머지/수동 실행 시 디버그 APK 생성 → 내부 테스트용 아티팩트 업로드.
+# ubuntu 러너로 동작하며 시크릿/서명 없이도 즉시 작동한다(무료).
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Debug APK (internal)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prebuild (generate android/)
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bearrow-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
