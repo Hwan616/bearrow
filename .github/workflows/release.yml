@@ -1,0 +1,44 @@
+name: Release (Production Build + Submit)
+
+# v* 태그 푸시 또는 수동 실행 시 프로덕션 빌드 후 스토어 자동 제출.
+# `production` 환경(repo Settings > Environments)에 수동 승인(required reviewers)을
+# 설정해 릴리즈 게이트로 사용한다.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "빌드 대상 플랫폼"
+        type: choice
+        options: [all, ios, android]
+        default: all
+
+jobs:
+  release:
+    name: EAS Build + Submit (production)
+    runs-on: ubuntu-latest
+    environment: production # 수동 승인 게이트
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build + auto-submit (production)
+        run: |
+          eas build \
+            --platform ${{ github.event.inputs.platform || 'all' }} \
+            --profile production \
+            --non-interactive \
+            --auto-submit

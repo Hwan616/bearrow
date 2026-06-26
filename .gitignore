@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# native
+ios/
+android/
+
+# env & secrets
+.env
+.env*.local
+credentials/
+
+# misc
+*.log
+.DS_Store
+coverage/
