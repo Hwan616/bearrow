@@ -7,7 +7,7 @@ dist/
 web-build/
 expo-env.d.ts
 
-# native
+# native (expo prebuild 생성물 — 소스 관리 대상 아님)
 ios/
 android/
 
@@ -29,7 +29,22 @@ fastlane/test_output/
 *.ipa
 *.aab
 
+# bundler (fastlane 의존성 설치 결과물)
+vendor/bundle/
+.bundle/
+
+# temp
+tmp/
+
+# claude code (로컬 설정 — 전역 gitignore 미설정 환경 대비)
+.claude/settings.local.json
+
+# ide
+.idea/
+.vscode/
+
 # misc
+npm-debug.log*
 *.log
 .DS_Store
 coverage/
