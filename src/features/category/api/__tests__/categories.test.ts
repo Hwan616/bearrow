@@ -131,13 +131,13 @@ describe("deleteCategory", () => {
     mockCatUpdateWhere.mockResolvedValue(undefined);
   });
 
-  it("연결된 이벤트의 categoryId를 null로 초기화한다", async () => {
+  it("연결된 이벤트와 할일의 categoryId를 null로 초기화한다", async () => {
     const { db } = jest.requireMock("@/db/client") as {
       db: { update: jest.Mock; delete: jest.Mock };
     };
     await deleteCategory("cat-1");
-    // db.update 가 events 테이블을 대상으로 호출됐는지 확인
-    expect(db.update).toHaveBeenCalledTimes(1);
+    // events + todos 각각 update 호출
+    expect(db.update).toHaveBeenCalledTimes(2);
     expect(mockCatSet).toHaveBeenCalledWith({ categoryId: null });
   });
 
@@ -146,7 +146,7 @@ describe("deleteCategory", () => {
     expect(mockCatDeleteWhere).toHaveBeenCalled();
   });
 
-  it("update → delete 순서로 실행된다", async () => {
+  it("update(events) → update(todos) → delete 순서로 실행된다", async () => {
     const calls: string[] = [];
     mockCatUpdateWhere.mockImplementation(() => {
       calls.push("update");
@@ -157,7 +157,7 @@ describe("deleteCategory", () => {
       return Promise.resolve(undefined);
     });
     await deleteCategory("cat-1");
-    expect(calls).toEqual(["update", "delete"]);
+    expect(calls).toEqual(["update", "update", "delete"]);
   });
 });
 

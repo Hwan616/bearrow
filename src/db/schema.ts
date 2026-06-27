@@ -25,6 +25,19 @@ export const events = sqliteTable("events", {
   isDeleted: int("is_deleted", { mode: "boolean" }).notNull().default(false), // 예외: 삭제된 인스턴스
 });
 
+export const todos = sqliteTable("todos", {
+  id: text("id").notNull().primaryKey(),
+  title: text("title").notNull(),
+  note: text("note"),
+  isCompleted: int("is_completed", { mode: "boolean" }).notNull().default(false),
+  completedAt: int("completed_at", { mode: "timestamp" }),
+  dueDate: int("due_date", { mode: "timestamp" }),   // 마감일 (캘린더 연동, FR-TODO-005)
+  categoryId: text("category_id"),
+  sortOrder: int("sort_order").notNull().default(0),
+  createdAt: int("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: int("updated_at", { mode: "timestamp" }).notNull(),
+});
+
 export const categories = sqliteTable("categories", {
   id: text("id").notNull().primaryKey(),
   name: text("name").notNull(),

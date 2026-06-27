@@ -1,7 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/db/client";
-import { categories, events } from "@/db/schema";
+import { categories, events, todos } from "@/db/schema";
 
 import type { Category, NewCategory } from "../types";
 
@@ -31,8 +31,9 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  // 연결된 이벤트의 categoryId 초기화
+  // 연결된 이벤트·할일의 categoryId 초기화 후 카테고리 삭제
   await db.update(events).set({ categoryId: null }).where(eq(events.categoryId, id));
+  await db.update(todos).set({ categoryId: null }).where(eq(todos.categoryId, id));
   await db.delete(categories).where(eq(categories.id, id));
 }
 
