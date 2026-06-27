@@ -9,6 +9,7 @@ import {
   requestNotificationPermission,
   setupNotificationHandler,
 } from "@/features/calendar/api/notifications";
+import { DayDetailPanel } from "@/features/calendar/components/DayDetailPanel";
 import { EventForm } from "@/features/calendar/components/EventForm";
 import { MonthView } from "@/features/calendar/components/MonthView";
 import { TodoForm } from "@/features/todo/components/TodoForm";
@@ -99,7 +100,13 @@ export default function App() {
 
         {/* 탭 콘텐츠 */}
         {activeTab === "calendar" ? (
-          <MonthView key={calendarKey} onDayPress={(date) => setSelectedDate(date)} />
+          <View style={{ flex: 1 }}>
+            <MonthView key={calendarKey} onDayPress={(date) => setSelectedDate(date)} />
+            <DayDetailPanel
+              key={`${selectedDate.toDateString()}-${calendarKey}`}
+              date={selectedDate}
+            />
+          </View>
         ) : (
           <TodoList
             sections={sections}
