@@ -71,6 +71,23 @@ const MIGRATIONS: Migration[] = [
     name: "0006_add_event_id_to_todos",
     sql: `ALTER TABLE todos ADD COLUMN event_id TEXT;`,
   },
+  {
+    name: "0007_create_sync_tables",
+    sql: `
+      CREATE TABLE IF NOT EXISTS pending_changes (
+        entity_type TEXT NOT NULL,
+        entity_id   TEXT NOT NULL,
+        operation   TEXT NOT NULL,
+        payload     TEXT,
+        created_at  INTEGER NOT NULL,
+        PRIMARY KEY (entity_type, entity_id)
+      );
+      CREATE TABLE IF NOT EXISTS sync_meta (
+        key   TEXT NOT NULL PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 // 앱 시작 시 한 번 호출한다 (예: App.tsx useEffect).

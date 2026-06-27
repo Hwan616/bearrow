@@ -21,8 +21,8 @@ describe("runMigrations", () => {
 
     await runMigrations(db as never);
 
-    // _migrations 테이블 생성 1회 + MIGRATIONS 배열 항목 수(현재 6건)만큼 SQL 실행
-    expect(db.execAsync).toHaveBeenCalledTimes(7); // 1(tracker) + 6(migrations)
+    // _migrations 테이블 생성 1회 + MIGRATIONS 배열 항목 수(현재 7건)만큼 SQL 실행
+    expect(db.execAsync).toHaveBeenCalledTimes(8); // 1(tracker) + 7(migrations)
     expect(db.runAsync).toHaveBeenCalledWith(
       "INSERT INTO _migrations (name) VALUES (?)",
       ["0001_create_events"],
@@ -46,6 +46,10 @@ describe("runMigrations", () => {
     expect(db.runAsync).toHaveBeenCalledWith(
       "INSERT INTO _migrations (name) VALUES (?)",
       ["0006_add_event_id_to_todos"],
+    );
+    expect(db.runAsync).toHaveBeenCalledWith(
+      "INSERT INTO _migrations (name) VALUES (?)",
+      ["0007_create_sync_tables"],
     );
   });
 

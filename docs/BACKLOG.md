@@ -94,8 +94,9 @@
   - 완료: Supabase 클라이언트, Google OAuth 로그인/로그아웃, 세션 영속화.
   - 파일: `src/lib/supabase.ts`, `src/features/auth/api/auth.ts`, `src/features/auth/hooks/useAuth.ts`, `src/features/settings/components/SettingsScreen.tsx`
   - 요구사항: `FR-SYNC-001`, `IF-003`, `NFR-SEC-001`
-- [ ] **4.2 동기화 엔진(push/pull)**
+- [x] **4.2 동기화 엔진(push/pull)**
   - 완료: 변경 큐, updatedAt 기반 충돌 해결, 백엔드 push/pull + 테스트.
+  - 파일: `src/sync/types.ts`, `src/sync/queue.ts`, `src/sync/push.ts`, `src/sync/pull.ts`, `src/sync/engine.ts`, `src/db/migrate.ts` (0007_create_sync_tables)
   - 요구사항: `FR-SYNC-002`, `FR-SYNC-004`, `NFR-CON-002`, `NFR-PERF-002`
 - [ ] **4.3 Google 캘린더 양방향 동기화**
   - 완료: OAuth 연결, syncToken 증분 동기화, 410→full sync, 삭제 반영.
