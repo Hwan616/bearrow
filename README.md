@@ -2,7 +2,7 @@
 
 캘린더 + 투두리스트 통합 앱. Expo(React Native) 기반 크로스플랫폼(iOS · Android · 웹).
 
-이 리포지토리는 **1단계: CI/CD 환경**이 구성된 상태이며, 파이프라인이 동작하도록 최소 스켈레톤을 포함한다. 앱 기능 코드는 다음 단계에서 추가한다.
+현재 **Phase 3(통합·테마) 진행 중**이며, Phase 1(캘린더 코어)·Phase 2(투두 코어)·Phase 3 일부(캘린더–투두 연동, 데일리 뷰, 일정→할일 파생)가 완료된 상태다. 세부 진행 현황은 `docs/BACKLOG.md` 참고.
 
 > **빌드/배포는 EAS 클라우드 없이 완전 무료 도구(GitHub Actions + Fastlane)로 구성**되어 있다.
 > Expo SDK·CLI 는 무료이며, 빌드는 GitHub Actions 러너에서 직접 수행한다. (스토어 등록 비용 — Apple $99/년, Google Play $25 1회 — 은 도구와 무관한 스토어 자체 비용이다.)
@@ -89,18 +89,33 @@ cd android && ./gradlew assembleDebug  # 디버그 APK (서명 불필요)
 
 ```
 bearrow/
-├─ .github/workflows/   # ci · build-android · release
-├─ fastlane/            # Fastfile · Appfile (빌드·제출)
-├─ Gemfile              # fastlane 의존성
-├─ src/config/          # 환경 설정 (테스트 포함)
-├─ App.tsx              # 진입 컴포넌트(플레이스홀더)
-├─ index.ts             # 루트 등록
-├─ app.config.ts        # Expo 동적 설정(환경 분리)
-├─ eslint.config.js / .prettierrc / tsconfig.json
+├─ .github/workflows/       # ci · build-android · release
+├─ fastlane/                # Fastfile · Appfile (빌드·제출)
+├─ docs/                    # BACKLOG.md · CONVENTIONS.md
+├─ src/
+│  ├─ config/               # env.ts (환경 변수·런타임 설정)
+│  ├─ db/                   # client.ts · schema.ts · migrate.ts
+│  ├─ features/
+│  │  ├─ calendar/          # 이벤트 CRUD · 월/주/일 뷰 · 알림 · 반복
+│  │  ├─ todo/              # 할일 CRUD · 목록 UI · 날짜 지정
+│  │  └─ category/          # 카테고리 CRUD · 색상
+│  ├─ theme/                # 색상 토큰 · useTheme 훅
+│  └─ ui/                   # 공용 컴포넌트 (예정)
+├─ App.tsx                  # 루트 컴포넌트 (탭 내비·모달 관리)
+├─ app.config.ts            # Expo 동적 설정 (환경 분리)
 └─ package.json
 ```
 
-## 다음 단계 (2단계)
+## 개발 로드맵
 
-캘린더 코어 → 투두 코어 → 통합/테마 → Supabase 동기화 → 안정화 → 출시.
-기획·아키텍처 문서 및 `docs/BACKLOG.md` 의 로드맵 참고.
+| Phase | 내용 | 상태 |
+|-------|------|------|
+| 0 | CI/CD · 환경 분리 · 린트/테스트 기반 · 테마 · 로컬 DB | ✅ 완료 |
+| 1 | 캘린더 코어 (월/주/일 뷰 · 일정 CRUD · 반복 · 알림) | ✅ 완료 |
+| 2 | 투두 코어 (할일 CRUD · 카테고리 · 목록 UI · 날짜) | ✅ 완료 |
+| 3 | 통합·테마 (캘린더↔투두 연동 · 데일리 뷰 · 색상 커스터마이징) | 🔄 진행 중 |
+| 4 | 동기화·백엔드 (Supabase Auth · 동기화 엔진 · Google 캘린더 · RLS) | ⏳ 예정 |
+| 5 | 안정화 (Sentry · E2E · 성능·접근성) | ⏳ 예정 |
+| 6 | 출시 (스토어 메타데이터 · 베타 · 정식 릴리즈) | ⏳ 예정 |
+
+세부 작업 목록은 `docs/BACKLOG.md` 참고.

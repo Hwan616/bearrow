@@ -31,46 +31,57 @@
   - 요구사항: `FR-CAL-001`, `FR-CAL-003`
 - [x] **1.2 월(Month) 뷰**
   - 완료: 월 그리드 렌더, 날짜별 일정 점/칩 표시, 월 이동.
-  - 파일: `src/features/calendar/components/MonthView.tsx`
+  - 파일: `src/features/calendar/components/MonthView.tsx`, `src/features/calendar/hooks/useMonthItems.ts`, `src/features/calendar/utils/calendarUtils.ts`
   - 요구사항: `FR-CAL-002`, `UI-001`
 - [x] **1.3 주·일 뷰**
   - 완료: 시간축 기반 주/일 뷰, 뷰 전환 토글.
+  - 파일: `src/features/calendar/components/WeekDayView.tsx`, `src/features/calendar/hooks/useWeekEvents.ts`, `src/features/calendar/utils/timeGridUtils.ts`
   - 요구사항: `FR-CAL-002`, `UI-001`
 - [x] **1.4 일정 생성·편집 폼**
   - 완료: 제목·시간·종일·메모·카테고리 입력, 저장 시 로컬 반영.
+  - 파일: `src/features/calendar/components/EventForm.tsx`, `src/features/calendar/utils/eventFormUtils.ts`, `src/features/calendar/api/events.ts`
   - 요구사항: `FR-CAL-001`, `FR-CAL-003`, `FR-CAL-004`
 - [x] **1.5 반복 일정(RRULE)**
   - 완료: 기본 반복(매일/매주/매월) 생성·전개, 예외 처리, 테스트.
+  - 파일: `src/features/calendar/utils/rruleUtils.ts`, `src/db/migrate.ts` (0002_add_recurrence)
   - 요구사항: `FR-CAL-005`
 - [x] **1.6 알림**
   - 완료: expo-notifications 로 일정 전 로컬 알림 예약/취소.
+  - 파일: `src/features/calendar/api/notifications.ts`, `src/features/calendar/utils/notificationUtils.ts`, `src/db/migrate.ts` (0003_add_reminder)
   - 요구사항: `FR-CAL-006`
 
 ## Phase 2 — 투두 코어
 
 - [x] **2.1 Category CRUD**
   - 완료: 카테고리 생성·이름변경·삭제·순서변경·색상지정 + 테스트.
+  - 파일: `src/features/category/api/categories.ts`, `src/features/category/types.ts`, `src/db/migrate.ts` (0004_create_categories)
   - 요구사항: `FR-CAT-001`, `FR-CAT-002`, `FR-CAT-003`
 - [x] **2.2 Todo 데이터 모델·CRUD**
   - 완료: 할일 생성/수정/삭제/완료, 메모, 카테고리 연결 + 테스트.
+  - 파일: `src/features/todo/api/todos.ts`, `src/features/todo/types.ts`, `src/db/migrate.ts` (0005_create_todos)
   - 요구사항: `FR-TODO-001`, `FR-TODO-002`, `FR-TODO-003`, `FR-TODO-004`, `FR-TODO-006`
 - [x] **2.3 투두 목록 UI**
   - 완료: 카테고리별 섹션, 체크 완료, 스와이프 삭제.
+  - 파일: `src/features/todo/components/TodoList.tsx`, `src/features/todo/components/TodoItem.tsx`, `src/features/todo/hooks/useTodos.ts`, `src/features/todo/utils/todoListUtils.ts`
   - 요구사항: `FR-TODO-001`, `UI-001`
 - [x] **2.4 할일 날짜 지정·변경**
   - 완료: due_date 설정/변경 UI, 변경 시 캘린더 연동 반영.
+  - 파일: `src/features/todo/components/TodoForm.tsx`, `src/features/todo/utils/todoDateUtils.ts`, `App.tsx`
   - 요구사항: `FR-TODO-005`
 
 ## Phase 3 — 통합·테마
 
 - [x] **3.1 캘린더–투두 연동 표시**
   - 완료: 마감일 있는 할일이 해당 날짜 캘린더에 표시.
+  - 파일: `src/features/calendar/utils/calendarUtils.ts` (getTodosForDay), `src/features/todo/api/todos.ts` (getTodosByDueDateRange), `src/features/calendar/hooks/useMonthItems.ts`, `src/features/calendar/components/MonthView.tsx`
   - 요구사항: `FR-INT-001`, `FR-INT-002`
 - [x] **3.2 통합 데일리 뷰**
   - 완료: 특정 날짜의 일정+할일을 하나의 타임라인으로.
+  - 파일: `src/features/calendar/hooks/useDayItems.ts`, `src/features/calendar/components/DayDetailPanel.tsx`, `App.tsx`
   - 요구사항: `FR-INT-003`
 - [x] **3.3 일정→할일 파생**
   - 완료: 일정 상세에서 "할일로 추가"로 연관 Todo 생성(event_id).
+  - 파일: `src/features/calendar/components/EventDetailSheet.tsx`, `src/features/todo/api/todos.ts` (createTodoFromEvent), `src/db/migrate.ts` (0006_add_event_id_to_todos)
   - 요구사항: `FR-INT-004`
 - [ ] **3.4 색상 커스터마이징 UI**
   - 완료: 카테고리·강조색 변경 화면, 다크모드 토글, 영속화.
