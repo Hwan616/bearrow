@@ -90,8 +90,9 @@
 
 ## Phase 4 — 동기화·백엔드
 
-- [ ] **4.1 Supabase 연결·인증**
+- [x] **4.1 Supabase 연결·인증**
   - 완료: Supabase 클라이언트, Google OAuth 로그인/로그아웃, 세션 영속화.
+  - 파일: `src/lib/supabase.ts`, `src/features/auth/api/auth.ts`, `src/features/auth/hooks/useAuth.ts`, `src/features/settings/components/SettingsScreen.tsx`
   - 요구사항: `FR-SYNC-001`, `IF-003`, `NFR-SEC-001`
 - [ ] **4.2 동기화 엔진(push/pull)**
   - 완료: 변경 큐, updatedAt 기반 충돌 해결, 백엔드 push/pull + 테스트.

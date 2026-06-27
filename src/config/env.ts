@@ -39,3 +39,9 @@ export function resolveConfig(appEnv: string | undefined): AppConfig {
 }
 
 export const config = resolveConfig(process.env.APP_ENV);
+
+// Supabase — 빌드 시 EXPO_PUBLIC_ 변수로 주입 (모든 환경 공통)
+export const supabaseConfig = {
+  url: process.env.EXPO_PUBLIC_SUPABASE_URL ?? "",
+  anonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "",
+} as const;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { getCategories, updateCategory } from "@/features/category/api/categories";
 import { CATEGORY_COLORS } from "@/features/category/types";
 import type { Category } from "@/features/category/types";
@@ -15,6 +16,7 @@ const MODE_OPTIONS: { label: string; value: ThemeMode }[] = [
 
 export function SettingsScreen() {
   const { colors, mode, setMode, accentColor, setAccentColor } = useTheme();
+  const { user, isLoading: authLoading, signIn, signOut } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [expandedCatId, setExpandedCatId] = useState<string | null>(null);
   const s = makeStyles(colors);
@@ -33,9 +35,62 @@ export function SettingsScreen() {
     }
   }
 
+  async function handleSignIn() {
+    try {
+      await signIn();
+    } catch {
+      Alert.alert("오류", "로그인에 실패했습니다.");
+    }
+  }
+
+  async function handleSignOut() {
+    try {
+      await signOut();
+    } catch {
+      Alert.alert("오류", "로그아웃에 실패했습니다.");
+    }
+  }
+
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
       <Text style={s.screenTitle}>설정</Text>
+
+      {/* ── 계정 ────────────────────────────────────────────── */}
+      <Text style={s.sectionTitle}>계정</Text>
+      <View style={[s.card, { backgroundColor: colors.surface.default }]}>
+        {authLoading ? (
+          <Text style={[s.catName, { color: colors.text.disabled, paddingVertical: 12 }]}>
+            불러오는 중…
+          </Text>
+        ) : user ? (
+          <View style={s.accountRow}>
+            {user.avatarUrl ? (
+              <Image source={{ uri: user.avatarUrl }} style={s.avatar} />
+            ) : (
+              <View style={[s.avatarPlaceholder, { backgroundColor: colors.accent.primaryLight }]}>
+                <Text style={[s.avatarInitial, { color: colors.accent.primary }]}>
+                  {(user.displayName ?? user.email ?? "?")[0]?.toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              {user.displayName ? (
+                <Text style={[s.catName, { color: colors.text.primary }]}>{user.displayName}</Text>
+              ) : null}
+              <Text style={[s.infoText, { color: colors.text.secondary }]}>{user.email}</Text>
+            </View>
+            <Pressable onPress={handleSignOut} style={s.signOutBtn}>
+              <Text style={[s.signOutText, { color: colors.status.error }]}>로그아웃</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable style={s.signInRow} onPress={handleSignIn}>
+            <Text style={[s.signInText, { color: colors.accent.primary }]}>
+              Google로 로그인
+            </Text>
+          </Pressable>
+        )}
+      </View>
 
       {/* ── 화면 모드 ────────────────────────────────────────── */}
       <Text style={s.sectionTitle}>화면 모드</Text>
@@ -234,5 +289,50 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     divider: {
       height: StyleSheet.hairlineWidth,
+    },
+
+    // 계정
+    accountRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingVertical: 8,
+    },
+    avatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+    },
+    avatarPlaceholder: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    avatarInitial: {
+      fontSize: 18,
+      fontWeight: "700",
+    },
+    infoText: {
+      fontSize: 13,
+      marginTop: 2,
+    },
+    signOutBtn: {
+      minHeight: 44,
+      justifyContent: "center",
+      paddingHorizontal: 4,
+    },
+    signOutText: {
+      fontSize: 14,
+      fontWeight: "500",
+    },
+    signInRow: {
+      minHeight: 44,
+      justifyContent: "center",
+    },
+    signInText: {
+      fontSize: 16,
+      fontWeight: "500",
     },
   });

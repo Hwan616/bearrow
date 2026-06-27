@@ -19,17 +19,21 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
+    "@supabase/supabase-js": "^2.108.2",
     "drizzle-orm": "^0.45.2",
     "expo": "~54.0.0",
     "expo-crypto": "~15.0.9",
+    "expo-linking": "~8.0.12",
     "expo-notifications": "~0.32.17",
     "expo-secure-store": "~14.0.0",
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~2.0.0",
+    "expo-web-browser": "~15.0.11",
     "react": "19.1.0",
     "react-hook-form": "^7.80.0",
     "react-native": "0.81.0",
     "react-native-gesture-handler": "~2.28.0",
+    "react-native-url-polyfill": "^3.0.0",
     "rrule": "^2.8.1"
   },
   "devDependencies": {
