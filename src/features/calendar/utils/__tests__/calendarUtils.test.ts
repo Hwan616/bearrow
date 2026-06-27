@@ -120,6 +120,7 @@ const makeEvent = (
   categoryId: null,
   source: "local",
   externalId: null,
+  reminderMinutes: null,
   rrule: null,
   recurringEventId: null,
   exceptionDate: null,

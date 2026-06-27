@@ -33,6 +33,10 @@ const MIGRATIONS: Migration[] = [
       ALTER TABLE events ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    name: "0003_add_reminder",
+    sql: `ALTER TABLE events ADD COLUMN reminder_minutes INTEGER;`,
+  },
 ];
 
 // 앱 시작 시 한 번 호출한다 (예: App.tsx useEffect).

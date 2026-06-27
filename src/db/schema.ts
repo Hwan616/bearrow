@@ -16,6 +16,8 @@ export const events = sqliteTable("events", {
     .notNull()
     .default("local"),
   externalId: text("external_id"),
+  // 알림
+  reminderMinutes: int("reminder_minutes"),                               // null = 알림 없음, 0 = 정시, N = N분 전
   // 반복 일정
   rrule: text("rrule"),                                                   // 마스터: RRULE 문자열 (e.g. "FREQ=DAILY")
   recurringEventId: text("recurring_event_id"),                           // 예외: 마스터 id 참조

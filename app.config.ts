@@ -25,7 +25,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     newArchEnabled: true,
     ios: { bundleIdentifier: variant.id, supportsTablet: true },
     android: { package: variant.id },
-    plugins: ["expo-secure-store", "expo-sqlite", "@react-native-community/datetimepicker"],
+    plugins: [
+      "expo-secure-store",
+      "expo-sqlite",
+      "@react-native-community/datetimepicker",
+      ["expo-notifications", { icon: "./assets/adaptive-icon.png", color: "#2E5AAC" }],
+    ],
     extra: {
       appEnv: APP_ENV,
     },

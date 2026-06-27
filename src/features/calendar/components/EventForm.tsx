@@ -18,6 +18,7 @@ import type { ColorTokens } from "@/theme/tokens";
 
 import { createEvent, updateEvent } from "../api/events";
 import type { Event } from "../types";
+import { cancelEventNotification, scheduleEventNotification } from "../api/notifications";
 import {
   type EventFormValues,
   type RecurrenceOption,
@@ -26,6 +27,11 @@ import {
   makeDefaultValues,
   validateEventTimes,
 } from "../utils/eventFormUtils";
+import {
+  REMINDER_OPTIONS,
+  getReminderLabel,
+  shouldScheduleNotification,
+} from "../utils/notificationUtils";
 const RECURRENCE_OPTIONS: { value: RecurrenceOption; label: string }[] = [
   { value: "none", label: "반복 없음" },
   { value: "daily", label: "매일" },
@@ -76,6 +82,16 @@ export function EventForm({ initialEvent, initialDate, onSave, onCancel }: Props
         await updateEvent(id, data);
       } else {
         await createEvent(data);
+      }
+      // 기존 알림 취소 후 조건 충족 시 재예약
+      await cancelEventNotification(id);
+      if (shouldScheduleNotification(data.startsAt, data.reminderMinutes ?? null)) {
+        await scheduleEventNotification({
+          id: data.id,
+          title: data.title,
+          startsAt: data.startsAt,
+          reminderMinutes: data.reminderMinutes ?? null,
+        });
       }
       onSave();
     } catch {
@@ -171,6 +187,21 @@ export function EventForm({ initialEvent, initialDate, onSave, onCancel }: Props
                 value={field.value}
                 onChange={field.onChange}
                 isAllDay={isAllDay}
+                colors={colors}
+              />
+            )}
+          />
+        </View>
+
+        {/* 알림 */}
+        <View style={styles.section}>
+          <Controller
+            control={control}
+            name="reminderMinutes"
+            render={({ field }) => (
+              <ReminderPicker
+                value={field.value}
+                onChange={field.onChange}
                 colors={colors}
               />
             )}
@@ -346,6 +377,49 @@ function RecurrencePicker({ value, onChange, colors }: RecurrencePickerProps) {
           )}
         </View>
       ))}
+    </View>
+  );
+}
+
+// ── ReminderPicker ─────────────────────────────────────────────────────────
+
+interface ReminderPickerProps {
+  value: number | null;
+  onChange: (v: number | null) => void;
+  colors: ColorTokens;
+}
+
+function ReminderPicker({ value, onChange, colors }: ReminderPickerProps) {
+  const styles = makeStyles(colors);
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <View>
+      <Pressable style={styles.row} onPress={() => setExpanded((v) => !v)}>
+        <Text style={styles.label}>알림</Text>
+        <Text style={[styles.dateLabel, { color: colors.accent.primary }]}>
+          {getReminderLabel(value)}
+        </Text>
+      </Pressable>
+      {expanded &&
+        REMINDER_OPTIONS.map((opt, idx) => (
+          <View key={String(opt.minutes)}>
+            <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
+            <Pressable
+              style={styles.row}
+              onPress={() => {
+                onChange(opt.minutes);
+                setExpanded(false);
+              }}
+              accessibilityRole="menuitem"
+            >
+              <Text style={[styles.label, { fontSize: 15 }]}>{opt.label}</Text>
+              {value === opt.minutes && (
+                <Text style={{ color: colors.accent.primary, fontSize: 18 }}>✓</Text>
+              )}
+            </Pressable>
+          </View>
+        ))}
     </View>
   );
 }

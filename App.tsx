@@ -6,6 +6,10 @@ import { sqliteDb } from "@/db/client";
 import { runMigrations } from "@/db/migrate";
 import { EventForm } from "@/features/calendar/components/EventForm";
 import { MonthView } from "@/features/calendar/components/MonthView";
+import {
+  requestNotificationPermission,
+  setupNotificationHandler,
+} from "@/features/calendar/api/notifications";
 import { useTheme } from "@/theme";
 
 export default function App() {
@@ -16,7 +20,11 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   useEffect(() => {
-    runMigrations(sqliteDb).then(() => setReady(true));
+    setupNotificationHandler();
+    runMigrations(sqliteDb).then(async () => {
+      await requestNotificationPermission();
+      setReady(true);
+    });
   }, []);
 
   function handleSave() {

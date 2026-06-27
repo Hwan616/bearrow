@@ -48,6 +48,7 @@ describe("makeDefaultValues", () => {
       categoryId: null,
       source: "local" as const,
       externalId: null,
+      reminderMinutes: null,
       rrule: null,
       recurringEventId: null,
       exceptionDate: null,
@@ -74,6 +75,7 @@ describe("makeDefaultValues", () => {
       categoryId: null,
       source: "local" as const,
       externalId: null,
+      reminderMinutes: null,
       rrule: null,
       recurringEventId: null,
       exceptionDate: null,
@@ -128,7 +130,7 @@ describe("buildNewEvent", () => {
   it("일반 이벤트 빌드", () => {
     const result = buildNewEvent(
       "uuid-1",
-      { title: "  팀 회의  ", isAllDay: false, startsAt: makeDate(9), endsAt: makeDate(10), note: "  메모  ", recurrence: "none" as const },
+      { title: "  팀 회의  ", isAllDay: false, startsAt: makeDate(9), endsAt: makeDate(10), note: "  메모  ", recurrence: "none" as const, reminderMinutes: null },
       now,
     );
     expect(result.id).toBe("uuid-1");
@@ -144,7 +146,7 @@ describe("buildNewEvent", () => {
   it("note가 공백만이면 null로 저장", () => {
     const result = buildNewEvent(
       "uuid-2",
-      { title: "점심", isAllDay: false, startsAt: makeDate(12), endsAt: makeDate(13), note: "   ", recurrence: "none" as const },
+      { title: "점심", isAllDay: false, startsAt: makeDate(12), endsAt: makeDate(13), note: "   ", recurrence: "none" as const, reminderMinutes: null },
       now,
     );
     expect(result.note).toBeNull();
@@ -153,7 +155,7 @@ describe("buildNewEvent", () => {
   it("종일 이벤트는 시각이 자정/23:59로 정규화된다", () => {
     const result = buildNewEvent(
       "uuid-3",
-      { title: "출장", isAllDay: true, startsAt: makeDate(9), endsAt: makeDate(10), note: "", recurrence: "none" as const },
+      { title: "출장", isAllDay: true, startsAt: makeDate(9), endsAt: makeDate(10), note: "", recurrence: "none" as const, reminderMinutes: null },
       now,
     );
     expect(result.isAllDay).toBe(true);
