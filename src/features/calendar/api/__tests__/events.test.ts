@@ -31,6 +31,9 @@ jest.mock("drizzle-orm", () => ({
   and: jest.fn((...args) => ({ op: "and", args })),
   gte: jest.fn((col, val) => ({ op: "gte", col, val })),
   lte: jest.fn((col, val) => ({ op: "lte", col, val })),
+  isNull: jest.fn((col) => ({ op: "isNull", col })),
+  isNotNull: jest.fn((col) => ({ op: "isNotNull", col })),
+  inArray: jest.fn((col, vals) => ({ op: "inArray", col, vals })),
 }));
 
 // ── fixtures ─────────────────────────────────────────────────────────────────
@@ -90,36 +93,46 @@ describe("getEventById", () => {
 });
 
 // ── getEventsByDateRange ──────────────────────────────────────────────────────
+// getEventsByDateRange는 3단계 쿼리 (비반복 → 마스터 → 예외) 를 실행한다.
+// mockReturnValueOnce로 호출 순서별 반환값을 설정한다.
 
 describe("getEventsByDateRange", () => {
   const rangeFrom = new Date("2026-06-01T00:00:00Z");
   const rangeTo = new Date("2026-06-30T23:59:59Z");
 
-  it("범위 내 이벤트 목록을 반환한다", async () => {
-    mockWhereForSelect.mockResolvedValue([mockEvent]);
+  function setupQueries(regularEvents: unknown[], masterEvents: unknown[] = []) {
+    const regularWhere = jest.fn().mockResolvedValue(regularEvents);
+    const masterWhere = jest.fn().mockResolvedValue(masterEvents);
+    mockFrom
+      .mockReturnValueOnce({ where: regularWhere })
+      .mockReturnValueOnce({ where: masterWhere });
+  }
+
+  it("비반복 이벤트 목록을 반환한다", async () => {
+    setupQueries([mockEvent]);
     const result = await getEventsByDateRange(rangeFrom, rangeTo);
     expect(result).toEqual([mockEvent]);
   });
 
   it("범위 내 이벤트가 없으면 빈 배열을 반환한다", async () => {
-    mockWhereForSelect.mockResolvedValue([]);
+    setupQueries([]);
     const result = await getEventsByDateRange(rangeFrom, rangeTo);
     expect(result).toEqual([]);
   });
 
-  it("and(lte(startsAt, to), gte(endsAt, from)) overlap 조건을 사용한다", async () => {
-    const { and, lte, gte } = jest.requireMock("drizzle-orm") as {
-      and: jest.Mock;
+  it("비반복 이벤트 쿼리에 overlap + isNull 조건을 사용한다", async () => {
+    const { lte, gte, isNull } = jest.requireMock("drizzle-orm") as {
       lte: jest.Mock;
       gte: jest.Mock;
+      isNull: jest.Mock;
     };
-    mockWhereForSelect.mockResolvedValue([]);
+    setupQueries([]);
 
     await getEventsByDateRange(rangeFrom, rangeTo);
 
     expect(lte).toHaveBeenCalledWith(expect.anything(), rangeTo);
     expect(gte).toHaveBeenCalledWith(expect.anything(), rangeFrom);
-    expect(and).toHaveBeenCalled();
+    expect(isNull).toHaveBeenCalled();
   });
 });
 

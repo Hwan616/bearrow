@@ -1,4 +1,7 @@
 import type { Event, NewEvent } from "../types";
+import { type RecurrenceOption, buildRRuleString } from "./rruleUtils";
+
+export type { RecurrenceOption };
 
 export type EventFormValues = {
   title: string;
@@ -6,6 +9,7 @@ export type EventFormValues = {
   startsAt: Date;
   endsAt: Date;
   note: string;
+  recurrence: RecurrenceOption;
 };
 
 // 폼 기본값 — 신규: 다음 정시~+1시간, 편집: 기존 값
@@ -20,6 +24,7 @@ export function makeDefaultValues(
       startsAt: event.startsAt,
       endsAt: event.endsAt,
       note: event.note ?? "",
+      recurrence: "none",
     };
   }
   const start = new Date(base);
@@ -27,7 +32,7 @@ export function makeDefaultValues(
   start.setHours(start.getHours() + 1);
   const end = new Date(start);
   end.setHours(end.getHours() + 1);
-  return { title: "", isAllDay: false, startsAt: start, endsAt: end, note: "" };
+  return { title: "", isAllDay: false, startsAt: start, endsAt: end, note: "", recurrence: "none" };
 }
 
 // 시간 유효성 검사 — 오류 메시지 또는 null
@@ -68,6 +73,10 @@ export function buildNewEvent(
     categoryId: null,
     source: "local",
     externalId: null,
+    rrule: values.recurrence !== "none" ? buildRRuleString(values.recurrence, startsAt) : null,
+    recurringEventId: null,
+    exceptionDate: null,
+    isDeleted: false,
     updatedAt: now,
   };
 }

@@ -120,6 +120,10 @@ const makeEvent = (
   categoryId: null,
   source: "local",
   externalId: null,
+  rrule: null,
+  recurringEventId: null,
+  exceptionDate: null,
+  isDeleted: false,
   updatedAt: new Date(),
   ...overrides,
 });

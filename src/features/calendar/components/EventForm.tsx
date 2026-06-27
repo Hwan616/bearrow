@@ -20,11 +20,18 @@ import { createEvent, updateEvent } from "../api/events";
 import type { Event } from "../types";
 import {
   type EventFormValues,
+  type RecurrenceOption,
   buildNewEvent,
   formatDateTimeLabel,
   makeDefaultValues,
   validateEventTimes,
 } from "../utils/eventFormUtils";
+const RECURRENCE_OPTIONS: { value: RecurrenceOption; label: string }[] = [
+  { value: "none", label: "반복 없음" },
+  { value: "daily", label: "매일" },
+  { value: "weekly", label: "매주" },
+  { value: "monthly", label: "매월" },
+];
 
 // DateTimePicker는 웹에서 사용 불가 — 플랫폼별 조건부 require
 const DateTimePicker =
@@ -170,6 +177,21 @@ export function EventForm({ initialEvent, initialDate, onSave, onCancel }: Props
           />
         </View>
 
+        {/* 반복 */}
+        <View style={styles.section}>
+          <Controller
+            control={control}
+            name="recurrence"
+            render={({ field }) => (
+              <RecurrencePicker
+                value={field.value}
+                onChange={field.onChange}
+                colors={colors}
+              />
+            )}
+          />
+        </View>
+
         {/* 메모 */}
         <View style={styles.section}>
           <Controller
@@ -290,6 +312,40 @@ function DateTimeField({ label, value, onChange, isAllDay, colors }: DateTimeFie
           onChange={handleAndroidChange}
         />
       )}
+    </View>
+  );
+}
+
+// ── RecurrencePicker ───────────────────────────────────────────────────────
+
+interface RecurrencePickerProps {
+  value: RecurrenceOption;
+  onChange: (v: RecurrenceOption) => void;
+  colors: ColorTokens;
+}
+
+function RecurrencePicker({ value, onChange, colors }: RecurrencePickerProps) {
+  const styles = makeStyles(colors);
+  return (
+    <View>
+      {RECURRENCE_OPTIONS.map((opt, idx) => (
+        <View key={opt.value}>
+          <Pressable
+            style={styles.row}
+            onPress={() => onChange(opt.value)}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: value === opt.value }}
+          >
+            <Text style={styles.label}>{opt.label}</Text>
+            {value === opt.value && (
+              <Text style={{ color: colors.accent.primary, fontSize: 18 }}>✓</Text>
+            )}
+          </Pressable>
+          {idx < RECURRENCE_OPTIONS.length - 1 && (
+            <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
+          )}
+        </View>
+      ))}
     </View>
   );
 }

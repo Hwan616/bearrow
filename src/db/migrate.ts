@@ -24,6 +24,15 @@ const MIGRATIONS: Migration[] = [
       )
     `,
   },
+  {
+    name: "0002_add_recurrence",
+    sql: `
+      ALTER TABLE events ADD COLUMN rrule TEXT;
+      ALTER TABLE events ADD COLUMN recurring_event_id TEXT;
+      ALTER TABLE events ADD COLUMN exception_date INTEGER;
+      ALTER TABLE events ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];
 
 // 앱 시작 시 한 번 호출한다 (예: App.tsx useEffect).
