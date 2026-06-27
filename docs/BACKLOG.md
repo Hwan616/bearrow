@@ -83,8 +83,9 @@
   - 완료: 일정 상세에서 "할일로 추가"로 연관 Todo 생성(event_id).
   - 파일: `src/features/calendar/components/EventDetailSheet.tsx`, `src/features/todo/api/todos.ts` (createTodoFromEvent), `src/db/migrate.ts` (0006_add_event_id_to_todos)
   - 요구사항: `FR-INT-004`
-- [ ] **3.4 색상 커스터마이징 UI**
+- [x] **3.4 색상 커스터마이징 UI**
   - 완료: 카테고리·강조색 변경 화면, 다크모드 토글, 영속화.
+  - 파일: `src/theme/ThemeContext.tsx`, `src/theme/resolve.ts`, `src/features/settings/components/SettingsScreen.tsx`, `App.tsx`
   - 요구사항: `UI-002`
 
 ## Phase 4 — 동기화·백엔드

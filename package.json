@@ -17,6 +17,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
     "drizzle-orm": "^0.45.2",
     "expo": "~54.0.0",
@@ -46,7 +47,8 @@
   "jest": {
     "preset": "jest-expo",
     "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/src/$1"
+      "^@/(.*)$": "<rootDir>/src/$1",
+      "@react-native-async-storage/async-storage": "@react-native-async-storage/async-storage/jest/async-storage-mock"
     }
   }
 }

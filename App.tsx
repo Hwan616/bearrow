@@ -14,10 +14,11 @@ import { EventDetailSheet } from "@/features/calendar/components/EventDetailShee
 import { EventForm } from "@/features/calendar/components/EventForm";
 import { MonthView } from "@/features/calendar/components/MonthView";
 import type { Event } from "@/features/calendar/types";
+import { SettingsScreen } from "@/features/settings/components/SettingsScreen";
 import { TodoForm } from "@/features/todo/components/TodoForm";
 import { TodoList } from "@/features/todo/components/TodoList";
 import { useTodos } from "@/features/todo/hooks/useTodos";
-import { useTheme } from "@/theme";
+import { ThemeProvider, useTheme } from "@/theme";
 
 // DateTimePicker — 마감일 편집 모달용 (네이티브 전용)
 const DateTimePicker =
@@ -25,9 +26,17 @@ const DateTimePicker =
     ? (require("@react-native-community/datetimepicker") as { default: React.ComponentType<Record<string, unknown>> }).default
     : null;
 
-type Tab = "calendar" | "todo";
+type Tab = "calendar" | "todo" | "settings";
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  );
+}
+
+function AppContent() {
   const { colors } = useTheme();
   const [ready, setReady] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("calendar");
@@ -104,7 +113,7 @@ export default function App() {
         <StatusBar style="auto" />
 
         {/* 탭 콘텐츠 */}
-        {activeTab === "calendar" ? (
+        {activeTab === "calendar" && (
           <View style={{ flex: 1 }}>
             <MonthView key={calendarKey} onDayPress={(date) => setSelectedDate(date)} />
             <DayDetailPanel
@@ -113,7 +122,8 @@ export default function App() {
               onEventPress={(event) => setSelectedEvent(event)}
             />
           </View>
-        ) : (
+        )}
+        {activeTab === "todo" && (
           <TodoList
             sections={sections}
             onToggle={handleToggle}
@@ -121,9 +131,10 @@ export default function App() {
             onEditDueDate={handleEditDueDate}
           />
         )}
+        {activeTab === "settings" && <SettingsScreen />}
 
-        {/* 탭별 FAB */}
-        {activeTab === "calendar" ? (
+        {/* 탭별 FAB — 설정 탭에는 FAB 없음 */}
+        {activeTab === "calendar" && (
           <Pressable
             style={[styles.fab, { backgroundColor: colors.accent.primary }]}
             onPress={() => setEventFormVisible(true)}
@@ -131,7 +142,8 @@ export default function App() {
           >
             <Text style={styles.fabIcon}>＋</Text>
           </Pressable>
-        ) : (
+        )}
+        {activeTab === "todo" && (
           <Pressable
             style={[styles.fab, { backgroundColor: colors.accent.primary }]}
             onPress={() => setTodoFormVisible(true)}
@@ -183,6 +195,25 @@ export default function App() {
               ]}
             >
               할일
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.tab}
+            onPress={() => setActiveTab("settings")}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === "settings" }}
+          >
+            <Text style={[styles.tabIcon, activeTab === "settings" && { color: colors.accent.primary }]}>
+              ⚙️
+            </Text>
+            <Text
+              style={[
+                styles.tabLabel,
+                { color: activeTab === "settings" ? colors.accent.primary : colors.text.secondary },
+              ]}
+            >
+              설정
             </Text>
           </Pressable>
         </View>
