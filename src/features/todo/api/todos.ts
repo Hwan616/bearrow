@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, gte, isNotNull, lte } from "drizzle-orm";
 
 import { db } from "@/db/client";
 import { todos } from "@/db/schema";
@@ -32,6 +32,15 @@ export async function updateTodo(
 
 export async function deleteTodo(id: string): Promise<void> {
   await db.delete(todos).where(eq(todos.id, id));
+}
+
+// 마감일이 from~to 범위 내에 있는 할일 반환 (캘린더 연동용)
+export async function getTodosByDueDateRange(from: Date, to: Date): Promise<Todo[]> {
+  return db
+    .select()
+    .from(todos)
+    .where(and(isNotNull(todos.dueDate), gte(todos.dueDate, from), lte(todos.dueDate, to)))
+    .orderBy(asc(todos.dueDate), asc(todos.sortOrder));
 }
 
 // 완료 상태 전환 — completed=true이면 completedAt을 현재 시각으로, false이면 null로

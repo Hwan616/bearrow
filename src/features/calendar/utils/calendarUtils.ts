@@ -71,6 +71,11 @@ export function getEventsForDay(events: Event[], day: Date): Event[] {
   );
 }
 
+// 특정 날짜에 마감일이 있는 항목 반환 (Todo 외 다른 타입에도 재사용 가능)
+export function getTodosForDay<T extends { dueDate?: Date | null }>(items: T[], day: Date): T[] {
+  return items.filter((t) => t.dueDate != null && isSameDay(t.dueDate, day));
+}
+
 export function formatMonthTitle(year: number, month: number): string {
   return new Intl.DateTimeFormat("ko", {
     year: "numeric",

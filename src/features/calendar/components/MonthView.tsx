@@ -3,17 +3,18 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useTheme } from "@/theme";
 
-import { useMonthEvents } from "../hooks/useMonthEvents";
+import { useMonthItems } from "../hooks/useMonthItems";
 import { type Event } from "../types";
 import {
   buildMonthGrid,
   formatMonthTitle,
   getEventsForDay,
+  getTodosForDay,
   isSameDay,
 } from "../utils/calendarUtils";
 
 const DAYS_OF_WEEK = ["일", "월", "화", "수", "목", "금", "토"] as const;
-const MAX_DOTS = 3;
+const MAX_EVENT_DOTS = 2; // 이벤트 최대 2개 점 + 할일 1개 점 = 최대 3개
 
 interface MonthViewProps {
   initialDate?: Date;
@@ -27,7 +28,7 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const { colors } = useTheme();
-  const { events } = useMonthEvents(year, month);
+  const { events, dueTodos } = useMonthItems(year, month);
   const today = new Date();
   const grid = buildMonthGrid(year, month, today);
 
@@ -85,6 +86,7 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
       <View style={s.grid}>
         {grid.map(({ date, isCurrentMonth, isToday }) => {
           const dayEvents = getEventsForDay(events, date);
+          const dayTodos = getTodosForDay(dueTodos, date);
           const isSelected = selectedDate != null && isSameDay(date, selectedDate);
           const isSun = date.getDay() === 0;
           const isSat = date.getDay() === 6;
@@ -115,14 +117,14 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
                 </Text>
               </View>
 
-              {/* 이벤트 점 */}
+              {/* 이벤트 점(파랑) + 할일 마감 점(초록) */}
               <View style={s.dots}>
-                {dayEvents.slice(0, MAX_DOTS).map((e) => (
-                  <View
-                    key={e.id}
-                    style={[s.dot, { backgroundColor: colors.accent.primary }]}
-                  />
+                {dayEvents.slice(0, MAX_EVENT_DOTS).map((e) => (
+                  <View key={e.id} style={[s.dot, { backgroundColor: colors.accent.primary }]} />
                 ))}
+                {dayTodos.length > 0 && (
+                  <View style={[s.dot, { backgroundColor: colors.status.success }]} />
+                )}
               </View>
             </Pressable>
           );

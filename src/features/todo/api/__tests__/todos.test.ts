@@ -2,6 +2,7 @@ import {
   createTodo,
   deleteTodo,
   getTodos,
+  getTodosByDueDateRange,
   toggleTodo,
   updateTodo,
 } from "../todos";
@@ -15,6 +16,7 @@ const mockTodoOrderBy = jest.fn();
 const mockTodoSet = jest.fn();
 const mockTodoUpdateWhere = jest.fn();
 const mockTodoDeleteWhere = jest.fn();
+const mockTodoWhere = jest.fn(); // select().from().where().orderBy() 용
 
 jest.mock("@/db/client", () => ({
   db: {
@@ -28,6 +30,10 @@ jest.mock("@/db/client", () => ({
 jest.mock("drizzle-orm", () => ({
   eq: jest.fn((col, val) => ({ op: "eq", col, val })),
   asc: jest.fn((col) => ({ op: "asc", col })),
+  and: jest.fn((...args) => ({ op: "and", args })),
+  gte: jest.fn((col, val) => ({ op: "gte", col, val })),
+  lte: jest.fn((col, val) => ({ op: "lte", col, val })),
+  isNotNull: jest.fn((col) => ({ op: "isNotNull", col })),
 }));
 
 // ── fixtures ────────────────────────────────────────────────────────────────
@@ -50,7 +56,8 @@ const mockTodo = {
 beforeEach(() => {
   jest.clearAllMocks();
   mockTodoValues.mockReturnValue({ returning: mockTodoReturning });
-  mockTodoFrom.mockReturnValue({ orderBy: mockTodoOrderBy });
+  mockTodoFrom.mockReturnValue({ orderBy: mockTodoOrderBy, where: mockTodoWhere });
+  mockTodoWhere.mockReturnValue({ orderBy: mockTodoOrderBy });
   mockTodoOrderBy.mockResolvedValue([mockTodo]);
   mockTodoSet.mockReturnValue({ where: mockTodoUpdateWhere });
   // updateTodo: set().where().returning()
@@ -137,6 +144,26 @@ describe("deleteTodo", () => {
   it("할일을 삭제한다", async () => {
     await deleteTodo("todo-1");
     expect(mockTodoDeleteWhere).toHaveBeenCalled();
+  });
+});
+
+// ── getTodosByDueDateRange ──────────────────────────────────────────────────
+
+describe("getTodosByDueDateRange", () => {
+  it("마감일 범위 내 할일을 정렬해서 반환한다", async () => {
+    const from = new Date(2026, 5, 1);
+    const to = new Date(2026, 5, 30);
+    mockTodoOrderBy.mockResolvedValue([mockTodo]);
+    const result = await getTodosByDueDateRange(from, to);
+    expect(mockTodoFrom).toHaveBeenCalled();
+    expect(mockTodoWhere).toHaveBeenCalled();
+    expect(mockTodoOrderBy).toHaveBeenCalled();
+    expect(result).toEqual([mockTodo]);
+  });
+
+  it("빈 결과를 반환할 수 있다", async () => {
+    mockTodoOrderBy.mockResolvedValue([]);
+    expect(await getTodosByDueDateRange(new Date(), new Date())).toEqual([]);
   });
 });
 

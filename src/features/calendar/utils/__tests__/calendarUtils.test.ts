@@ -2,6 +2,7 @@ import {
   buildMonthGrid,
   getEventsForDay,
   getMonthDateRange,
+  getTodosForDay,
   isSameDay,
 } from "../calendarUtils";
 import { type Event } from "../../types";
@@ -177,5 +178,41 @@ describe("getEventsForDay", () => {
     const result = getEventsForDay(events, day);
     expect(result).toHaveLength(2);
     expect(result.map((e) => e.id)).toEqual(expect.arrayContaining(["a", "c"]));
+  });
+});
+
+// ── getTodosForDay ────────────────────────────────────────────────────────────
+
+describe("getTodosForDay", () => {
+  const day = new Date(2026, 5, 15); // 6월 15일
+
+  function makeDueTodo(id: string, dueDate: Date | null) {
+    return { id, dueDate };
+  }
+
+  it("마감일이 해당 날짜인 항목만 반환한다", () => {
+    const items = [
+      makeDueTodo("t1", new Date(2026, 5, 15, 8, 0)),  // 당일
+      makeDueTodo("t2", new Date(2026, 5, 16)),         // 다음날 — 제외
+      makeDueTodo("t3", new Date(2026, 5, 15, 23, 59)), // 당일 다른 시각
+    ];
+    const result = getTodosForDay(items, day);
+    expect(result.map((t) => t.id)).toEqual(["t1", "t3"]);
+  });
+
+  it("마감일이 null인 항목은 제외한다", () => {
+    const items = [makeDueTodo("t1", null), makeDueTodo("t2", new Date(2026, 5, 15))];
+    const result = getTodosForDay(items, day);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe("t2");
+  });
+
+  it("해당 날짜 항목이 없으면 빈 배열을 반환한다", () => {
+    const items = [makeDueTodo("t1", new Date(2026, 5, 20))];
+    expect(getTodosForDay(items, day)).toEqual([]);
+  });
+
+  it("빈 배열 입력이면 빈 배열을 반환한다", () => {
+    expect(getTodosForDay([], day)).toEqual([]);
   });
 });
