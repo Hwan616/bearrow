@@ -1,4 +1,5 @@
 import { and, asc, eq, gte, isNotNull, lte } from "drizzle-orm";
+import * as Crypto from "expo-crypto";
 
 import { db } from "@/db/client";
 import { todos } from "@/db/schema";
@@ -41,6 +42,29 @@ export async function getTodosByDueDateRange(from: Date, to: Date): Promise<Todo
     .from(todos)
     .where(and(isNotNull(todos.dueDate), gte(todos.dueDate, from), lte(todos.dueDate, to)))
     .orderBy(asc(todos.dueDate), asc(todos.sortOrder));
+}
+
+// 이벤트에서 할일 파생 — title·마감일·eventId를 이벤트에서 채운다 (FR-INT-004)
+export async function createTodoFromEvent(
+  event: { id: string; title: string; startsAt: Date },
+  now: Date = new Date(),
+): Promise<Todo> {
+  const dueDate = new Date(event.startsAt);
+  dueDate.setHours(0, 0, 0, 0);
+
+  return createTodo({
+    id: Crypto.randomUUID(),
+    title: event.title,
+    note: null,
+    isCompleted: false,
+    completedAt: null,
+    dueDate,
+    categoryId: null,
+    eventId: event.id,
+    sortOrder: 0,
+    createdAt: now,
+    updatedAt: now,
+  });
 }
 
 // 완료 상태 전환 — completed=true이면 completedAt을 현재 시각으로, false이면 null로

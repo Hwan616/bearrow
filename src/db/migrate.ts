@@ -67,6 +67,10 @@ const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    name: "0006_add_event_id_to_todos",
+    sql: `ALTER TABLE todos ADD COLUMN event_id TEXT;`,
+  },
 ];
 
 // 앱 시작 시 한 번 호출한다 (예: App.tsx useEffect).

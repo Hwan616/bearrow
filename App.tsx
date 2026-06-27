@@ -10,8 +10,10 @@ import {
   setupNotificationHandler,
 } from "@/features/calendar/api/notifications";
 import { DayDetailPanel } from "@/features/calendar/components/DayDetailPanel";
+import { EventDetailSheet } from "@/features/calendar/components/EventDetailSheet";
 import { EventForm } from "@/features/calendar/components/EventForm";
 import { MonthView } from "@/features/calendar/components/MonthView";
+import type { Event } from "@/features/calendar/types";
 import { TodoForm } from "@/features/todo/components/TodoForm";
 import { TodoList } from "@/features/todo/components/TodoList";
 import { useTodos } from "@/features/todo/hooks/useTodos";
@@ -38,6 +40,9 @@ export default function App() {
   // 투두 상태
   const [todoFormVisible, setTodoFormVisible] = useState(false);
   const { sections, handleToggle, handleDelete, handleCreate, handleUpdateDueDate } = useTodos();
+
+  // 이벤트 상세 상태
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   // 마감일 편집 상태
   const [dueDateTodoId, setDueDateTodoId] = useState<string | null>(null);
@@ -105,6 +110,7 @@ export default function App() {
             <DayDetailPanel
               key={`${selectedDate.toDateString()}-${calendarKey}`}
               date={selectedDate}
+              onEventPress={(event) => setSelectedEvent(event)}
             />
           </View>
         ) : (
@@ -203,6 +209,25 @@ export default function App() {
           onRequestClose={() => setTodoFormVisible(false)}
         >
           <TodoForm onSave={handleTodoCreate} onCancel={() => setTodoFormVisible(false)} />
+        </Modal>
+
+        {/* 이벤트 상세 / 할일 파생 모달 */}
+        <Modal
+          visible={selectedEvent !== null}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setSelectedEvent(null)}
+        >
+          {selectedEvent && (
+            <EventDetailSheet
+              event={selectedEvent}
+              onClose={() => setSelectedEvent(null)}
+              onTodoCreated={() => {
+                setSelectedEvent(null);
+                setCalendarKey((k) => k + 1);
+              }}
+            />
+          )}
         </Modal>
 
         {/* 마감일 편집 모달 */}

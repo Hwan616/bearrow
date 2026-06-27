@@ -1,5 +1,6 @@
 import {
   createTodo,
+  createTodoFromEvent,
   deleteTodo,
   getTodos,
   getTodosByDueDateRange,
@@ -27,6 +28,10 @@ jest.mock("@/db/client", () => ({
   },
 }));
 
+jest.mock("expo-crypto", () => ({
+  randomUUID: jest.fn(() => "mock-uuid"),
+}));
+
 jest.mock("drizzle-orm", () => ({
   eq: jest.fn((col, val) => ({ op: "eq", col, val })),
   asc: jest.fn((col) => ({ op: "asc", col })),
@@ -48,6 +53,7 @@ const mockTodo = {
   completedAt: null,
   dueDate: null,
   categoryId: null,
+  eventId: null,
   sortOrder: 0,
   createdAt: now,
   updatedAt: now,
@@ -164,6 +170,32 @@ describe("getTodosByDueDateRange", () => {
   it("빈 결과를 반환할 수 있다", async () => {
     mockTodoOrderBy.mockResolvedValue([]);
     expect(await getTodosByDueDateRange(new Date(), new Date())).toEqual([]);
+  });
+});
+
+// ── createTodoFromEvent ─────────────────────────────────────────────────────
+
+describe("createTodoFromEvent", () => {
+  it("이벤트 제목·eventId·마감일을 채워 할일을 생성한다", async () => {
+    const event = { id: "ev-1", title: "팀 미팅", startsAt: new Date(2026, 5, 15, 10, 0) };
+    const todoNow = new Date(2026, 5, 15);
+    const created = { ...mockTodo, title: "팀 미팅", eventId: "ev-1", id: "mock-uuid" };
+    mockTodoReturning.mockResolvedValue([created]);
+
+    const result = await createTodoFromEvent(event, todoNow);
+
+    expect(mockTodoValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "mock-uuid",
+        title: "팀 미팅",
+        eventId: "ev-1",
+        dueDate: new Date(2026, 5, 15, 0, 0, 0, 0),
+        isCompleted: false,
+        categoryId: null,
+      }),
+    );
+    expect(result.eventId).toBe("ev-1");
+    expect(result.title).toBe("팀 미팅");
   });
 });
 

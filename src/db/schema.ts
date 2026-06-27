@@ -33,6 +33,7 @@ export const todos = sqliteTable("todos", {
   completedAt: int("completed_at", { mode: "timestamp" }),
   dueDate: int("due_date", { mode: "timestamp" }),   // 마감일 (캘린더 연동, FR-TODO-005)
   categoryId: text("category_id"),
+  eventId: text("event_id"),                          // 파생 출처 이벤트 (FR-INT-004)
   sortOrder: int("sort_order").notNull().default(0),
   createdAt: int("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: int("updated_at", { mode: "timestamp" }).notNull(),

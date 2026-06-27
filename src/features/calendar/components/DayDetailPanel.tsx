@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import type { Todo } from "@/features/todo/types";
 import { useTheme } from "@/theme";
@@ -28,9 +28,10 @@ function formatTime(date: Date): string {
 
 interface Props {
   date: Date;
+  onEventPress?: (event: Event) => void;
 }
 
-export function DayDetailPanel({ date }: Props) {
+export function DayDetailPanel({ date, onEventPress }: Props) {
   const { colors } = useTheme();
   const { events, todos, isLoading } = useDayItems(date);
   const s = makeStyles(colors);
@@ -60,12 +61,12 @@ export function DayDetailPanel({ date }: Props) {
         <ScrollView style={s.list} showsVerticalScrollIndicator={false}>
           {/* 종일 이벤트 */}
           {allDayEvents.map((e) => (
-            <EventRow key={e.id} event={e} colors={colors} />
+            <EventRow key={e.id} event={e} colors={colors} onPress={onEventPress} />
           ))}
 
           {/* 시간 이벤트 */}
           {timedEvents.map((e) => (
-            <EventRow key={e.id} event={e} colors={colors} />
+            <EventRow key={e.id} event={e} colors={colors} onPress={onEventPress} />
           ))}
 
           {/* 할일 구분선 */}
@@ -95,12 +96,13 @@ export function DayDetailPanel({ date }: Props) {
 interface EventRowProps {
   event: Event;
   colors: ReturnType<typeof useTheme>["colors"];
+  onPress?: (event: Event) => void;
 }
 
-function EventRow({ event, colors }: EventRowProps) {
+function EventRow({ event, colors, onPress }: EventRowProps) {
   const s = makeStyles(colors);
   return (
-    <View style={s.row}>
+    <Pressable style={s.row} onPress={() => onPress?.(event)}>
       <View style={[s.eventBar, { backgroundColor: colors.accent.primary }]} />
       <View style={s.rowContent}>
         {event.isAllDay ? (
@@ -114,7 +116,7 @@ function EventRow({ event, colors }: EventRowProps) {
           {event.title}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

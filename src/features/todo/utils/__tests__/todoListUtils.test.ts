@@ -19,6 +19,7 @@ function makeTodo(id: string, categoryId: string | null = null): Todo {
     completedAt: null,
     dueDate: null,
     categoryId,
+    eventId: null,
     sortOrder: 0,
     createdAt: now,
     updatedAt: now,
