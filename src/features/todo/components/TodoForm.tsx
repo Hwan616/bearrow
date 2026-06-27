@@ -16,14 +16,23 @@ import type { Category } from "@/features/category/types";
 import { useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
 
+import { formatDueDate } from "../utils/todoDateUtils";
+
+// DateTimePicker — 네이티브 전용 조건부 require
+const DateTimePicker =
+  Platform.OS !== "web"
+    ? (require("@react-native-community/datetimepicker") as { default: React.ComponentType<Record<string, unknown>> }).default
+    : null;
+
 type FormValues = {
   title: string;
   note: string;
   categoryId: string | null;
+  dueDate: Date | null;
 };
 
 interface Props {
-  onSave: (title: string, categoryId: string | null, note?: string) => Promise<void>;
+  onSave: (title: string, categoryId: string | null, note?: string, dueDate?: Date | null) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -42,11 +51,11 @@ export function TodoForm({ onSave, onCancel }: Props) {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    defaultValues: { title: "", note: "", categoryId: null },
+    defaultValues: { title: "", note: "", categoryId: null, dueDate: null },
   });
 
   async function onSubmit(values: FormValues) {
-    await onSave(values.title, values.categoryId, values.note || undefined);
+    await onSave(values.title, values.categoryId, values.note || undefined, values.dueDate);
   }
 
   return (
@@ -108,6 +117,17 @@ export function TodoForm({ onSave, onCancel }: Props) {
             />
           </View>
         )}
+
+        {/* 마감일 */}
+        <View style={styles.section}>
+          <Controller
+            control={control}
+            name="dueDate"
+            render={({ field }) => (
+              <DueDateField value={field.value} onChange={field.onChange} colors={colors} />
+            )}
+          />
+        </View>
 
         {/* 메모 */}
         <View style={styles.section}>
@@ -180,6 +200,93 @@ function CategoryPicker({ categories, value, onChange, colors }: CategoryPickerP
   );
 }
 
+// ── DueDateField ────────────────────────────────────────────────────────────
+
+interface DueDateFieldProps {
+  value: Date | null;
+  onChange: (d: Date | null) => void;
+  colors: ColorTokens;
+}
+
+function DueDateField({ value, onChange, colors }: DueDateFieldProps) {
+  const styles = makeStyles(colors);
+  const [androidShow, setAndroidShow] = useState(false);
+
+  // 웹 — 텍스트 표시만
+  if (Platform.OS === "web" || !DateTimePicker) {
+    return (
+      <View style={styles.row}>
+        <Text style={styles.label}>마감일</Text>
+        <Pressable onPress={() => onChange(value ? null : new Date())}>
+          <Text style={{ color: colors.accent.primary, fontSize: 15 }}>
+            {value ? formatDueDate(value) : "없음"}
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  // iOS — compact 인라인
+  if (Platform.OS === "ios") {
+    return (
+      <View style={styles.row}>
+        <Text style={styles.label}>마감일</Text>
+        <View style={styles.dueDateRight}>
+          {value ? (
+            <>
+              <DateTimePicker
+                value={value}
+                mode="date"
+                display="compact"
+                onChange={(_: unknown, selected?: Date) => { if (selected) onChange(selected); }}
+              />
+              <Pressable onPress={() => onChange(null)} accessibilityLabel="마감일 지우기">
+                <Text style={{ color: colors.text.disabled, fontSize: 18, paddingLeft: 8 }}>✕</Text>
+              </Pressable>
+            </>
+          ) : (
+            <Pressable onPress={() => onChange(new Date())}>
+              <Text style={{ color: colors.accent.primary, fontSize: 15 }}>추가</Text>
+            </Pressable>
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  // Android — 버튼 탭 → 날짜 다이얼로그
+  function handleAndroidChange(event: { type: string }, selected?: Date) {
+    setAndroidShow(false);
+    if (event.type !== "dismissed" && selected) onChange(selected);
+  }
+
+  return (
+    <View style={styles.row}>
+      <Text style={styles.label}>마감일</Text>
+      <View style={styles.dueDateRight}>
+        <Pressable onPress={() => setAndroidShow(true)}>
+          <Text style={{ color: colors.accent.primary, fontSize: 15 }}>
+            {value ? formatDueDate(value) : "추가"}
+          </Text>
+        </Pressable>
+        {value && (
+          <Pressable onPress={() => onChange(null)} accessibilityLabel="마감일 지우기">
+            <Text style={{ color: colors.text.disabled, fontSize: 18, paddingLeft: 8 }}>✕</Text>
+          </Pressable>
+        )}
+      </View>
+      {androidShow && (
+        <DateTimePicker
+          value={value ?? new Date()}
+          mode="date"
+          display="default"
+          onChange={handleAndroidChange}
+        />
+      )}
+    </View>
+  );
+}
+
 // ── 스타일 ──────────────────────────────────────────────────────────────────
 
 function makeStyles(colors: ColorTokens) {
@@ -220,6 +327,16 @@ function makeStyles(colors: ColorTokens) {
       borderRadius: 12,
       paddingHorizontal: 16,
       paddingVertical: 4,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      minHeight: 44,
+    },
+    dueDateRight: {
+      flexDirection: "row",
+      alignItems: "center",
     },
     label: {
       fontSize: 16,

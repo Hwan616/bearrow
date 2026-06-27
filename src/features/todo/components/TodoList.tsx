@@ -11,9 +11,10 @@ interface Props {
   sections: TodoSection[];
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
+  onEditDueDate?: (id: string, current: Date | null) => void;
 }
 
-export function TodoList({ sections, onToggle, onDelete }: Props) {
+export function TodoList({ sections, onToggle, onDelete, onEditDueDate }: Props) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
@@ -40,7 +41,7 @@ export function TodoList({ sections, onToggle, onDelete }: Props) {
           <View style={styles.card}>
             {section.todos.map((todo, idx) => (
               <View key={todo.id}>
-                <TodoItem todo={todo} onToggle={onToggle} onDelete={onDelete} />
+                <TodoItem todo={todo} onToggle={onToggle} onDelete={onDelete} onEditDueDate={onEditDueDate} />
                 {idx < section.todos.length - 1 && (
                   <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
                 )}

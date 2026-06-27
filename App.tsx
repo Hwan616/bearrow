@@ -1,20 +1,26 @@
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
-import { Modal, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Modal, Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { sqliteDb } from "@/db/client";
 import { runMigrations } from "@/db/migrate";
-import { EventForm } from "@/features/calendar/components/EventForm";
-import { MonthView } from "@/features/calendar/components/MonthView";
 import {
   requestNotificationPermission,
   setupNotificationHandler,
 } from "@/features/calendar/api/notifications";
+import { EventForm } from "@/features/calendar/components/EventForm";
+import { MonthView } from "@/features/calendar/components/MonthView";
 import { TodoForm } from "@/features/todo/components/TodoForm";
 import { TodoList } from "@/features/todo/components/TodoList";
 import { useTodos } from "@/features/todo/hooks/useTodos";
 import { useTheme } from "@/theme";
+
+// DateTimePicker — 마감일 편집 모달용 (네이티브 전용)
+const DateTimePicker =
+  Platform.OS !== "web"
+    ? (require("@react-native-community/datetimepicker") as { default: React.ComponentType<Record<string, unknown>> }).default
+    : null;
 
 type Tab = "calendar" | "todo";
 
@@ -30,7 +36,11 @@ export default function App() {
 
   // 투두 상태
   const [todoFormVisible, setTodoFormVisible] = useState(false);
-  const { sections, handleToggle, handleDelete, handleCreate } = useTodos();
+  const { sections, handleToggle, handleDelete, handleCreate, handleUpdateDueDate } = useTodos();
+
+  // 마감일 편집 상태
+  const [dueDateTodoId, setDueDateTodoId] = useState<string | null>(null);
+  const [dueDateValue, setDueDateValue] = useState(new Date());
 
   useEffect(() => {
     setupNotificationHandler();
@@ -49,9 +59,29 @@ export default function App() {
     title: string,
     categoryId: string | null,
     note?: string,
+    dueDate?: Date | null,
   ) {
-    await handleCreate(title, categoryId, note);
+    await handleCreate(title, categoryId, note, dueDate);
     setTodoFormVisible(false);
+    if (dueDate) setCalendarKey((k) => k + 1); // 캘린더 연동 반영
+  }
+
+  function handleEditDueDate(id: string, current: Date | null) {
+    setDueDateTodoId(id);
+    setDueDateValue(current ?? new Date());
+  }
+
+  async function handleDueDateSave() {
+    if (!dueDateTodoId) return;
+    await handleUpdateDueDate(dueDateTodoId, dueDateValue);
+    setDueDateTodoId(null);
+    setCalendarKey((k) => k + 1); // 캘린더 연동 반영
+  }
+
+  async function handleDueDateClear() {
+    if (!dueDateTodoId) return;
+    await handleUpdateDueDate(dueDateTodoId, null);
+    setDueDateTodoId(null);
   }
 
   if (!ready) {
@@ -75,6 +105,7 @@ export default function App() {
             sections={sections}
             onToggle={handleToggle}
             onDelete={handleDelete}
+            onEditDueDate={handleEditDueDate}
           />
         )}
 
@@ -166,6 +197,43 @@ export default function App() {
         >
           <TodoForm onSave={handleTodoCreate} onCancel={() => setTodoFormVisible(false)} />
         </Modal>
+
+        {/* 마감일 편집 모달 */}
+        <Modal
+          visible={dueDateTodoId !== null}
+          animationType="slide"
+          presentationStyle="formSheet"
+          onRequestClose={() => setDueDateTodoId(null)}
+        >
+          <SafeAreaView style={[styles.dueDateModal, { backgroundColor: colors.background.primary }]}>
+            <View style={[styles.dueDateHeader, { borderBottomColor: colors.border.default }]}>
+              <Pressable onPress={() => setDueDateTodoId(null)} style={styles.headerBtn}>
+                <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>취소</Text>
+              </Pressable>
+              <Text style={[styles.headerTitle, { color: colors.text.primary }]}>마감일</Text>
+              <Pressable onPress={handleDueDateSave} style={styles.headerBtn}>
+                <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>완료</Text>
+              </Pressable>
+            </View>
+
+            {DateTimePicker ? (
+              <DateTimePicker
+                value={dueDateValue}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={(_: unknown, d?: Date) => { if (d) setDueDateValue(d); }}
+              />
+            ) : (
+              <Text style={{ padding: 16, color: colors.text.secondary }}>
+                {dueDateValue.toLocaleDateString("ko-KR")}
+              </Text>
+            )}
+
+            <Pressable onPress={handleDueDateClear} style={styles.clearDueDateBtn}>
+              <Text style={{ color: colors.status.error, fontSize: 16 }}>마감일 없음</Text>
+            </Pressable>
+          </SafeAreaView>
+        </Modal>
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -216,5 +284,33 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 11,
     fontWeight: "500",
+  },
+  dueDateModal: {
+    flex: 1,
+  },
+  dueDateHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+  },
+  headerBtn: {
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  headerBtnText: {
+    fontSize: 17,
+  },
+  clearDueDateBtn: {
+    alignItems: "center",
+    paddingVertical: 16,
+    marginTop: 8,
   },
 });

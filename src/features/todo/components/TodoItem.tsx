@@ -6,14 +6,16 @@ import { useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
 
 import type { Todo } from "../types";
+import { formatDueDate, isDueDatePast, isDueDateToday } from "../utils/todoDateUtils";
 
 interface Props {
   todo: Todo;
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
+  onEditDueDate?: (id: string, current: Date | null) => void;
 }
 
-export function TodoItem({ todo, onToggle, onDelete }: Props) {
+export function TodoItem({ todo, onToggle, onDelete, onEditDueDate }: Props) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const swipeRef = useRef<Swipeable>(null);
@@ -57,6 +59,20 @@ export function TodoItem({ todo, onToggle, onDelete }: Props) {
           <Text style={styles.note} numberOfLines={1}>
             {todo.note}
           </Text>
+        ) : null}
+        {/* 마감일 — 탭하면 날짜 편집 */}
+        {todo.dueDate ? (
+          <Pressable onPress={() => onEditDueDate?.(todo.id, todo.dueDate)}>
+            <Text
+              style={[
+                styles.dueDate,
+                isDueDatePast(todo.dueDate) && { color: colors.status.error },
+                isDueDateToday(todo.dueDate) && { color: colors.accent.primary, fontWeight: "600" },
+              ]}
+            >
+              📅 {formatDueDate(todo.dueDate)}
+            </Text>
+          </Pressable>
         ) : null}
       </View>
 
@@ -121,6 +137,11 @@ function makeStyles(colors: ColorTokens) {
       fontSize: 13,
       color: colors.text.secondary,
       marginTop: 2,
+    },
+    dueDate: {
+      fontSize: 12,
+      color: colors.text.secondary,
+      marginTop: 3,
     },
     deleteAction: {
       backgroundColor: colors.status.error,

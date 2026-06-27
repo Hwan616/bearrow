@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getCategories } from "@/features/category/api/categories";
 import type { Category } from "@/features/category/types";
 
-import { createTodo, deleteTodo, getTodos, toggleTodo } from "../api/todos";
+import { createTodo, deleteTodo, getTodos, toggleTodo, updateTodo } from "../api/todos";
 import type { Todo } from "../types";
 import { groupTodosByCategory, type TodoSection } from "../utils/todoListUtils";
 
@@ -14,7 +14,8 @@ export type UseTodosReturn = {
   refresh: () => Promise<void>;
   handleToggle: (id: string, completed: boolean) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
-  handleCreate: (title: string, categoryId: string | null, note?: string) => Promise<void>;
+  handleCreate: (title: string, categoryId: string | null, note?: string, dueDate?: Date | null) => Promise<void>;
+  handleUpdateDueDate: (id: string, dueDate: Date | null) => Promise<void>;
 };
 
 export function useTodos(): UseTodosReturn {
@@ -50,7 +51,7 @@ export function useTodos(): UseTodosReturn {
   );
 
   const handleCreate = useCallback(
-    async (title: string, categoryId: string | null, note?: string) => {
+    async (title: string, categoryId: string | null, note?: string, dueDate?: Date | null) => {
       const now = new Date();
       await createTodo({
         id: Crypto.randomUUID(),
@@ -58,7 +59,7 @@ export function useTodos(): UseTodosReturn {
         note: note?.trim() || null,
         isCompleted: false,
         completedAt: null,
-        dueDate: null,
+        dueDate: dueDate ?? null,
         categoryId,
         sortOrder: 0,
         createdAt: now,
@@ -69,7 +70,15 @@ export function useTodos(): UseTodosReturn {
     [refresh],
   );
 
+  const handleUpdateDueDate = useCallback(
+    async (id: string, dueDate: Date | null) => {
+      await updateTodo(id, { dueDate, updatedAt: new Date() });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const sections = groupTodosByCategory(todos, categories);
 
-  return { sections, isLoading, refresh, handleToggle, handleDelete, handleCreate };
+  return { sections, isLoading, refresh, handleToggle, handleDelete, handleCreate, handleUpdateDueDate };
 }
