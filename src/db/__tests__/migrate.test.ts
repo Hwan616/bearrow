@@ -21,8 +21,8 @@ describe("runMigrations", () => {
 
     await runMigrations(db as never);
 
-    // _migrations 테이블 생성 1회 + MIGRATIONS 배열 항목 수(현재 3건)만큼 SQL 실행
-    expect(db.execAsync).toHaveBeenCalledTimes(4); // 1(tracker) + 3(migrations)
+    // _migrations 테이블 생성 1회 + MIGRATIONS 배열 항목 수(현재 4건)만큼 SQL 실행
+    expect(db.execAsync).toHaveBeenCalledTimes(5); // 1(tracker) + 4(migrations)
     expect(db.runAsync).toHaveBeenCalledWith(
       "INSERT INTO _migrations (name) VALUES (?)",
       ["0001_create_events"],
@@ -34,6 +34,10 @@ describe("runMigrations", () => {
     expect(db.runAsync).toHaveBeenCalledWith(
       "INSERT INTO _migrations (name) VALUES (?)",
       ["0003_add_reminder"],
+    );
+    expect(db.runAsync).toHaveBeenCalledWith(
+      "INSERT INTO _migrations (name) VALUES (?)",
+      ["0004_create_categories"],
     );
   });
 
@@ -78,6 +82,17 @@ describe("runMigrations", () => {
 
     expect(db.execAsync).toHaveBeenCalledWith(
       expect.stringContaining("ALTER TABLE events ADD COLUMN reminder_minutes"),
+    );
+  });
+
+  it("execAsync에 categories 테이블 생성 SQL이 포함된다", async () => {
+    const db = makeMockDb();
+    db.getFirstAsync.mockResolvedValue(null);
+
+    await runMigrations(db as never);
+
+    expect(db.execAsync).toHaveBeenCalledWith(
+      expect.stringContaining("CREATE TABLE IF NOT EXISTS categories"),
     );
   });
 });

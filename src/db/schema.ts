@@ -25,4 +25,11 @@ export const events = sqliteTable("events", {
   isDeleted: int("is_deleted", { mode: "boolean" }).notNull().default(false), // 예외: 삭제된 인스턴스
 });
 
-// Phase 2+ 에서 추가 예정: categories, todos
+export const categories = sqliteTable("categories", {
+  id: text("id").notNull().primaryKey(),
+  name: text("name").notNull(),
+  color: text("color").notNull().default("#2E5AAC"),
+  sortOrder: int("sort_order").notNull().default(0),
+  createdAt: int("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: int("updated_at", { mode: "timestamp" }).notNull(),
+});

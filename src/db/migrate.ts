@@ -37,6 +37,19 @@ const MIGRATIONS: Migration[] = [
     name: "0003_add_reminder",
     sql: `ALTER TABLE events ADD COLUMN reminder_minutes INTEGER;`,
   },
+  {
+    name: "0004_create_categories",
+    sql: `
+      CREATE TABLE IF NOT EXISTS categories (
+        id          TEXT    NOT NULL PRIMARY KEY,
+        name        TEXT    NOT NULL,
+        color       TEXT    NOT NULL DEFAULT '#2E5AAC',
+        sort_order  INTEGER NOT NULL DEFAULT 0,
+        created_at  INTEGER NOT NULL,
+        updated_at  INTEGER NOT NULL
+      );
+    `,
+  },
 ];
 
 // 앱 시작 시 한 번 호출한다 (예: App.tsx useEffect).

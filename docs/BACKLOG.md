@@ -48,7 +48,7 @@
 
 ## Phase 2 — 투두 코어
 
-- [ ] **2.1 Category CRUD**
+- [x] **2.1 Category CRUD**
   - 완료: 카테고리 생성·이름변경·삭제·순서변경·색상지정 + 테스트.
   - 요구사항: `FR-CAT-001`, `FR-CAT-002`, `FR-CAT-003`
 - [ ] **2.2 Todo 데이터 모델·CRUD**
