@@ -25,7 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     newArchEnabled: true,
     ios: { bundleIdentifier: variant.id, supportsTablet: true },
     android: { package: variant.id },
-    plugins: ["expo-secure-store", "expo-sqlite"],
+    plugins: ["expo-secure-store", "expo-sqlite", "@react-native-community/datetimepicker"],
     extra: {
       appEnv: APP_ENV,
     },
