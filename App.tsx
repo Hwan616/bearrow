@@ -18,6 +18,7 @@ import { SettingsScreen } from "@/features/settings/components/SettingsScreen";
 import { TodoForm } from "@/features/todo/components/TodoForm";
 import { TodoList } from "@/features/todo/components/TodoList";
 import { useTodos } from "@/features/todo/hooks/useTodos";
+import { Sentry } from "@/lib/sentry";
 import { ThemeProvider, useTheme } from "@/theme";
 
 // DateTimePicker — 마감일 편집 모달용 (네이티브 전용)
@@ -30,9 +31,11 @@ type Tab = "calendar" | "todo" | "settings";
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AppContent />
-    </ThemeProvider>
+    <Sentry.ErrorBoundary>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </Sentry.ErrorBoundary>
   );
 }
 

@@ -30,6 +30,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-sqlite",
       "@react-native-community/datetimepicker",
       ["expo-notifications", { icon: "./assets/adaptive-icon.png", color: "#2E5AAC" }],
+      // Sentry: 네이티브 빌드 시 소스맵·심볼 업로드. org/project는 실제 Sentry 프로젝트 값으로 교체.
+      ["@sentry/react-native/expo", { organization: "bearrow", project: "bearrow-mobile" }],
     ],
     extra: {
       appEnv: APP_ENV,

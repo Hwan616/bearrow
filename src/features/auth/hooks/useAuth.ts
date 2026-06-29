@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { setSentryUser } from "@/lib/sentry";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
 import { getSession, mapUser, onAuthStateChange, signInWithGoogle, signOut } from "../api/auth";
@@ -25,12 +26,18 @@ export function useAuth(): UseAuthResult {
 
     // 앱 시작 시 영속 세션 복원
     getSession()
-      .then((session) => setUser(mapUser(session?.user ?? null)))
+      .then((session) => {
+        const authUser = mapUser(session?.user ?? null);
+        setUser(authUser);
+        setSentryUser(authUser?.id ?? null);
+      })
       .finally(() => setIsLoading(false));
 
     // 로그인·로그아웃 등 인증 상태 변화 구독
     const { data: { subscription } } = onAuthStateChange((_event, session) => {
-      setUser(mapUser(session?.user ?? null));
+      const authUser = mapUser(session?.user ?? null);
+      setUser(authUser);
+      setSentryUser(authUser?.id ?? null);
     });
 
     return () => subscription.unsubscribe();
