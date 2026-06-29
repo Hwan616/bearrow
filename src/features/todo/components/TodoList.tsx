@@ -1,9 +1,10 @@
 import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { SectionList, StyleSheet, Text, View } from "react-native";
 
 import { useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
 
+import type { Todo } from "../types";
 import type { TodoSection } from "../utils/todoListUtils";
 import { TodoItem } from "./TodoItem";
 
@@ -14,62 +15,78 @@ interface Props {
   onEditDueDate?: (id: string, current: Date | null) => void;
 }
 
+type ListSection = TodoSection & { data: Todo[] };
+
 export function TodoList({ sections, onToggle, onDelete, onEditDueDate }: Props) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
-  if (sections.length === 0) {
-    return (
-      <View style={styles.empty}>
-        <Text style={styles.emptyText}>할일이 없습니다</Text>
-        <Text style={styles.emptyHint}>＋ 버튼으로 새 할일을 추가하세요</Text>
-      </View>
-    );
-  }
+  const listSections: ListSection[] = sections.map((s) => ({ ...s, data: s.todos }));
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {sections.map((section, sectionIdx) => (
-        <View key={section.categoryId ?? "uncategorized"} style={styles.section}>
-          {/* 섹션 헤더 */}
-          <View style={styles.sectionHeader}>
-            <View style={[styles.colorDot, { backgroundColor: section.categoryColor }]} />
-            <Text style={styles.sectionTitle}>{section.categoryName}</Text>
-          </View>
-
-          {/* 할일 목록 */}
-          <View style={styles.card}>
-            {section.todos.map((todo, idx) => (
-              <View key={todo.id}>
-                <TodoItem todo={todo} onToggle={onToggle} onDelete={onDelete} onEditDueDate={onEditDueDate} />
-                {idx < section.todos.length - 1 && (
-                  <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
-                )}
-              </View>
-            ))}
-          </View>
+    <SectionList
+      sections={listSections}
+      keyExtractor={(item) => item.id}
+      stickySectionHeadersEnabled={false}
+      contentContainerStyle={styles.content}
+      renderSectionHeader={({ section }) => (
+        <View style={styles.sectionHeader}>
+          <View style={[styles.colorDot, { backgroundColor: section.categoryColor }]} />
+          <Text style={styles.sectionTitle} maxFontSizeMultiplier={1.5}>
+            {section.categoryName}
+          </Text>
         </View>
-      ))}
-    </ScrollView>
+      )}
+      renderItem={({ item, index, section }) => {
+        const isFirst = index === 0;
+        const isLast = index === section.data.length - 1;
+        return (
+          <View
+            style={[
+              styles.itemWrapper,
+              { backgroundColor: colors.surface.default },
+              isFirst && styles.itemFirst,
+              isLast && styles.itemLast,
+            ]}
+          >
+            <TodoItem
+              todo={item}
+              onToggle={onToggle}
+              onDelete={onDelete}
+              onEditDueDate={onEditDueDate}
+            />
+          </View>
+        );
+      }}
+      ItemSeparatorComponent={() => (
+        <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
+      )}
+      SectionSeparatorComponent={() => <View style={styles.sectionGap} />}
+      ListEmptyComponent={
+        <View style={styles.empty}>
+          <Text style={styles.emptyText} maxFontSizeMultiplier={1.5}>
+            할일이 없습니다
+          </Text>
+          <Text style={styles.emptyHint} maxFontSizeMultiplier={1.5}>
+            ＋ 버튼으로 새 할일을 추가하세요
+          </Text>
+        </View>
+      }
+    />
   );
 }
 
 function makeStyles(colors: ColorTokens) {
   return StyleSheet.create({
-    container: {
-      flex: 1,
-    },
     content: {
       paddingBottom: 100,
-    },
-    section: {
-      marginTop: 16,
-      marginHorizontal: 16,
     },
     sectionHeader: {
       flexDirection: "row",
       alignItems: "center",
       gap: 8,
+      marginTop: 16,
+      marginHorizontal: 16,
       marginBottom: 8,
       paddingHorizontal: 4,
     },
@@ -84,19 +101,32 @@ function makeStyles(colors: ColorTokens) {
       color: colors.text.secondary,
       letterSpacing: 0.5,
     },
-    card: {
-      borderRadius: 12,
+    itemWrapper: {
+      marginHorizontal: 16,
+    },
+    itemFirst: {
+      borderTopLeftRadius: 12,
+      borderTopRightRadius: 12,
       overflow: "hidden",
-      backgroundColor: colors.surface.default,
+    },
+    itemLast: {
+      borderBottomLeftRadius: 12,
+      borderBottomRightRadius: 12,
+      overflow: "hidden",
     },
     divider: {
       height: StyleSheet.hairlineWidth,
-      marginLeft: 50, // 체크박스 너비 + gap 만큼 들여쓰기
+      marginHorizontal: 16,
+      marginLeft: 50 + 16, // 체크박스 너비 + gap + 섹션 margin
+    },
+    sectionGap: {
+      height: 0,
     },
     empty: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
+      paddingTop: 80,
       gap: 8,
     },
     emptyText: {

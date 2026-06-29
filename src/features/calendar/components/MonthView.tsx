@@ -61,11 +61,25 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
     <View style={s.container}>
       {/* 헤더 */}
       <View style={s.header}>
-        <Pressable onPress={goToPrev} style={s.navBtn} hitSlop={12}>
+        <Pressable
+          onPress={goToPrev}
+          style={s.navBtn}
+          hitSlop={12}
+          accessibilityLabel="이전 달"
+          accessibilityRole="button"
+        >
           <Text style={s.navArrow}>‹</Text>
         </Pressable>
-        <Text style={s.monthTitle}>{formatMonthTitle(year, month)}</Text>
-        <Pressable onPress={goToNext} style={s.navBtn} hitSlop={12}>
+        <Text style={s.monthTitle} maxFontSizeMultiplier={1.3}>
+          {formatMonthTitle(year, month)}
+        </Text>
+        <Pressable
+          onPress={goToNext}
+          style={s.navBtn}
+          hitSlop={12}
+          accessibilityLabel="다음 달"
+          accessibilityRole="button"
+        >
           <Text style={s.navArrow}>›</Text>
         </Pressable>
       </View>

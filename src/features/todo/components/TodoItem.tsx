@@ -52,11 +52,12 @@ export function TodoItem({ todo, onToggle, onDelete, onEditDueDate }: Props) {
             todo.isCompleted && styles.titleCompleted,
           ]}
           numberOfLines={2}
+          maxFontSizeMultiplier={1.5}
         >
           {todo.title}
         </Text>
         {todo.note ? (
-          <Text style={styles.note} numberOfLines={1}>
+          <Text style={styles.note} numberOfLines={1} maxFontSizeMultiplier={1.5}>
             {todo.note}
           </Text>
         ) : null}
@@ -69,6 +70,7 @@ export function TodoItem({ todo, onToggle, onDelete, onEditDueDate }: Props) {
                 isDueDatePast(todo.dueDate) && { color: colors.status.error },
                 isDueDateToday(todo.dueDate) && { color: colors.accent.primary, fontWeight: "600" },
               ]}
+              maxFontSizeMultiplier={1.5}
             >
               📅 {formatDueDate(todo.dueDate)}
             </Text>
