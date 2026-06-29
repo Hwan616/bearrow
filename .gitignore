@@ -13,14 +13,23 @@ android/
 
 # env & secrets
 .env
-.env*.local
+.env.*
+.envrc
 credentials/
+# Android
 *.keystore
 *.jks
-play-service-account.json
+google-services.json
+# iOS
+GoogleService-Info.plist
 *.mobileprovision
 *.p8
 *.p12
+*.p7m
+# 인증서·키
+*.pem
+*.key
+service-account*.json
 
 # fastlane
 fastlane/report.xml
@@ -36,8 +45,9 @@ vendor/bundle/
 # temp
 tmp/
 
-# claude code (로컬 설정 — 전역 gitignore 미설정 환경 대비)
-.claude/settings.local.json
+# claude code (에이전트 운영 파일 — 레포에 포함하지 않음)
+CLAUDE.md
+.claude/
 
 # ide
 .idea/
