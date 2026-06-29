@@ -23,8 +23,20 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     orientation: "portrait",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
-    ios: { bundleIdentifier: variant.id, supportsTablet: true },
-    android: { package: variant.id },
+    icon: "./assets/icon.png",
+    splash: { image: "./assets/splash.png", backgroundColor: "#ffffff" },
+    ios: {
+      bundleIdentifier: variant.id,
+      supportsTablet: true,
+      icon: "./assets/icon.png",
+    },
+    android: {
+      package: variant.id,
+      adaptiveIcon: {
+        foregroundImage: "./assets/adaptive-icon.png",
+        backgroundColor: "#ffffff",
+      },
+    },
     plugins: [
       "expo-secure-store",
       "expo-sqlite",
