@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { isSupabaseConfigured } from "@/lib/supabase";
+
 import { getSession, mapUser, onAuthStateChange, signInWithGoogle, signOut } from "../api/auth";
 import type { AuthUser } from "../types";
 
@@ -15,6 +17,12 @@ export function useAuth(): UseAuthResult {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Supabase 미설정 시 네트워크 호출 없이 로딩만 해제
+    if (!isSupabaseConfigured) {
+      setIsLoading(false);
+      return;
+    }
+
     // 앱 시작 시 영속 세션 복원
     getSession()
       .then((session) => setUser(mapUser(session?.user ?? null)))

@@ -98,8 +98,9 @@
   - 완료: 변경 큐, updatedAt 기반 충돌 해결, 백엔드 push/pull + 테스트.
   - 파일: `src/sync/types.ts`, `src/sync/queue.ts`, `src/sync/push.ts`, `src/sync/pull.ts`, `src/sync/engine.ts`, `src/db/migrate.ts` (0007_create_sync_tables)
   - 요구사항: `FR-SYNC-002`, `FR-SYNC-004`, `NFR-CON-002`, `NFR-PERF-002`
-- [ ] **4.3 Google 캘린더 양방향 동기화**
+- [x] **4.3 Google 캘린더 양방향 동기화**
   - 완료: OAuth 연결, syncToken 증분 동기화, 410→full sync, 삭제 반영.
+  - 파일: `src/sync/googleCalendarApi.ts`, `src/sync/googleCalendarUtils.ts`, `src/sync/googleCalendarSync.ts`, `src/sync/engine.ts`, `src/features/auth/api/auth.ts`
   - 요구사항: `FR-SYNC-003`, `IF-001`
 - [ ] **4.4 RLS·보안 점검**
   - 완료: Postgres RLS 정책, 토큰 secure-store 저장 검증.

@@ -23,7 +23,11 @@ export async function signInWithGoogle(): Promise<void> {
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
+    options: {
+      redirectTo: redirectUrl,
+      skipBrowserRedirect: true,
+      scopes: "https://www.googleapis.com/auth/calendar",
+    },
   });
 
   if (error) throw error;
