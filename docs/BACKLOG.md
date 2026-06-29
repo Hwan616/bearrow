@@ -102,7 +102,7 @@
   - 완료: OAuth 연결, syncToken 증분 동기화, 410→full sync, 삭제 반영.
   - 파일: `src/sync/googleCalendarApi.ts`, `src/sync/googleCalendarUtils.ts`, `src/sync/googleCalendarSync.ts`, `src/sync/engine.ts`, `src/features/auth/api/auth.ts`
   - 요구사항: `FR-SYNC-003`, `IF-001`
-- [ ] **4.4 RLS·보안 점검**
+- [x] **4.4 RLS·보안 점검**
   - 완료: Postgres RLS 정책, 토큰 secure-store 저장 검증.
   - 요구사항: `NFR-SEC-001`, `NFR-SEC-002`
 
