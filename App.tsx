@@ -139,6 +139,7 @@ function AppContent() {
         {/* 탭별 FAB — 설정 탭에는 FAB 없음 */}
         {activeTab === "calendar" && (
           <Pressable
+            testID="fab-add-event"
             style={[styles.fab, { backgroundColor: colors.accent.primary }]}
             onPress={() => setEventFormVisible(true)}
             accessibilityLabel="새 일정 추가"
@@ -148,6 +149,7 @@ function AppContent() {
         )}
         {activeTab === "todo" && (
           <Pressable
+            testID="fab-add-todo"
             style={[styles.fab, { backgroundColor: colors.accent.primary }]}
             onPress={() => setTodoFormVisible(true)}
             accessibilityLabel="새 할일 추가"
@@ -164,6 +166,7 @@ function AppContent() {
           ]}
         >
           <Pressable
+            testID="tab-calendar"
             style={styles.tab}
             onPress={() => setActiveTab("calendar")}
             accessibilityRole="tab"
@@ -183,6 +186,7 @@ function AppContent() {
           </Pressable>
 
           <Pressable
+            testID="tab-todo"
             style={styles.tab}
             onPress={() => setActiveTab("todo")}
             accessibilityRole="tab"
@@ -202,6 +206,7 @@ function AppContent() {
           </Pressable>
 
           <Pressable
+            testID="tab-settings"
             style={styles.tab}
             onPress={() => setActiveTab("settings")}
             accessibilityRole="tab"
