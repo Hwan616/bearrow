@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { CategoryManager } from "@/features/category/components/CategoryManager";
+import { useAppSettings } from "../AppSettingsContext";
 import { ACCENT_PRESETS, useTheme } from "@/theme";
 import type { ThemeMode } from "@/theme";
 
@@ -15,6 +16,7 @@ const MODE_OPTIONS: { label: string; value: ThemeMode }[] = [
 export function SettingsScreen() {
   const { colors, mode, setMode, accentColor, setAccentColor } = useTheme();
   const { user, isLoading: authLoading, signIn, signOut } = useAuth();
+  const { showHolidays, setShowHolidays } = useAppSettings();
   const [catManagerVisible, setCatManagerVisible] = useState(false);
   const s = makeStyles(colors);
 
@@ -114,6 +116,23 @@ export function SettingsScreen() {
         </View>
       </View>
 
+      {/* ── 캘린더 ─────────────────────────────────────────── */}
+      <Text style={s.sectionTitle}>캘린더</Text>
+      <View style={[s.card, { backgroundColor: colors.surface.default }]}>
+        <View style={s.settingRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={[s.catName, { color: colors.text.primary }]}>공휴일 표시</Text>
+            <Text style={[s.infoText, { color: colors.text.secondary }]}>한국 공휴일을 캘린더에 표시합니다</Text>
+          </View>
+          <Switch
+            value={showHolidays}
+            onValueChange={(v) => void setShowHolidays(v)}
+            trackColor={{ false: colors.border.default, true: colors.accent.primary }}
+            thumbColor={colors.surface.default}
+          />
+        </View>
+      </View>
+
       {/* ── 카테고리 관리 ───────────────────────────────────── */}
       <Text style={s.sectionTitle}>카테고리</Text>
       <View style={[s.card, { backgroundColor: colors.surface.default }]}>
@@ -208,6 +227,14 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       color: "#fff",
       fontWeight: "700",
       fontSize: 16,
+    },
+
+    // 설정 행 (토글 등)
+    settingRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      minHeight: 52,
+      gap: 12,
     },
 
     // 카테고리 행

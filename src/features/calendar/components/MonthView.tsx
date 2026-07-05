@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { useAppSettings } from "@/features/settings/AppSettingsContext";
 import { useTheme } from "@/theme";
 
 import { useMonthItems } from "../hooks/useMonthItems";
@@ -12,6 +13,7 @@ import {
   getTodosForDay,
   isSameDay,
 } from "../utils/calendarUtils";
+import { getHolidaysForMonth } from "../utils/koreanHolidays";
 
 const DAYS_OF_WEEK = ["일", "월", "화", "수", "목", "금", "토"] as const;
 const MAX_EVENT_DOTS = 2; // 이벤트 최대 2개 점 + 할일 1개 점 = 최대 3개
@@ -28,9 +30,15 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const { colors } = useTheme();
+  const { showHolidays } = useAppSettings();
   const { events, dueTodos } = useMonthItems(year, month);
   const today = new Date();
   const grid = buildMonthGrid(year, month, today);
+
+  const holidayMap = useMemo(
+    () => (showHolidays ? getHolidaysForMonth(year, month) : new Map<number, string>()),
+    [year, month, showHolidays],
+  );
 
   const goToPrev = () => {
     if (month === 0) {
@@ -104,6 +112,8 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
           const isSelected = selectedDate != null && isSameDay(date, selectedDate);
           const isSun = date.getDay() === 0;
           const isSat = date.getDay() === 6;
+          const holidayName = isCurrentMonth ? (holidayMap.get(date.getDate()) ?? null) : null;
+          const isHoliday = holidayName !== null;
 
           return (
             <Pressable
@@ -123,8 +133,8 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
                     s.dayText,
                     !isCurrentMonth && s.outsideMonth,
                     isToday && s.todayText,
-                    !isToday && isSun && s.sunday,
-                    !isToday && isSat && s.saturday,
+                    !isToday && (isSun || isHoliday) && s.sunday,
+                    !isToday && isSat && !isHoliday && s.saturday,
                   ]}
                 >
                   {date.getDate()}
@@ -140,6 +150,11 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
                   <View style={[s.dot, { backgroundColor: colors.status.success }]} />
                 )}
               </View>
+
+              {/* 공휴일 이름 — 슬롯을 항상 예약해 셀 높이 일관성 유지 */}
+              <Text style={s.holidayLabel} numberOfLines={1}>
+                {isHoliday ? holidayName : ""}
+              </Text>
             </Pressable>
           );
         })}
@@ -229,5 +244,15 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       width: 5,
       height: 5,
       borderRadius: 3,
+    },
+    holidayLabel: {
+      fontSize: 8,
+      color: "#D93535",
+      height: 11,
+      lineHeight: 11,
+      marginTop: 1,
+      textAlign: "center",
+      width: "100%",
+      letterSpacing: -0.3,
     },
   });

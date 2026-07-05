@@ -10,6 +10,7 @@ import {
   setupNotificationHandler,
 } from "@/features/calendar/api/notifications";
 import { ensureDefaultCategory } from "@/features/category/api/categories";
+import { AppSettingsProvider } from "@/features/settings/AppSettingsContext";
 import { DayDetailPanel } from "@/features/calendar/components/DayDetailPanel";
 import { EventDetailSheet } from "@/features/calendar/components/EventDetailSheet";
 import { EventForm } from "@/features/calendar/components/EventForm";
@@ -29,7 +30,9 @@ export default function App() {
   return (
     <Sentry.ErrorBoundary>
       <ThemeProvider>
-        <AppContent />
+        <AppSettingsProvider>
+          <AppContent />
+        </AppSettingsProvider>
       </ThemeProvider>
     </Sentry.ErrorBoundary>
   );

@@ -1,11 +1,13 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { useAppSettings } from "@/features/settings/AppSettingsContext";
 import { toggleTodo } from "@/features/todo/api/todos";
 import type { Todo } from "@/features/todo/types";
 import { useTheme } from "@/theme";
 
-import { type Event } from "../types";
 import { useDayItems } from "../hooks/useDayItems";
+import { type Event } from "../types";
+import { getHolidayName } from "../utils/koreanHolidays";
 
 const SHORT_DAYS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
@@ -35,7 +37,9 @@ interface Props {
 
 export function DayDetailPanel({ date, onEventPress, onEditTodo }: Props) {
   const { colors } = useTheme();
+  const { showHolidays } = useAppSettings();
   const { events, todos, isLoading, refresh } = useDayItems(date);
+  const holidayName = showHolidays ? getHolidayName(date) : null;
   const s = makeStyles(colors);
 
   async function handleTodoToggle(todo: Todo) {
@@ -53,7 +57,14 @@ export function DayDetailPanel({ date, onEventPress, onEditTodo }: Props) {
     <View style={s.container}>
       {/* 날짜 헤더 */}
       <View style={[s.dateHeader, { borderBottomColor: colors.border.default }]}>
-        <Text style={s.dateTitle}>{formatDayTitle(date)}</Text>
+        <View style={s.dateHeaderRow}>
+          <Text style={s.dateTitle}>{formatDayTitle(date)}</Text>
+          {holidayName && (
+            <View style={s.holidayBadge}>
+              <Text style={s.holidayBadgeText}>{holidayName}</Text>
+            </View>
+          )}
+        </View>
       </View>
 
       {isLoading ? (
@@ -187,10 +198,26 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       paddingVertical: 10,
       borderBottomWidth: StyleSheet.hairlineWidth,
     },
+    dateHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
     dateTitle: {
       fontSize: 15,
       fontWeight: "600",
       color: colors.text.primary,
+    },
+    holidayBadge: {
+      backgroundColor: "#FFF0F0",
+      borderRadius: 4,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    holidayBadgeText: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: "#D93535",
     },
     center: {
       flex: 1,

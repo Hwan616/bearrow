@@ -122,6 +122,18 @@
   - 완료: 카테고리 생성·편집·삭제 UI(CategoryManager/CategoryForm), 할일은 반드시 카테고리 1개 보유, 마지막 카테고리 삭제 불가, 삭제 시 fallback 재배정, 앱 초기화 시 기본 카테고리('카테고리') 자동 생성, 이름 미입력 시 '카테고리' 기본값.
   - 파일: `src/features/category/api/categories.ts`, `src/features/category/hooks/useCategories.ts`, `src/features/category/components/CategoryManager.tsx`, `src/features/category/components/CategoryForm.tsx`, `src/features/todo/components/TodoForm.tsx`, `src/features/todo/hooks/useTodos.ts`, `src/features/settings/components/SettingsScreen.tsx`, `App.tsx`
   - 요구사항: `FR-CAT-001`, `FR-CAT-002`, `FR-CAT-003`, `FR-TODO-001`
+- [x] **6.2 할일 편집 기능 추가**
+  - 완료: TodoItem 행 클릭 → 편집 모달, 동그라미(원형 체크박스)만 클릭 → 완료 토글. TodoForm에 `initial?: Todo` prop 추가(편집 모드 프리필), useTodos에 handleUpdate 추가, 마감일 별도 모달 제거(편집 폼으로 통합).
+  - 파일: `src/features/todo/components/TodoForm.tsx`, `src/features/todo/components/TodoItem.tsx`, `src/features/todo/components/TodoList.tsx`, `src/features/todo/hooks/useTodos.ts`, `App.tsx`
+  - 요구사항: `FR-TODO-002`, `FR-TODO-003`
+- [x] **6.4 한국 공휴일 표시**
+  - 완료: 양력 고정 공휴일 9종 + 음력 기반 공휴일(설날 연휴 3일·추석 연휴 3일·부처님오신날) 사전 계산 테이블(2023-2030). MonthView에서 공휴일 날짜 빨간 표시 + 이름 라벨. DayDetailPanel 헤더에 공휴일 배지. 설정 화면 '캘린더' 섹션에서 공휴일 표시 토글(기본값: 켜짐), AsyncStorage 영속화.
+  - 파일: `src/features/calendar/utils/koreanHolidays.ts`, `src/features/settings/AppSettingsContext.tsx`, `src/features/calendar/components/MonthView.tsx`, `src/features/calendar/components/DayDetailPanel.tsx`, `src/features/settings/components/SettingsScreen.tsx`, `App.tsx`
+  - 요구사항: `UI-001`, `FR-CAL-002`
+- [x] **6.3 이벤트·할일 CRUD 완성**
+  - 완료: EventDetailSheet에 편집(EventForm 중첩 모달)·삭제(Alert 확인 후 deleteEvent) 추가. DayDetailPanel 할일 행을 인터랙티브하게 변경(원형 = 완료 토글, 텍스트 = 편집 모달). useDayItems에 refresh() 추가로 토글 후 즉시 재조회.
+  - 파일: `src/features/calendar/components/EventDetailSheet.tsx`, `src/features/calendar/components/DayDetailPanel.tsx`, `src/features/calendar/hooks/useDayItems.ts`, `App.tsx`
+  - 요구사항: `FR-CAL-003`, `FR-CAL-004`, `FR-INT-003`
 
 ## Phase 7 — 출시
 
