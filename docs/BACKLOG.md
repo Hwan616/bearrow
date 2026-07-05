@@ -118,7 +118,10 @@
 > 시뮬레이터 검증 후 발견된 미완성 부분을 완성하는 단계.
 > 작업 항목은 사용자 요청에 따라 순차적으로 추가한다.
 
-<!-- 작업 항목이 여기에 추가됩니다 -->
+- [x] **6.1 카테고리 관리 완성 (투두)**
+  - 완료: 카테고리 생성·편집·삭제 UI(CategoryManager/CategoryForm), 할일은 반드시 카테고리 1개 보유, 마지막 카테고리 삭제 불가, 삭제 시 fallback 재배정, 앱 초기화 시 기본 카테고리('카테고리') 자동 생성, 이름 미입력 시 '카테고리' 기본값.
+  - 파일: `src/features/category/api/categories.ts`, `src/features/category/hooks/useCategories.ts`, `src/features/category/components/CategoryManager.tsx`, `src/features/category/components/CategoryForm.tsx`, `src/features/todo/components/TodoForm.tsx`, `src/features/todo/hooks/useTodos.ts`, `src/features/settings/components/SettingsScreen.tsx`, `App.tsx`
+  - 요구사항: `FR-CAT-001`, `FR-CAT-002`, `FR-CAT-003`, `FR-TODO-001`
 
 ## Phase 7 — 출시
 

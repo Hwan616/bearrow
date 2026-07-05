@@ -9,6 +9,7 @@ import {
   requestNotificationPermission,
   setupNotificationHandler,
 } from "@/features/calendar/api/notifications";
+import { ensureDefaultCategory } from "@/features/category/api/categories";
 import { DayDetailPanel } from "@/features/calendar/components/DayDetailPanel";
 import { EventDetailSheet } from "@/features/calendar/components/EventDetailSheet";
 import { EventForm } from "@/features/calendar/components/EventForm";
@@ -63,6 +64,7 @@ function AppContent() {
   useEffect(() => {
     setupNotificationHandler();
     runMigrations(sqliteDb).then(async () => {
+      await ensureDefaultCategory();
       await requestNotificationPermission();
       setReady(true);
     });
@@ -75,7 +77,7 @@ function AppContent() {
 
   async function handleTodoCreate(
     title: string,
-    categoryId: string | null,
+    categoryId: string,
     note?: string,
     dueDate?: Date | null,
   ) {

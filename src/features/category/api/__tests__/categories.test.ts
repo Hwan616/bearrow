@@ -1,6 +1,7 @@
 import {
   createCategory,
   deleteCategory,
+  ensureDefaultCategory,
   getCategories,
   reorderCategories,
   updateCategory,
@@ -126,19 +127,34 @@ describe("updateCategory", () => {
 // ── deleteCategory ──────────────────────────────────────────────────────────
 
 describe("deleteCategory", () => {
+  const mockCategory2 = {
+    id: "cat-2",
+    name: "개인",
+    color: "#E74C3C",
+    sortOrder: 1,
+    createdAt: new Date("2026-06-27T00:00:00Z"),
+    updatedAt: new Date("2026-06-27T00:00:00Z"),
+  };
+
   beforeEach(() => {
-    // update 체인: set().where() — returning 없이 await (Promise<void>)
+    // 카테고리 2개: 삭제 성공 케이스 기본값
+    mockCatOrderBy.mockResolvedValue([mockCategory, mockCategory2]);
+    // update().set().where() — Promise<void>
     mockCatUpdateWhere.mockResolvedValue(undefined);
   });
 
-  it("연결된 이벤트와 할일의 categoryId를 null로 초기화한다", async () => {
+  it("카테고리가 1개뿐이면 에러를 던진다", async () => {
+    mockCatOrderBy.mockResolvedValue([mockCategory]);
+    await expect(deleteCategory("cat-1")).rejects.toThrow("마지막 카테고리는 삭제할 수 없습니다");
+  });
+
+  it("연결된 이벤트와 할일의 categoryId를 fallback 카테고리로 재배정한다", async () => {
     const { db } = jest.requireMock("@/db/client") as {
       db: { update: jest.Mock; delete: jest.Mock };
     };
     await deleteCategory("cat-1");
-    // events + todos 각각 update 호출
     expect(db.update).toHaveBeenCalledTimes(2);
-    expect(mockCatSet).toHaveBeenCalledWith({ categoryId: null });
+    expect(mockCatSet).toHaveBeenCalledWith({ categoryId: "cat-2" });
   });
 
   it("카테고리를 삭제한다", async () => {
@@ -184,5 +200,24 @@ describe("reorderCategories", () => {
   it("단일 항목도 처리한다", async () => {
     await reorderCategories(["cat-1"]);
     expect(mockCatSet).toHaveBeenCalledWith({ sortOrder: 0 });
+  });
+});
+
+// ── ensureDefaultCategory ───────────────────────────────────────────────────
+
+describe("ensureDefaultCategory", () => {
+  it("카테고리가 없으면 기본 카테고리를 생성한다", async () => {
+    mockCatOrderBy.mockResolvedValue([]);
+    mockCatReturning.mockResolvedValue([mockCategory]);
+    await ensureDefaultCategory();
+    expect(mockCatValues).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "카테고리", color: "#2E5AAC" }),
+    );
+  });
+
+  it("카테고리가 있으면 생성하지 않는다", async () => {
+    mockCatOrderBy.mockResolvedValue([mockCategory]);
+    await ensureDefaultCategory();
+    expect(mockCatValues).not.toHaveBeenCalled();
   });
 });

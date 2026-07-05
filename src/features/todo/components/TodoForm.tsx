@@ -27,12 +27,12 @@ const DateTimePicker =
 type FormValues = {
   title: string;
   note: string;
-  categoryId: string | null;
+  categoryId: string;
   dueDate: Date | null;
 };
 
 interface Props {
-  onSave: (title: string, categoryId: string | null, note?: string, dueDate?: Date | null) => Promise<void>;
+  onSave: (title: string, categoryId: string, note?: string, dueDate?: Date | null) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -42,17 +42,25 @@ export function TodoForm({ onSave, onCancel }: Props) {
 
   const [categories, setCategories] = useState<Category[]>([]);
 
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({
+    defaultValues: { title: "", note: "", categoryId: "", dueDate: null },
+  });
+
   useEffect(() => {
     getCategories().then(setCategories);
   }, []);
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
-    defaultValues: { title: "", note: "", categoryId: null, dueDate: null },
-  });
+  // 카테고리 로드 후 첫 번째 카테고리를 기본값으로 설정
+  useEffect(() => {
+    if (categories.length > 0 && categories[0]) {
+      setValue("categoryId", categories[0].id);
+    }
+  }, [categories, setValue]);
 
   async function onSubmit(values: FormValues) {
     await onSave(values.title, values.categoryId, values.note || undefined, values.dueDate);
@@ -157,8 +165,8 @@ export function TodoForm({ onSave, onCancel }: Props) {
 
 interface CategoryPickerProps {
   categories: Category[];
-  value: string | null;
-  onChange: (id: string | null) => void;
+  value: string;
+  onChange: (id: string) => void;
   colors: ColorTokens;
 }
 
@@ -168,16 +176,6 @@ function CategoryPicker({ categories, value, onChange, colors }: CategoryPickerP
     <View style={styles.categoryRow}>
       <Text style={styles.label}>카테고리</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-        {/* 없음 */}
-        <Pressable
-          style={[styles.chip, value === null && { borderColor: colors.accent.primary }]}
-          onPress={() => onChange(null)}
-        >
-          <Text style={[styles.chipText, value === null && { color: colors.accent.primary }]}>
-            없음
-          </Text>
-        </Pressable>
-
         {categories.map((cat) => (
           <Pressable
             key={cat.id}

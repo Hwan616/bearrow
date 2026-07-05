@@ -1,3 +1,4 @@
+import * as Crypto from "expo-crypto";
 import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/db/client";
@@ -31,17 +32,38 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  // 연결된 이벤트·할일의 categoryId 초기화 후 카테고리 삭제
-  await db.update(events).set({ categoryId: null }).where(eq(events.categoryId, id));
-  await db.update(todos).set({ categoryId: null }).where(eq(todos.categoryId, id));
+  const all = await getCategories();
+  if (all.length <= 1) throw new Error("마지막 카테고리는 삭제할 수 없습니다");
+
+  // 삭제 후 남을 카테고리 중 첫 번째로 할일·일정 재배정
+  const fallback = all.find((c) => c.id !== id);
+  if (!fallback) throw new Error("재배정할 카테고리가 없습니다");
+
+  await db.update(events).set({ categoryId: fallback.id }).where(eq(events.categoryId, id));
+  await db.update(todos).set({ categoryId: fallback.id }).where(eq(todos.categoryId, id));
   await db.delete(categories).where(eq(categories.id, id));
 }
 
-// orderedIds 배열 순서로 sortOrder 재설정 (0, 1, 2, ...)
 export async function reorderCategories(orderedIds: string[]): Promise<void> {
   await Promise.all(
     orderedIds.map((id, index) =>
       db.update(categories).set({ sortOrder: index }).where(eq(categories.id, id)),
     ),
   );
+}
+
+// 카테고리가 하나도 없으면 기본 카테고리('카테고리')를 생성한다.
+export async function ensureDefaultCategory(): Promise<void> {
+  const existing = await getCategories();
+  if (existing.length === 0) {
+    const now = new Date();
+    await createCategory({
+      id: Crypto.randomUUID(),
+      name: "카테고리",
+      color: "#2E5AAC",
+      sortOrder: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
 }

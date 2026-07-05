@@ -14,7 +14,7 @@ export type UseTodosReturn = {
   refresh: () => Promise<void>;
   handleToggle: (id: string, completed: boolean) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
-  handleCreate: (title: string, categoryId: string | null, note?: string, dueDate?: Date | null) => Promise<void>;
+  handleCreate: (title: string, categoryId: string, note?: string, dueDate?: Date | null) => Promise<void>;
   handleUpdateDueDate: (id: string, dueDate: Date | null) => Promise<void>;
 };
 
@@ -51,7 +51,7 @@ export function useTodos(): UseTodosReturn {
   );
 
   const handleCreate = useCallback(
-    async (title: string, categoryId: string | null, note?: string, dueDate?: Date | null) => {
+    async (title: string, categoryId: string, note?: string, dueDate?: Date | null) => {
       const now = new Date();
       await createTodo({
         id: Crypto.randomUUID(),

@@ -1,10 +1,8 @@
-import { useEffect, useState } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { getCategories, updateCategory } from "@/features/category/api/categories";
-import { CATEGORY_COLORS } from "@/features/category/types";
-import type { Category } from "@/features/category/types";
+import { CategoryManager } from "@/features/category/components/CategoryManager";
 import { ACCENT_PRESETS, useTheme } from "@/theme";
 import type { ThemeMode } from "@/theme";
 
@@ -17,23 +15,8 @@ const MODE_OPTIONS: { label: string; value: ThemeMode }[] = [
 export function SettingsScreen() {
   const { colors, mode, setMode, accentColor, setAccentColor } = useTheme();
   const { user, isLoading: authLoading, signIn, signOut } = useAuth();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [expandedCatId, setExpandedCatId] = useState<string | null>(null);
+  const [catManagerVisible, setCatManagerVisible] = useState(false);
   const s = makeStyles(colors);
-
-  useEffect(() => {
-    getCategories().then(setCategories);
-  }, []);
-
-  async function handleCategoryColor(cat: Category, color: string) {
-    try {
-      const updated = await updateCategory(cat.id, { color });
-      setCategories((prev) => prev.map((c) => (c.id === cat.id ? { ...c, color: updated.color } : c)));
-      setExpandedCatId(null);
-    } catch {
-      Alert.alert("오류", "색상 변경에 실패했습니다.");
-    }
-  }
 
   async function handleSignIn() {
     try {
@@ -52,6 +35,7 @@ export function SettingsScreen() {
   }
 
   return (
+    <>
     <ScrollView style={s.container} contentContainerStyle={s.content}>
       <Text style={s.screenTitle}>설정</Text>
 
@@ -130,51 +114,27 @@ export function SettingsScreen() {
         </View>
       </View>
 
-      {/* ── 카테고리 색상 ───────────────────────────────────── */}
-      {categories.length > 0 && (
-        <>
-          <Text style={s.sectionTitle}>카테고리 색상</Text>
-          <View style={[s.card, { backgroundColor: colors.surface.default }]}>
-            {categories.map((cat, idx) => (
-              <View key={cat.id}>
-                {idx > 0 && <View style={[s.divider, { backgroundColor: colors.border.default }]} />}
-                <Pressable
-                  style={s.catRow}
-                  onPress={() => setExpandedCatId(expandedCatId === cat.id ? null : cat.id)}
-                >
-                  <View style={[s.catDot, { backgroundColor: cat.color }]} />
-                  <Text style={[s.catName, { color: colors.text.primary }]}>{cat.name}</Text>
-                  <Text style={[s.catChevron, { color: colors.text.disabled }]}>
-                    {expandedCatId === cat.id ? "∧" : "∨"}
-                  </Text>
-                </Pressable>
-
-                {expandedCatId === cat.id && (
-                  <View style={s.colorPalette}>
-                    {CATEGORY_COLORS.map((color) => (
-                      <Pressable
-                        key={color}
-                        style={[
-                          s.paletteDot,
-                          { backgroundColor: color },
-                          cat.color === color && s.paletteDotSelected,
-                        ]}
-                        onPress={() => handleCategoryColor(cat, color)}
-                        accessibilityLabel={color}
-                      >
-                        {cat.color === color && <Text style={s.swatchCheck}>✓</Text>}
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
-        </>
-      )}
+      {/* ── 카테고리 관리 ───────────────────────────────────── */}
+      <Text style={s.sectionTitle}>카테고리</Text>
+      <View style={[s.card, { backgroundColor: colors.surface.default }]}>
+        <Pressable style={s.catRow} onPress={() => setCatManagerVisible(true)}>
+          <Text style={[s.catName, { color: colors.text.primary }]}>카테고리 관리</Text>
+          <Text style={[s.catChevron, { color: colors.text.disabled }]}>›</Text>
+        </Pressable>
+      </View>
 
       <View style={{ height: 40 }} />
     </ScrollView>
+
+    <Modal
+      visible={catManagerVisible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setCatManagerVisible(false)}
+    >
+      <CategoryManager onClose={() => setCatManagerVisible(false)} />
+    </Modal>
+    </>
   );
 }
 
@@ -257,38 +217,13 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       minHeight: 44,
       gap: 12,
     },
-    catDot: {
-      width: 14,
-      height: 14,
-      borderRadius: 7,
-    },
     catName: {
       flex: 1,
       fontSize: 16,
     },
     catChevron: {
-      fontSize: 14,
-    },
-    colorPalette: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 10,
-      paddingVertical: 12,
-      paddingLeft: 26,
-    },
-    paletteDot: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    paletteDotSelected: {
-      borderWidth: 2.5,
-      borderColor: colors.border.strong,
-    },
-    divider: {
-      height: StyleSheet.hairlineWidth,
+      fontSize: 18,
+      color: colors.text.disabled,
     },
 
     // 계정

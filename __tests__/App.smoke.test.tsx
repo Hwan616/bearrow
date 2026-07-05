@@ -89,6 +89,10 @@ jest.mock("@/features/todo/hooks/useTodos", () => ({
   }),
 }));
 
+jest.mock("@/features/category/api/categories", () => ({
+  ensureDefaultCategory: jest.fn().mockResolvedValue(undefined),
+}));
+
 // ── App import ─────────────────────────────────────────────────────────────────
 // eslint-disable-next-line import/first
 import App from "../App";
