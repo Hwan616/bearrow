@@ -10,12 +10,14 @@ export interface UseDayItemsResult {
   events: Event[];
   todos: Todo[];
   isLoading: boolean;
+  refresh: () => void;
 }
 
 export function useDayItems(date: Date): UseDayItemsResult {
   const [events, setEvents] = useState<Event[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [version, setVersion] = useState(0);
 
   const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 
@@ -44,7 +46,7 @@ export function useDayItems(date: Date): UseDayItemsResult {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateKey]);
+  }, [dateKey, version]);
 
-  return { events, todos, isLoading };
+  return { events, todos, isLoading, refresh: () => setVersion((v) => v + 1) };
 }

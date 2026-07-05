@@ -111,6 +111,7 @@ function AppContent() {
               key={`${selectedDate.toDateString()}-${calendarKey}`}
               date={selectedDate}
               onEventPress={(event) => setSelectedEvent(event)}
+              onEditTodo={setEditingTodo}
             />
           </View>
         )}
@@ -249,6 +250,8 @@ function AppContent() {
             <EventDetailSheet
               event={selectedEvent}
               onClose={() => setSelectedEvent(null)}
+              onSaved={() => setCalendarKey((k) => k + 1)}
+              onDeleted={() => setCalendarKey((k) => k + 1)}
               onTodoCreated={() => {
                 setSelectedEvent(null);
                 setCalendarKey((k) => k + 1);

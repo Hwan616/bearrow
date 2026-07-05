@@ -1,9 +1,12 @@
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { createTodoFromEvent } from "@/features/todo/api/todos";
 import { useTheme } from "@/theme";
 
+import { deleteEvent } from "../api/events";
 import type { Event } from "../types";
+import { EventForm } from "./EventForm";
 
 const SHORT_DAYS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
@@ -19,12 +22,15 @@ function formatEventDatetime(event: Event): string {
 interface Props {
   event: Event;
   onClose: () => void;
+  onSaved?: () => void;
+  onDeleted?: () => void;
   onTodoCreated?: () => void;
 }
 
-export function EventDetailSheet({ event, onClose, onTodoCreated }: Props) {
+export function EventDetailSheet({ event, onClose, onSaved, onDeleted, onTodoCreated }: Props) {
   const { colors } = useTheme();
   const s = makeStyles(colors);
+  const [editVisible, setEditVisible] = useState(false);
 
   async function handleCreateTodo() {
     try {
@@ -36,16 +42,45 @@ export function EventDetailSheet({ event, onClose, onTodoCreated }: Props) {
     }
   }
 
+  function handleEditSave() {
+    setEditVisible(false);
+    onSaved?.();
+    onClose();
+  }
+
+  function handleDelete() {
+    Alert.alert(
+      "일정 삭제",
+      `"${event.title}" 일정을 삭제하시겠습니까?`,
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "삭제",
+          style: "destructive",
+          onPress: () =>
+            void deleteEvent(event.id)
+              .then(() => {
+                onDeleted?.();
+                onClose();
+              })
+              .catch(() => Alert.alert("오류", "삭제에 실패했습니다.")),
+        },
+      ],
+    );
+  }
+
   return (
     <View style={s.container}>
       {/* 헤더 */}
       <View style={[s.header, { borderBottomColor: colors.border.default }]}>
-        <View style={{ width: 44 }} />
+        <Pressable onPress={handleDelete} style={s.headerBtn} accessibilityLabel="일정 삭제">
+          <Text style={[s.headerBtnText, { color: colors.status.error }]}>삭제</Text>
+        </Pressable>
         <Text style={s.headerTitle} numberOfLines={1}>
           일정 상세
         </Text>
-        <Pressable onPress={onClose} style={s.closeBtn} accessibilityLabel="닫기">
-          <Text style={[s.closeBtnText, { color: colors.accent.primary }]}>닫기</Text>
+        <Pressable onPress={onClose} style={s.headerBtn} accessibilityLabel="닫기">
+          <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>닫기</Text>
         </Pressable>
       </View>
 
@@ -70,18 +105,40 @@ export function EventDetailSheet({ event, onClose, onTodoCreated }: Props) {
           </View>
         ) : null}
 
+        {/* 편집 버튼 */}
+        <Pressable
+          style={[s.actionBtn, { backgroundColor: colors.accent.primary }]}
+          onPress={() => setEditVisible(true)}
+        >
+          <Text style={s.actionBtnText}>편집</Text>
+        </Pressable>
+
         {/* 할일로 추가 버튼 */}
         <Pressable
-          style={[s.createTodoBtn, { backgroundColor: colors.status.success }]}
+          style={[s.actionBtn, { backgroundColor: colors.status.success }]}
           onPress={handleCreateTodo}
         >
-          <Text style={s.createTodoBtnText}>✓ 할일로 추가</Text>
+          <Text style={s.actionBtnText}>✓ 할일로 추가</Text>
         </Pressable>
 
         <Text style={s.hint}>
           이 일정을 할일 목록에 추가합니다. 마감일은 이벤트 날짜로 설정됩니다.
         </Text>
       </ScrollView>
+
+      {/* 일정 편집 모달 */}
+      <Modal
+        visible={editVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setEditVisible(false)}
+      >
+        <EventForm
+          initialEvent={event}
+          onSave={handleEditSave}
+          onCancel={() => setEditVisible(false)}
+        />
+      </Modal>
     </View>
   );
 }
@@ -107,13 +164,13 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       fontWeight: "600",
       color: colors.text.primary,
     },
-    closeBtn: {
+    headerBtn: {
       minWidth: 44,
       minHeight: 44,
       alignItems: "flex-end",
       justifyContent: "center",
     },
-    closeBtnText: {
+    headerBtnText: {
       fontSize: 17,
     },
     body: {
@@ -157,13 +214,13 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       fontSize: 15,
       color: colors.text.primary,
     },
-    createTodoBtn: {
+    actionBtn: {
       borderRadius: 12,
       paddingVertical: 14,
       alignItems: "center",
-      marginTop: 8,
+      marginTop: 4,
     },
-    createTodoBtnText: {
+    actionBtnText: {
       color: "#fff",
       fontSize: 16,
       fontWeight: "600",

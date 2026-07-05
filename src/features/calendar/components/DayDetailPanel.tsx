@@ -1,5 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { toggleTodo } from "@/features/todo/api/todos";
 import type { Todo } from "@/features/todo/types";
 import { useTheme } from "@/theme";
 
@@ -29,12 +30,18 @@ function formatTime(date: Date): string {
 interface Props {
   date: Date;
   onEventPress?: (event: Event) => void;
+  onEditTodo?: (todo: Todo) => void;
 }
 
-export function DayDetailPanel({ date, onEventPress }: Props) {
+export function DayDetailPanel({ date, onEventPress, onEditTodo }: Props) {
   const { colors } = useTheme();
-  const { events, todos, isLoading } = useDayItems(date);
+  const { events, todos, isLoading, refresh } = useDayItems(date);
   const s = makeStyles(colors);
+
+  async function handleTodoToggle(todo: Todo) {
+    await toggleTodo(todo.id, !todo.isCompleted);
+    refresh();
+  }
 
   const allDayEvents = events.filter((e) => e.isAllDay);
   const timedEvents = events
@@ -79,7 +86,13 @@ export function DayDetailPanel({ date, onEventPress }: Props) {
             <>
               <Text style={s.sectionLabel}>할일</Text>
               {todos.map((t) => (
-                <TodoRow key={t.id} todo={t} colors={colors} />
+                <TodoRow
+                  key={t.id}
+                  todo={t}
+                  colors={colors}
+                  onToggle={() => void handleTodoToggle(t)}
+                  onEdit={onEditTodo ? () => onEditTodo(t) : undefined}
+                />
               ))}
             </>
           )}
@@ -125,20 +138,30 @@ function EventRow({ event, colors, onPress }: EventRowProps) {
 interface TodoRowProps {
   todo: Todo;
   colors: ReturnType<typeof useTheme>["colors"];
+  onToggle?: () => void;
+  onEdit?: () => void;
 }
 
-function TodoRow({ todo, colors }: TodoRowProps) {
+function TodoRow({ todo, colors, onToggle, onEdit }: TodoRowProps) {
   const s = makeStyles(colors);
   return (
-    <View style={s.row}>
-      <View
-        style={[
-          s.todoCircle,
-          todo.isCompleted && { backgroundColor: colors.status.success, borderColor: colors.status.success },
-        ]}
+    <Pressable style={s.row} onPress={onEdit} accessibilityLabel={`${todo.title} 편집`}>
+      <Pressable
+        onPress={onToggle}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: todo.isCompleted }}
+        accessibilityLabel={todo.isCompleted ? "완료 취소" : "완료"}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        {todo.isCompleted && <Text style={s.checkMark}>✓</Text>}
-      </View>
+        <View
+          style={[
+            s.todoCircle,
+            todo.isCompleted && { backgroundColor: colors.status.success, borderColor: colors.status.success },
+          ]}
+        >
+          {todo.isCompleted && <Text style={s.checkMark}>✓</Text>}
+        </View>
+      </Pressable>
       <View style={s.rowContent}>
         <Text
           style={[s.rowTitle, todo.isCompleted && { textDecorationLine: "line-through", color: colors.text.disabled }]}
@@ -147,7 +170,7 @@ function TodoRow({ todo, colors }: TodoRowProps) {
           {todo.title}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
