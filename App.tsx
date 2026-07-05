@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
-import { Modal, Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { sqliteDb } from "@/db/client";
@@ -19,14 +19,9 @@ import { SettingsScreen } from "@/features/settings/components/SettingsScreen";
 import { TodoForm } from "@/features/todo/components/TodoForm";
 import { TodoList } from "@/features/todo/components/TodoList";
 import { useTodos } from "@/features/todo/hooks/useTodos";
+import type { Todo } from "@/features/todo/types";
 import { Sentry } from "@/lib/sentry";
 import { ThemeProvider, useTheme } from "@/theme";
-
-// DateTimePicker — 마감일 편집 모달용 (네이티브 전용)
-const DateTimePicker =
-  Platform.OS !== "web"
-    ? (require("@react-native-community/datetimepicker") as { default: React.ComponentType<Record<string, unknown>> }).default
-    : null;
 
 type Tab = "calendar" | "todo" | "settings";
 
@@ -52,14 +47,11 @@ function AppContent() {
 
   // 투두 상태
   const [todoFormVisible, setTodoFormVisible] = useState(false);
-  const { sections, handleToggle, handleDelete, handleCreate, handleUpdateDueDate } = useTodos();
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  const { sections, handleToggle, handleDelete, handleCreate, handleUpdate } = useTodos();
 
   // 이벤트 상세 상태
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-
-  // 마감일 편집 상태
-  const [dueDateTodoId, setDueDateTodoId] = useState<string | null>(null);
-  const [dueDateValue, setDueDateValue] = useState(new Date());
 
   useEffect(() => {
     setupNotificationHandler();
@@ -83,25 +75,19 @@ function AppContent() {
   ) {
     await handleCreate(title, categoryId, note, dueDate);
     setTodoFormVisible(false);
-    if (dueDate) setCalendarKey((k) => k + 1); // 캘린더 연동 반영
+    if (dueDate) setCalendarKey((k) => k + 1);
   }
 
-  function handleEditDueDate(id: string, current: Date | null) {
-    setDueDateTodoId(id);
-    setDueDateValue(current ?? new Date());
-  }
-
-  async function handleDueDateSave() {
-    if (!dueDateTodoId) return;
-    await handleUpdateDueDate(dueDateTodoId, dueDateValue);
-    setDueDateTodoId(null);
-    setCalendarKey((k) => k + 1); // 캘린더 연동 반영
-  }
-
-  async function handleDueDateClear() {
-    if (!dueDateTodoId) return;
-    await handleUpdateDueDate(dueDateTodoId, null);
-    setDueDateTodoId(null);
+  async function handleTodoUpdate(
+    title: string,
+    categoryId: string,
+    note?: string,
+    dueDate?: Date | null,
+  ) {
+    if (!editingTodo) return;
+    await handleUpdate(editingTodo.id, title, categoryId, note, dueDate);
+    setEditingTodo(null);
+    if (dueDate !== editingTodo.dueDate) setCalendarKey((k) => k + 1);
   }
 
   if (!ready) {
@@ -133,7 +119,7 @@ function AppContent() {
             sections={sections}
             onToggle={handleToggle}
             onDelete={handleDelete}
-            onEditDueDate={handleEditDueDate}
+            onEdit={setEditingTodo}
           />
         )}
         {activeTab === "settings" && <SettingsScreen />}
@@ -271,41 +257,20 @@ function AppContent() {
           )}
         </Modal>
 
-        {/* 마감일 편집 모달 */}
+        {/* 할일 편집 모달 */}
         <Modal
-          visible={dueDateTodoId !== null}
+          visible={editingTodo !== null}
           animationType="slide"
-          presentationStyle="formSheet"
-          onRequestClose={() => setDueDateTodoId(null)}
+          presentationStyle="pageSheet"
+          onRequestClose={() => setEditingTodo(null)}
         >
-          <SafeAreaView style={[styles.dueDateModal, { backgroundColor: colors.background.primary }]}>
-            <View style={[styles.dueDateHeader, { borderBottomColor: colors.border.default }]}>
-              <Pressable onPress={() => setDueDateTodoId(null)} style={styles.headerBtn}>
-                <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>취소</Text>
-              </Pressable>
-              <Text style={[styles.headerTitle, { color: colors.text.primary }]}>마감일</Text>
-              <Pressable onPress={handleDueDateSave} style={styles.headerBtn}>
-                <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>완료</Text>
-              </Pressable>
-            </View>
-
-            {DateTimePicker ? (
-              <DateTimePicker
-                value={dueDateValue}
-                mode="date"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={(_: unknown, d?: Date) => { if (d) setDueDateValue(d); }}
-              />
-            ) : (
-              <Text style={{ padding: 16, color: colors.text.secondary }}>
-                {dueDateValue.toLocaleDateString("ko-KR")}
-              </Text>
-            )}
-
-            <Pressable onPress={handleDueDateClear} style={styles.clearDueDateBtn}>
-              <Text style={{ color: colors.status.error, fontSize: 16 }}>마감일 없음</Text>
-            </Pressable>
-          </SafeAreaView>
+          {editingTodo && (
+            <TodoForm
+              initial={editingTodo}
+              onSave={handleTodoUpdate}
+              onCancel={() => setEditingTodo(null)}
+            />
+          )}
         </Modal>
       </SafeAreaView>
     </GestureHandlerRootView>
@@ -357,33 +322,5 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 11,
     fontWeight: "500",
-  },
-  dueDateModal: {
-    flex: 1,
-  },
-  dueDateHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  headerBtn: {
-    minWidth: 44,
-    minHeight: 44,
-    justifyContent: "center",
-  },
-  headerBtnText: {
-    fontSize: 17,
-  },
-  clearDueDateBtn: {
-    alignItems: "center",
-    paddingVertical: 16,
-    marginTop: 8,
   },
 });

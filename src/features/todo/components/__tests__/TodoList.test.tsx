@@ -72,7 +72,7 @@ const noop = jest.fn();
 describe("TodoList", () => {
   it("섹션 헤더가 카테고리 이름으로 렌더된다", async () => {
     await act(async () => {
-      render(<TodoList sections={sections} onToggle={noop} onDelete={noop} />);
+      render(<TodoList sections={sections} onToggle={noop} onDelete={noop} onEdit={noop} />);
     });
     expect(screen.getByText("업무")).toBeTruthy();
     expect(screen.getByText("개인")).toBeTruthy();
@@ -80,7 +80,7 @@ describe("TodoList", () => {
 
   it("할일 항목 제목이 렌더된다", async () => {
     await act(async () => {
-      render(<TodoList sections={sections} onToggle={noop} onDelete={noop} />);
+      render(<TodoList sections={sections} onToggle={noop} onDelete={noop} onEdit={noop} />);
     });
     expect(screen.getByText("보고서 작성")).toBeTruthy();
     expect(screen.getByText("미팅 준비")).toBeTruthy();
@@ -89,7 +89,7 @@ describe("TodoList", () => {
 
   it("빈 섹션일 때 안내 메시지를 표시한다", async () => {
     await act(async () => {
-      render(<TodoList sections={[]} onToggle={noop} onDelete={noop} />);
+      render(<TodoList sections={[]} onToggle={noop} onDelete={noop} onEdit={noop} />);
     });
     expect(screen.getByText("할일이 없습니다")).toBeTruthy();
   });

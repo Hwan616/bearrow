@@ -12,12 +12,12 @@ interface Props {
   sections: TodoSection[];
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
-  onEditDueDate?: (id: string, current: Date | null) => void;
+  onEdit: (todo: Todo) => void;
 }
 
 type ListSection = TodoSection & { data: Todo[] };
 
-export function TodoList({ sections, onToggle, onDelete, onEditDueDate }: Props) {
+export function TodoList({ sections, onToggle, onDelete, onEdit }: Props) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
@@ -53,7 +53,7 @@ export function TodoList({ sections, onToggle, onDelete, onEditDueDate }: Props)
               todo={item}
               onToggle={onToggle}
               onDelete={onDelete}
-              onEditDueDate={onEditDueDate}
+              onEdit={onEdit}
             />
           </View>
         );

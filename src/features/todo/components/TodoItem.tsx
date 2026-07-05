@@ -12,10 +12,10 @@ interface Props {
   todo: Todo;
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
-  onEditDueDate?: (id: string, current: Date | null) => void;
+  onEdit: (todo: Todo) => void;
 }
 
-export function TodoItem({ todo, onToggle, onDelete, onEditDueDate }: Props) {
+export function TodoItem({ todo, onToggle, onDelete, onEdit }: Props) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const swipeRef = useRef<Swipeable>(null);
@@ -35,14 +35,22 @@ export function TodoItem({ todo, onToggle, onDelete, onEditDueDate }: Props) {
   const content = (
     <Pressable
       style={styles.row}
-      onPress={() => onToggle(todo.id, !todo.isCompleted)}
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked: todo.isCompleted }}
+      onPress={() => onEdit(todo)}
+      accessibilityRole="button"
+      accessibilityLabel={`${todo.title} 편집`}
     >
-      {/* 체크박스 */}
-      <View style={[styles.checkbox, todo.isCompleted && { backgroundColor: colors.accent.primary, borderColor: colors.accent.primary }]}>
-        {todo.isCompleted && <Text style={styles.checkmark}>✓</Text>}
-      </View>
+      {/* 완료 토글 — 동그라미만 누를 때 동작 */}
+      <Pressable
+        onPress={() => onToggle(todo.id, !todo.isCompleted)}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: todo.isCompleted }}
+        accessibilityLabel={todo.isCompleted ? "완료 취소" : "완료"}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <View style={[styles.checkbox, todo.isCompleted && { backgroundColor: colors.accent.primary, borderColor: colors.accent.primary }]}>
+          {todo.isCompleted && <Text style={styles.checkmark}>✓</Text>}
+        </View>
+      </Pressable>
 
       {/* 텍스트 */}
       <View style={styles.textBlock}>
@@ -61,20 +69,17 @@ export function TodoItem({ todo, onToggle, onDelete, onEditDueDate }: Props) {
             {todo.note}
           </Text>
         ) : null}
-        {/* 마감일 — 탭하면 날짜 편집 */}
         {todo.dueDate ? (
-          <Pressable onPress={() => onEditDueDate?.(todo.id, todo.dueDate)}>
-            <Text
-              style={[
-                styles.dueDate,
-                isDueDatePast(todo.dueDate) && { color: colors.status.error },
-                isDueDateToday(todo.dueDate) && { color: colors.accent.primary, fontWeight: "600" },
-              ]}
-              maxFontSizeMultiplier={1.5}
-            >
-              📅 {formatDueDate(todo.dueDate)}
-            </Text>
-          </Pressable>
+          <Text
+            style={[
+              styles.dueDate,
+              isDueDatePast(todo.dueDate) && { color: colors.status.error },
+              isDueDateToday(todo.dueDate) && { color: colors.accent.primary, fontWeight: "600" },
+            ]}
+            maxFontSizeMultiplier={1.5}
+          >
+            📅 {formatDueDate(todo.dueDate)}
+          </Text>
         ) : null}
       </View>
 

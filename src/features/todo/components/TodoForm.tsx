@@ -16,6 +16,7 @@ import type { Category } from "@/features/category/types";
 import { useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
 
+import type { Todo } from "../types";
 import { formatDueDate } from "../utils/todoDateUtils";
 
 // DateTimePicker — 네이티브 전용 조건부 require
@@ -32,11 +33,12 @@ type FormValues = {
 };
 
 interface Props {
+  initial?: Todo;
   onSave: (title: string, categoryId: string, note?: string, dueDate?: Date | null) => Promise<void>;
   onCancel: () => void;
 }
 
-export function TodoForm({ onSave, onCancel }: Props) {
+export function TodoForm({ initial, onSave, onCancel }: Props) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
@@ -48,23 +50,30 @@ export function TodoForm({ onSave, onCancel }: Props) {
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    defaultValues: { title: "", note: "", categoryId: "", dueDate: null },
+    defaultValues: {
+      title: initial?.title ?? "",
+      note: initial?.note ?? "",
+      categoryId: initial?.categoryId ?? "",
+      dueDate: initial?.dueDate ?? null,
+    },
   });
 
   useEffect(() => {
     getCategories().then(setCategories);
   }, []);
 
-  // 카테고리 로드 후 첫 번째 카테고리를 기본값으로 설정
+  // 생성 모드에서만: 카테고리 로드 후 첫 번째를 기본값으로 설정
   useEffect(() => {
-    if (categories.length > 0 && categories[0]) {
+    if (!initial && categories.length > 0 && categories[0]) {
       setValue("categoryId", categories[0].id);
     }
-  }, [categories, setValue]);
+  }, [categories, initial, setValue]);
 
   async function onSubmit(values: FormValues) {
     await onSave(values.title, values.categoryId, values.note || undefined, values.dueDate);
   }
+
+  const isEdit = !!initial;
 
   return (
     <KeyboardAvoidingView
@@ -76,13 +85,13 @@ export function TodoForm({ onSave, onCancel }: Props) {
         <Pressable onPress={onCancel} style={styles.headerBtn}>
           <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>취소</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>새 할일</Text>
+        <Text style={styles.headerTitle}>{isEdit ? "할일 편집" : "새 할일"}</Text>
         <Pressable
           onPress={handleSubmit(onSubmit)}
           disabled={isSubmitting}
           style={styles.headerBtn}
         >
-          <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>추가</Text>
+          <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>{isEdit ? "저장" : "추가"}</Text>
         </Pressable>
       </View>
 

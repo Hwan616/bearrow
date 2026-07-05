@@ -85,7 +85,7 @@ jest.mock("@/features/todo/hooks/useTodos", () => ({
     handleToggle: jest.fn(),
     handleDelete: jest.fn(),
     handleCreate: jest.fn(),
-    handleUpdateDueDate: jest.fn(),
+    handleUpdate: jest.fn(),
   }),
 }));
 

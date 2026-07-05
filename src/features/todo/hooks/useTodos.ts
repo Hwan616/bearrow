@@ -15,7 +15,7 @@ export type UseTodosReturn = {
   handleToggle: (id: string, completed: boolean) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
   handleCreate: (title: string, categoryId: string, note?: string, dueDate?: Date | null) => Promise<void>;
-  handleUpdateDueDate: (id: string, dueDate: Date | null) => Promise<void>;
+  handleUpdate: (id: string, title: string, categoryId: string, note?: string, dueDate?: Date | null) => Promise<void>;
 };
 
 export function useTodos(): UseTodosReturn {
@@ -70,9 +70,15 @@ export function useTodos(): UseTodosReturn {
     [refresh],
   );
 
-  const handleUpdateDueDate = useCallback(
-    async (id: string, dueDate: Date | null) => {
-      await updateTodo(id, { dueDate, updatedAt: new Date() });
+  const handleUpdate = useCallback(
+    async (id: string, title: string, categoryId: string, note?: string, dueDate?: Date | null) => {
+      await updateTodo(id, {
+        title: title.trim(),
+        categoryId,
+        note: note?.trim() || null,
+        dueDate: dueDate ?? null,
+        updatedAt: new Date(),
+      });
       await refresh();
     },
     [refresh],
@@ -80,5 +86,5 @@ export function useTodos(): UseTodosReturn {
 
   const sections = groupTodosByCategory(todos, categories);
 
-  return { sections, isLoading, refresh, handleToggle, handleDelete, handleCreate, handleUpdateDueDate };
+  return { sections, isLoading, refresh, handleToggle, handleDelete, handleCreate, handleUpdate };
 }
