@@ -134,6 +134,13 @@
   - 완료: EventDetailSheet에 편집(EventForm 중첩 모달)·삭제(Alert 확인 후 deleteEvent) 추가. DayDetailPanel 할일 행을 인터랙티브하게 변경(원형 = 완료 토글, 텍스트 = 편집 모달). useDayItems에 refresh() 추가로 토글 후 즉시 재조회.
   - 파일: `src/features/calendar/components/EventDetailSheet.tsx`, `src/features/calendar/components/DayDetailPanel.tsx`, `src/features/calendar/hooks/useDayItems.ts`, `App.tsx`
   - 요구사항: `FR-CAL-003`, `FR-CAL-004`, `FR-INT-003`
+- [x] **6.5 캘린더 탭 통합 스크롤 + 연월 피커 + 투두 미니 캘린더**
+  - 완료:
+    - 캘린더 탭: MonthView + DayDetailPanel을 단일 ScrollView로 통합(embedded 모드). 월 그리드와 당일 일정이 자연스럽게 이어지는 스크롤 UX.
+    - 연월 피커: 월 제목('0000년 00월') 클릭 시 연도+월 선택 모달(YearMonthPicker). MonthView·TodoMiniCalendar 공용.
+    - 투두 탭 미니 캘린더(TodoMiniCalendar): 탭 상단에 월 그리드 표시, 각 날짜에 미완료 할일 개수 뱃지. 할일 아이템의 '날짜 변경' 버튼 → 달력에서 새 날짜 직접 선택으로 마감일 이동.
+  - 파일: `src/features/calendar/components/YearMonthPicker.tsx`, `src/features/todo/components/TodoMiniCalendar.tsx`, `src/features/calendar/components/MonthView.tsx`, `src/features/calendar/components/DayDetailPanel.tsx`, `src/features/todo/components/TodoItem.tsx`, `src/features/todo/components/TodoList.tsx`, `App.tsx`
+  - 요구사항: `FR-CAL-002`, `FR-TODO-005`, `UI-001`
 
 ## Phase 7 — 출시
 

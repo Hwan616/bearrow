@@ -14,6 +14,7 @@ import {
   isSameDay,
 } from "../utils/calendarUtils";
 import { getHolidaysForMonth } from "../utils/koreanHolidays";
+import { YearMonthPicker } from "./YearMonthPicker";
 
 const DAYS_OF_WEEK = ["일", "월", "화", "수", "목", "금", "토"] as const;
 const MAX_EVENT_DOTS = 2; // 이벤트 최대 2개 점 + 할일 1개 점 = 최대 3개
@@ -28,6 +29,7 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
   const [year, setYear] = useState(base.getFullYear());
   const [month, setMonth] = useState(base.getMonth());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [pickerVisible, setPickerVisible] = useState(false);
 
   const { colors } = useTheme();
   const { showHolidays } = useAppSettings();
@@ -78,9 +80,15 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
         >
           <Text style={s.navArrow}>‹</Text>
         </Pressable>
-        <Text style={s.monthTitle} maxFontSizeMultiplier={1.3}>
-          {formatMonthTitle(year, month)}
-        </Text>
+        <Pressable
+          onPress={() => setPickerVisible(true)}
+          accessibilityLabel="연월 선택"
+          accessibilityRole="button"
+        >
+          <Text style={s.monthTitle} maxFontSizeMultiplier={1.3}>
+            {formatMonthTitle(year, month)}
+          </Text>
+        </Pressable>
         <Pressable
           onPress={goToNext}
           style={s.navBtn}
@@ -103,6 +111,14 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
           </Text>
         ))}
       </View>
+
+      <YearMonthPicker
+        year={year}
+        month={month}
+        visible={pickerVisible}
+        onSelect={(y, m) => { setYear(y); setMonth(m); }}
+        onClose={() => setPickerVisible(false)}
+      />
 
       {/* 날짜 그리드 */}
       <View style={s.grid}>

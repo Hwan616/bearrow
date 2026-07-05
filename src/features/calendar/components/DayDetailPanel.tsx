@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from "react-native";
 
 import { useAppSettings } from "@/features/settings/AppSettingsContext";
 import { toggleTodo } from "@/features/todo/api/todos";
@@ -33,9 +33,11 @@ interface Props {
   date: Date;
   onEventPress?: (event: Event) => void;
   onEditTodo?: (todo: Todo) => void;
+  /** true 시 내부 ScrollView를 제거해 부모가 스크롤을 처리하도록 함 */
+  embedded?: boolean;
 }
 
-export function DayDetailPanel({ date, onEventPress, onEditTodo }: Props) {
+export function DayDetailPanel({ date, onEventPress, onEditTodo, embedded }: Props) {
   const { colors } = useTheme();
   const { showHolidays } = useAppSettings();
   const { events, todos, isLoading, refresh } = useDayItems(date);
@@ -53,8 +55,41 @@ export function DayDetailPanel({ date, onEventPress, onEditTodo }: Props) {
     .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
   const total = events.length + todos.length;
 
+  const listContent = (
+    <>
+      {allDayEvents.map((e) => (
+        <EventRow key={e.id} event={e} colors={colors} onPress={onEventPress} />
+      ))}
+      {timedEvents.map((e) => (
+        <EventRow key={e.id} event={e} colors={colors} onPress={onEventPress} />
+      ))}
+      {todos.length > 0 && events.length > 0 && (
+        <View style={[s.divider, { backgroundColor: colors.border.default }]} />
+      )}
+      {todos.length > 0 && (
+        <>
+          <Text style={s.sectionLabel}>할일</Text>
+          {todos.map((t) => (
+            <TodoRow
+              key={t.id}
+              todo={t}
+              colors={colors}
+              onToggle={() => void handleTodoToggle(t)}
+              onEdit={onEditTodo ? () => onEditTodo(t) : undefined}
+            />
+          ))}
+        </>
+      )}
+      <View style={{ height: 24 }} />
+    </>
+  );
+
+  const containerStyle: ViewStyle = embedded
+    ? { backgroundColor: colors.background.primary }
+    : { flex: 1, backgroundColor: colors.background.primary };
+
   return (
-    <View style={s.container}>
+    <View style={containerStyle}>
       {/* 날짜 헤더 */}
       <View style={[s.dateHeader, { borderBottomColor: colors.border.default }]}>
         <View style={s.dateHeaderRow}>
@@ -72,43 +107,16 @@ export function DayDetailPanel({ date, onEventPress, onEditTodo }: Props) {
           <Text style={s.emptyText}>불러오는 중…</Text>
         </View>
       ) : total === 0 ? (
-        <View style={s.center}>
-          <Text style={s.emptyText}>이 날의 일정·할일이 없습니다.</Text>
+        <View style={embedded ? undefined : s.center}>
+          <Text style={[s.emptyText, embedded && { paddingVertical: 16, textAlign: "center" }]}>
+            이 날의 일정·할일이 없습니다.
+          </Text>
         </View>
+      ) : embedded ? (
+        <View style={s.list}>{listContent}</View>
       ) : (
         <ScrollView style={s.list} showsVerticalScrollIndicator={false}>
-          {/* 종일 이벤트 */}
-          {allDayEvents.map((e) => (
-            <EventRow key={e.id} event={e} colors={colors} onPress={onEventPress} />
-          ))}
-
-          {/* 시간 이벤트 */}
-          {timedEvents.map((e) => (
-            <EventRow key={e.id} event={e} colors={colors} onPress={onEventPress} />
-          ))}
-
-          {/* 할일 구분선 */}
-          {todos.length > 0 && events.length > 0 && (
-            <View style={[s.divider, { backgroundColor: colors.border.default }]} />
-          )}
-
-          {/* 할일 목록 */}
-          {todos.length > 0 && (
-            <>
-              <Text style={s.sectionLabel}>할일</Text>
-              {todos.map((t) => (
-                <TodoRow
-                  key={t.id}
-                  todo={t}
-                  colors={colors}
-                  onToggle={() => void handleTodoToggle(t)}
-                  onEdit={onEditTodo ? () => onEditTodo(t) : undefined}
-                />
-              ))}
-            </>
-          )}
-
-          <View style={{ height: 24 }} />
+          {listContent}
         </ScrollView>
       )}
     </View>

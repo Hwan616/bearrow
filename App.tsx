@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
-import { Modal, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { sqliteDb } from "@/db/client";
@@ -19,6 +19,7 @@ import type { Event } from "@/features/calendar/types";
 import { SettingsScreen } from "@/features/settings/components/SettingsScreen";
 import { TodoForm } from "@/features/todo/components/TodoForm";
 import { TodoList } from "@/features/todo/components/TodoList";
+import { TodoMiniCalendar } from "@/features/todo/components/TodoMiniCalendar";
 import { useTodos } from "@/features/todo/hooks/useTodos";
 import type { Todo } from "@/features/todo/types";
 import { Sentry } from "@/lib/sentry";
@@ -51,7 +52,9 @@ function AppContent() {
   // 투두 상태
   const [todoFormVisible, setTodoFormVisible] = useState(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  const [reschedulingTodo, setReschedulingTodo] = useState<Todo | null>(null);
   const { sections, handleToggle, handleDelete, handleCreate, handleUpdate } = useTodos();
+  const allTodos = sections.flatMap((s) => s.todos);
 
   // 이벤트 상세 상태
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -93,6 +96,19 @@ function AppContent() {
     if (dueDate !== editingTodo.dueDate) setCalendarKey((k) => k + 1);
   }
 
+  async function handleReschedule(newDate: Date) {
+    if (!reschedulingTodo) return;
+    await handleUpdate(
+      reschedulingTodo.id,
+      reschedulingTodo.title,
+      reschedulingTodo.categoryId ?? "",
+      reschedulingTodo.note ?? undefined,
+      newDate,
+    );
+    setReschedulingTodo(null);
+    setCalendarKey((k) => k + 1);
+  }
+
   if (!ready) {
     return (
       <View style={[styles.loading, { backgroundColor: colors.background.primary }]}>
@@ -108,23 +124,35 @@ function AppContent() {
 
         {/* 탭 콘텐츠 */}
         {activeTab === "calendar" && (
-          <View style={{ flex: 1 }}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
             <MonthView key={calendarKey} onDayPress={(date) => setSelectedDate(date)} />
             <DayDetailPanel
               key={`${selectedDate.toDateString()}-${calendarKey}`}
               date={selectedDate}
               onEventPress={(event) => setSelectedEvent(event)}
               onEditTodo={setEditingTodo}
+              embedded
             />
-          </View>
+          </ScrollView>
         )}
         {activeTab === "todo" && (
-          <TodoList
-            sections={sections}
-            onToggle={handleToggle}
-            onDelete={handleDelete}
-            onEdit={setEditingTodo}
-          />
+          <View style={{ flex: 1 }}>
+            <TodoMiniCalendar
+              todos={allTodos}
+              reschedulingTodo={reschedulingTodo}
+              onDatePick={(date) => void handleReschedule(date)}
+              onCancelReschedule={() => setReschedulingTodo(null)}
+            />
+            <View style={{ flex: 1 }}>
+              <TodoList
+                sections={sections}
+                onToggle={handleToggle}
+                onDelete={handleDelete}
+                onEdit={setEditingTodo}
+                onReschedule={setReschedulingTodo}
+              />
+            </View>
+          </View>
         )}
         {activeTab === "settings" && <SettingsScreen />}
 

@@ -13,9 +13,10 @@ interface Props {
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
   onEdit: (todo: Todo) => void;
+  onReschedule?: (todo: Todo) => void;
 }
 
-export function TodoItem({ todo, onToggle, onDelete, onEdit }: Props) {
+export function TodoItem({ todo, onToggle, onDelete, onEdit, onReschedule }: Props) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const swipeRef = useRef<Swipeable>(null);
@@ -82,6 +83,19 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: Props) {
           </Text>
         ) : null}
       </View>
+
+      {/* 날짜 변경 버튼 */}
+      {onReschedule && (
+        <Pressable
+          onPress={() => onReschedule(todo)}
+          style={styles.rescheduleBtn}
+          hitSlop={8}
+          accessibilityLabel="날짜 변경"
+          accessibilityRole="button"
+        >
+          <Text style={styles.rescheduleBtnText}>↗</Text>
+        </Pressable>
+      )}
 
       {/* 웹: 항상 삭제 버튼 노출 (스와이프 불가) */}
       {Platform.OS === "web" && (
@@ -163,6 +177,16 @@ function makeStyles(colors: ColorTokens) {
     },
     webDeleteBtn: {
       padding: 8,
+    },
+    rescheduleBtn: {
+      minWidth: 32,
+      minHeight: 32,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    rescheduleBtnText: {
+      fontSize: 16,
+      color: colors.text.secondary,
     },
   });
 }
