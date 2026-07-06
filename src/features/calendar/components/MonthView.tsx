@@ -306,7 +306,15 @@ const MonthItem = React.memo(function MonthItem({
           const eventBars = computeEventBars(weekDays, events, getCategoryColor);
 
           return (
-            <View key={rowIndex} style={s.weekRow}>
+            <React.Fragment key={rowIndex}>
+              {rowIndex === 0 && (
+                <View style={s.monthLabelAboveRow}>
+                  <Text style={[s.monthLabelOnFirst, isThisMonth && s.monthLabelCurrent]}>
+                    {month + 1}월
+                  </Text>
+                </View>
+              )}
+            <View style={s.weekRow}>
               {/* 날짜 셀 행 */}
               <View style={s.dayCellsRow}>
                 {weekDays.map(({ date, isCurrentMonth, isToday }) => {
@@ -322,8 +330,6 @@ const MonthItem = React.memo(function MonthItem({
                     return <View key={date.toISOString()} style={s.dayCell} />;
                   }
 
-                  const isFirst = date.getDate() === 1;
-
                   return (
                     <Pressable
                       key={date.toISOString()}
@@ -332,11 +338,6 @@ const MonthItem = React.memo(function MonthItem({
                       accessibilityLabel={`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`}
                       accessibilityRole="button"
                     >
-                      {isFirst && (
-                        <Text style={[s.monthLabelOnFirst, isThisMonth && s.monthLabelCurrent]}>
-                          {month + 1}월
-                        </Text>
-                      )}
                       <View
                         style={[
                           s.dayCircle,
@@ -403,6 +404,7 @@ const MonthItem = React.memo(function MonthItem({
                 })}
               </View>
             </View>
+            </React.Fragment>
           );
         })}
       </View>
@@ -435,14 +437,14 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       position: "relative",
     },
     dayCircle: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       alignItems: "center",
       justifyContent: "center",
     },
     dayText: {
-      fontSize: 14,
+      fontSize: 18,
       color: colors.text.primary,
     },
     outsideMonth: {
@@ -452,12 +454,15 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       color: colors.text.inverse,
       fontWeight: "700",
     },
+    monthLabelAboveRow: {
+      paddingHorizontal: 8,
+      paddingTop: 6,
+      paddingBottom: 2,
+    },
     monthLabelOnFirst: {
-      fontSize: 9,
-      fontWeight: "600",
+      fontSize: 22,
+      fontWeight: "700",
       color: colors.text.secondary,
-      lineHeight: 11,
-      marginBottom: 1,
     },
     monthLabelCurrent: {
       color: "#D93535",

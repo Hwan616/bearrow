@@ -20,14 +20,14 @@ const MONTH_NAMES = [
 
 // ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
 const MINI_CELL_HEIGHT = 18;       // paddingVertical:1×2 + circle height:16
-const MINI_TITLE_HEIGHT = 21;      // fontSize:13 lineHeight + marginBottom:4
+const MINI_TITLE_HEIGHT = 24;      // fontSize:15 lineHeight + marginBottom:4
 const FIXED_MINI_ROWS = 6;         // always 6 rows per mini month (padded)
 const MINI_MONTH_HEIGHT =
   16 + MINI_TITLE_HEIGHT + FIXED_MINI_ROWS * MINI_CELL_HEIGHT;
-// paddingVertical:8×2=16 + 21 + 108 = 145
-const YEAR_HEADER_HEIGHT = 60;     // paddingVertical:16×2 + fontSize:22 lineHeight
+// paddingVertical:8×2=16 + 24 + 108 = 148
+const YEAR_HEADER_HEIGHT = 75;     // paddingVertical:16×2 + fontSize:28 + divider
 const YEAR_ITEM_HEIGHT = YEAR_HEADER_HEIGHT + 4 * MINI_MONTH_HEIGHT;
-// 60 + 4×145 = 640
+// 75 + 4×148 = 667
 
 const YEAR_WINDOW = 21; // ±10 years
 
@@ -136,6 +136,7 @@ const YearItem = React.memo(function YearItem({
         <Text style={[s.yearTitle, year === today.getFullYear() && s.yearTitleCurrent]}>
           {year}년
         </Text>
+        <View style={s.yearDivider} />
       </View>
       <View style={s.monthsGrid}>
         {Array.from({ length: 12 }, (_, month) => {
@@ -224,13 +225,19 @@ function makeStyles(colors: ColorTokens) {
       paddingHorizontal: 16,
     },
     yearTitle: {
-      fontSize: 22,
+      fontSize: 28,
       fontWeight: "700",
       letterSpacing: -0.5,
       color: colors.text.primary,
     },
     yearTitleCurrent: {
       color: "#D93535",
+    },
+    yearDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border.default,
+      marginTop: 6,
+      marginHorizontal: 4,
     },
     monthsGrid: {
       flexDirection: "row",
@@ -243,9 +250,9 @@ function makeStyles(colors: ColorTokens) {
       paddingVertical: 8,
     },
     miniMonthTitle: {
-      fontSize: 13,
+      fontSize: 15,
       fontWeight: "600",
-      textAlign: "center",
+      textAlign: "left",
       marginBottom: 4,
       color: colors.text.primary,
     },
