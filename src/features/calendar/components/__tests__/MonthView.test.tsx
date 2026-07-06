@@ -192,7 +192,5 @@ describe("MonthView", () => {
     });
     // FlatList 컨테이너 확인
     expect(screen.getByTestId("month-list")).toBeTruthy();
-    // 현재 달 제목 확인
-    expect(screen.getByText("2026년 7월")).toBeTruthy();
   });
 });

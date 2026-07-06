@@ -89,17 +89,6 @@ describe("DayView", () => {
     expect(screen.getByTestId("day-view")).toBeTruthy();
   });
 
-  it("날짜 헤더에 initialDate 정보가 표시된다", async () => {
-    await act(async () => {
-      render(<DayView initialDate={INITIAL_DATE} />);
-    });
-    const header = screen.getByTestId("day-header-title");
-    expect(header.props.children).toContain("2026년");
-    expect(header.props.children).toContain("7월");
-    expect(header.props.children).toContain("6일");
-    expect(header.props.children).toContain("월요일");
-  });
-
   it("day-list FlatList가 렌더된다", async () => {
     await act(async () => {
       render(<DayView initialDate={INITIAL_DATE} />);

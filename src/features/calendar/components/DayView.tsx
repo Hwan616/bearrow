@@ -24,7 +24,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 const FULL_DAYS = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"] as const;
 
-function formatDayHeaderTitle(date: Date): string {
+export function formatDayHeaderTitle(date: Date): string {
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 ${FULL_DAYS[date.getDay()]}`;
 }
 
@@ -108,13 +108,6 @@ export function DayView({ initialDate, onEventPress, onDateChange }: DayViewProp
 
   return (
     <View style={s.container} testID="day-view">
-      {/* 날짜 헤더 — 스크롤에 따라 실시간 갱신 */}
-      <View style={[s.dateHeader, { borderBottomColor: colors.border.default }]}>
-        <Text style={s.dateTitle} testID="day-header-title">
-          {formatDayHeaderTitle(visibleDate)}
-        </Text>
-      </View>
-
       <FlatList<Date>
         ref={listRef}
         data={dates}
@@ -301,17 +294,6 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     container: {
       flex: 1,
       backgroundColor: colors.background.primary,
-    },
-    dateHeader: {
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      backgroundColor: colors.surface.default,
-    },
-    dateTitle: {
-      fontSize: 15,
-      fontWeight: "600",
-      color: colors.text.primary,
     },
     dayItem: {
       height: DAY_ITEM_HEIGHT,

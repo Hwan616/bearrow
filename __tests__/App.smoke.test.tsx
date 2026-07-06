@@ -70,6 +70,8 @@ jest.mock("@/features/calendar/components/MonthView", () => ({
 }));
 jest.mock("@/features/calendar/components/DayView", () => ({
   DayView: () => null,
+  formatDayHeaderTitle: (date: Date) =>
+    `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`,
 }));
 jest.mock("@/features/calendar/components/EventDetailSheet", () => ({
   EventDetailSheet: () => null,

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -16,27 +16,23 @@ import type { Event } from "../types";
 import type { CalendarDay } from "../utils/calendarUtils";
 import {
   buildMonthGrid,
-  formatMonthTitle,
   getTodosForDay,
   isSameDay,
 } from "../utils/calendarUtils";
 import { getHolidaysForMonth } from "../utils/koreanHolidays";
-import { YearMonthPicker } from "./YearMonthPicker";
 
-const DAYS_OF_WEEK = ["일", "월", "화", "수", "목", "금", "토"] as const;
+// 요일 레이블은 App.tsx 레벨 고정 바로 이동
 const BAR_HEIGHT = 14;
 const BAR_MARGIN = 2;
 const MAX_TRACKS = 2;
 const EVENT_AREA_HEIGHT = MAX_TRACKS * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN;
 
 // ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
-const MONTH_HEADER_HEIGHT = 44;    // paddingVertical:12×2 + title text
-const WEEK_LABELS_HEIGHT = 24;     // paddingVertical:4×2 + text + marginBottom:2
+// 제목/요일행은 App.tsx 레벨 고정 헤더로 이동 → MonthItem은 주(週) 그리드만
 const WEEK_ROW_HEIGHT = 90;        // dayCells:44 + eventBars:34 + holidays:12
 const FIXED_WEEKS = 6;             // always 6 rows per month (padded)
-const MONTH_ITEM_HEIGHT =
-  MONTH_HEADER_HEIGHT + WEEK_LABELS_HEIGHT + FIXED_WEEKS * WEEK_ROW_HEIGHT;
-// 44 + 24 + 540 = 608
+const MONTH_ITEM_HEIGHT = FIXED_WEEKS * WEEK_ROW_HEIGHT;
+// 6×90 = 540
 
 const MONTH_WINDOW = 49; // ±24 months
 
@@ -147,12 +143,18 @@ function computeEventBars(
 
 // ── MonthView ─────────────────────────────────────────────────────────────────
 
+export interface MonthViewHandle {
+  scrollToMonth: (year: number, month: number) => void;
+}
+
 interface MonthViewProps {
   initialDate?: Date;
   onDayPress?: (date: Date) => void;
+  onVisibleMonthChange?: (year: number, month: number) => void;
 }
 
-export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
+export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
+  function MonthView({ initialDate, onDayPress, onVisibleMonthChange }, ref) {
   const { colors } = useTheme();
   const { showHolidays } = useAppSettings();
 
@@ -162,11 +164,15 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
   const initialIndex = Math.floor(MONTH_WINDOW / 2);
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [pickerYear, setPickerYear] = useState(base.getFullYear());
-  const [pickerMonth, setPickerMonth] = useState(base.getMonth());
-  const [pickerVisible, setPickerVisible] = useState(false);
 
   const listRef = useRef<FlatList<YearMonth>>(null);
+
+  useImperativeHandle(ref, () => ({
+    scrollToMonth(year: number, month: number) {
+      const idx = months.findIndex((m) => m.year === year && m.month === month);
+      if (idx >= 0) listRef.current?.scrollToIndex({ index: idx, animated: true });
+    },
+  }), [months]);
 
   useEffect(() => {
     const offset = initialIndex * MONTH_ITEM_HEIGHT;
@@ -176,13 +182,15 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
     return () => clearTimeout(id);
   }, [initialIndex]);
 
+  const onVisibleMonthChangeRef = useRef(onVisibleMonthChange);
+  onVisibleMonthChangeRef.current = onVisibleMonthChange;
+
   const onViewableItemsChangedRef = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
       const first = viewableItems[0];
       if (first) {
         const ym = first.item as YearMonth;
-        setPickerYear(ym.year);
-        setPickerMonth(ym.month);
+        onVisibleMonthChangeRef.current?.(ym.year, ym.month);
       }
     },
   );
@@ -195,23 +203,6 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
       onDayPress?.(date);
     },
     [onDayPress],
-  );
-
-  const handleTitlePress = useCallback((year: number, month: number) => {
-    setPickerYear(year);
-    setPickerMonth(month);
-    setPickerVisible(true);
-  }, []);
-
-  const handlePickerSelect = useCallback(
-    (y: number, m: number) => {
-      setPickerVisible(false);
-      const idx = months.findIndex((item) => item.year === y && item.month === m);
-      if (idx >= 0) {
-        listRef.current?.scrollToIndex({ index: idx, animated: true });
-      }
-    },
-    [months],
   );
 
   const getItemLayout = useCallback(
@@ -230,12 +221,11 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
         month={item.month}
         selectedDate={selectedDate}
         onDayPress={handleDayPress}
-        onTitlePress={handleTitlePress}
         showHolidays={showHolidays}
         colors={colors}
       />
     ),
-    [selectedDate, handleDayPress, handleTitlePress, showHolidays, colors],
+    [selectedDate, handleDayPress, showHolidays, colors],
   );
 
   const keyExtractor = useCallback(
@@ -259,16 +249,9 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
         showsVerticalScrollIndicator={false}
         testID="month-list"
       />
-      <YearMonthPicker
-        year={pickerYear}
-        month={pickerMonth}
-        visible={pickerVisible}
-        onSelect={handlePickerSelect}
-        onClose={() => setPickerVisible(false)}
-      />
     </View>
   );
-}
+});
 
 // ── MonthItem ─────────────────────────────────────────────────────────────────
 
@@ -277,7 +260,6 @@ interface MonthItemProps {
   month: number;
   selectedDate: Date | null;
   onDayPress: (date: Date) => void;
-  onTitlePress: (year: number, month: number) => void;
   showHolidays: boolean;
   colors: ReturnType<typeof useTheme>["colors"];
 }
@@ -287,7 +269,6 @@ const MonthItem = React.memo(function MonthItem({
   month,
   selectedDate,
   onDayPress,
-  onTitlePress,
   showHolidays,
   colors,
 }: MonthItemProps) {
@@ -313,30 +294,6 @@ const MonthItem = React.memo(function MonthItem({
 
   return (
     <View style={s.monthItem}>
-      {/* 월 제목 — 탭하면 YearMonthPicker 열림 */}
-      <Pressable
-        style={s.header}
-        onPress={() => onTitlePress(year, month)}
-        accessibilityLabel="연월 선택"
-        accessibilityRole="button"
-      >
-        <Text style={s.monthTitle} maxFontSizeMultiplier={1.3}>
-          {formatMonthTitle(year, month)}
-        </Text>
-      </Pressable>
-
-      {/* 요일 헤더 */}
-      <View style={s.weekLabelRow}>
-        {DAYS_OF_WEEK.map((d) => (
-          <Text
-            key={d}
-            style={[s.weekLabel, d === "일" && s.sunday, d === "토" && s.saturday]}
-          >
-            {d}
-          </Text>
-        ))}
-      </View>
-
       {/* 주(週) 단위 그리드 */}
       <View testID="month-grid">
         {rows.map((weekDays, rowIndex) => {
@@ -447,30 +404,6 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     monthItem: {
       backgroundColor: colors.background.primary,
       paddingHorizontal: 4,
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 12,
-      paddingHorizontal: 8,
-    },
-    monthTitle: {
-      fontSize: 17,
-      fontWeight: "600",
-      color: colors.text.primary,
-    },
-    weekLabelRow: {
-      flexDirection: "row",
-      marginBottom: 2,
-    },
-    weekLabel: {
-      flex: 1,
-      textAlign: "center",
-      fontSize: 12,
-      fontWeight: "500",
-      color: colors.text.secondary,
-      paddingVertical: 4,
     },
     sunday: { color: "#D93535" },
     saturday: { color: "#2E5AAC" },

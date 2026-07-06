@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -20,10 +20,12 @@ import {
 import { AddSheet } from "@/features/calendar/components/AddSheet";
 import type { AddSheetSegment } from "@/features/calendar/components/AddSheet";
 import { SearchSheet } from "@/features/calendar/components/SearchSheet";
-import { DayView } from "@/features/calendar/components/DayView";
+import { DayView, formatDayHeaderTitle } from "@/features/calendar/components/DayView";
 import { EventDetailSheet } from "@/features/calendar/components/EventDetailSheet";
 import { MonthView } from "@/features/calendar/components/MonthView";
+import type { MonthViewHandle } from "@/features/calendar/components/MonthView";
 import { YearView } from "@/features/calendar/components/YearView";
+import { YearMonthPicker } from "@/features/calendar/components/YearMonthPicker";
 import type { Event } from "@/features/calendar/types";
 import { ensureDefaultCategory } from "@/features/category/api/categories";
 import { AppSettingsProvider } from "@/features/settings/AppSettingsContext";
@@ -35,6 +37,8 @@ import type { Todo } from "@/features/todo/types";
 import { Sentry } from "@/lib/sentry";
 import { ThemeProvider, useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
+
+const DAYS_OF_WEEK = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
 /** Year / Month / Day 계층 뷰 */
 type CalendarView = "year" | "month" | "day";
@@ -65,6 +69,15 @@ function AppContent() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calendarKey, setCalendarKey] = useState(0);
 
+  // Month View: 스크롤 중인 월 추적 (back 레이블 + 서브타이틀용)
+  const [visibleMonthYear, setVisibleMonthYear] = useState(new Date().getFullYear());
+  const [visibleMonthMonth, setVisibleMonthMonth] = useState(new Date().getMonth());
+  // Day View: 스크롤 중인 날짜 추적 (헤더 타이틀용, selectedDate와 분리)
+  const [visibleDayDate, setVisibleDayDate] = useState(new Date());
+  // Month YearMonthPicker 제어
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const monthViewRef = useRef<MonthViewHandle>(null);
+
   // 시트 가시성
   const [todoSheetVisible, setTodoSheetVisible] = useState(false);
   const [settingsSheetVisible, setSettingsSheetVisible] = useState(false);
@@ -91,27 +104,35 @@ function AppContent() {
   // ── 내비게이션 ──────────────────────────────────────────────────────────────────
 
   function goBack() {
-    if (activeView === "day") setActiveView("month");
-    else if (activeView === "month") setActiveView("year");
+    if (activeView === "day") {
+      setSelectedDate(visibleDayDate); // Day 뷰에서 벗어날 때 보이던 날짜를 기억
+      setActiveView("month");
+    } else if (activeView === "month") {
+      setActiveView("year");
+    }
   }
 
   function goToToday() {
     const today = new Date();
     setSelectedDate(today);
     if (activeView === "year") {
-      // Year 뷰 → Month 뷰로 전환하여 당월 표시
+      setVisibleMonthYear(today.getFullYear());
+      setVisibleMonthMonth(today.getMonth());
       setActiveView("month");
       setCalendarKey((k) => k + 1);
     } else if (activeView === "month") {
-      // Month 뷰 유지, calendarKey 갱신으로 당월로 스크롤
+      setVisibleMonthYear(today.getFullYear());
+      setVisibleMonthMonth(today.getMonth());
       setCalendarKey((k) => k + 1);
+    } else {
+      // Day 뷰: visibleDayDate를 오늘로 맞추면 DayView가 key 재생성으로 이동
+      setVisibleDayDate(today);
     }
-    // Day 뷰: selectedDate 변경만으로 key 재생성 → 당일 이동
   }
 
   function getBackLabel(): string | null {
-    if (activeView === "day") return `< ${selectedDate.getMonth() + 1}월`;
-    if (activeView === "month") return `< ${selectedDate.getFullYear()}년`;
+    if (activeView === "day") return `< ${visibleDayDate.getMonth() + 1}월`;
+    if (activeView === "month") return `< ${visibleMonthYear}년`;
     return null;
   }
 
@@ -169,17 +190,10 @@ function AppContent() {
   const backLabel = getBackLabel();
 
   // ── 공통 헤더 ──────────────────────────────────────────────────────────────────
+  // 모든 뷰: [뒤로/앱타이틀] ——— [검색] [설정]
 
   const appHeader = (
-    <View
-      style={[
-        s.header,
-        {
-          borderBottomColor: colors.border.default,
-          backgroundColor: colors.surface.default,
-        },
-      ]}
-    >
+    <View style={[s.header, { borderBottomColor: colors.border.default, backgroundColor: colors.surface.default }]}>
       <View style={s.headerLeft}>
         {backLabel !== null ? (
           <Pressable
@@ -206,76 +220,55 @@ function AppContent() {
           <Text style={s.headerIcon}>🔍</Text>
         </Pressable>
         <Pressable
-          testID="btn-add"
+          testID="btn-settings-sheet"
           style={s.headerBtn}
-          onPress={() => { setAddSheetSegment("event"); setAddSheetVisible(true); }}
-          accessibilityLabel="추가"
+          onPress={() => setSettingsSheetVisible(true)}
+          accessibilityLabel="설정"
           accessibilityRole="button"
         >
-          <Text style={[s.headerIcon, { color: colors.accent.primary }]}>＋</Text>
+          <Text style={[s.headerBtnText, { color: colors.text.secondary }]}>설정</Text>
         </Pressable>
       </View>
     </View>
   );
 
   // ── 공통 푸터 ──────────────────────────────────────────────────────────────────
+  // 투명 배경 + 회색 pill 버튼
+  // Year: [오늘] ———
+  // Month/Day: [오늘] ——— [할 일] [＋]
 
   const appFooter = (
-    <View
-      style={[
-        s.footer,
-        {
-          borderTopColor: colors.border.default,
-          backgroundColor: colors.surface.default,
-        },
-      ]}
-    >
-      {/* 투두 시트 열림 시: 설정 버튼만 표시 */}
-      {todoSheetVisible ? (
-        <View style={[s.footerRight, { flex: 1, justifyContent: "flex-end" }]}>
-          <Pressable
-            testID="btn-settings-sheet"
-            style={s.footerBtn}
-            onPress={() => setSettingsSheetVisible(true)}
-            accessibilityLabel="설정"
-            accessibilityRole="button"
-          >
-            <Text style={s.footerBtnText}>설정</Text>
-          </Pressable>
-        </View>
-      ) : (
+    <View style={s.footer}>
+      <Pressable
+        testID="btn-today"
+        style={s.pillBtn}
+        onPress={goToToday}
+        accessibilityLabel="오늘"
+        accessibilityRole="button"
+      >
+        <Text style={s.pillBtnText}>오늘</Text>
+      </Pressable>
+      <View style={{ flex: 1 }} />
+      {activeView !== "year" && (
         <>
           <Pressable
-            testID="btn-today"
-            style={s.footerBtn}
-            onPress={goToToday}
-            accessibilityLabel="오늘"
+            testID="btn-todo-sheet"
+            style={s.pillBtn}
+            onPress={() => setTodoSheetVisible(true)}
+            accessibilityLabel="할 일"
             accessibilityRole="button"
           >
-            <Text style={[s.footerBtnText, { color: colors.accent.primary }]}>오늘</Text>
+            <Text style={s.pillBtnText}>할 일</Text>
           </Pressable>
-          <View style={s.footerRight}>
-            {activeView !== "year" && (
-              <Pressable
-                testID="btn-todo-sheet"
-                style={s.footerBtn}
-                onPress={() => setTodoSheetVisible(true)}
-                accessibilityLabel="할 일"
-                accessibilityRole="button"
-              >
-                <Text style={s.footerBtnText}>할 일</Text>
-              </Pressable>
-            )}
-            <Pressable
-              testID="btn-settings-sheet"
-              style={s.footerBtn}
-              onPress={() => setSettingsSheetVisible(true)}
-              accessibilityLabel="설정"
-              accessibilityRole="button"
-            >
-              <Text style={s.footerBtnText}>설정</Text>
-            </Pressable>
-          </View>
+          <Pressable
+            testID="btn-add"
+            style={[s.pillBtn, { marginLeft: 8 }]}
+            onPress={() => { setAddSheetSegment("event"); setAddSheetVisible(true); }}
+            accessibilityLabel="추가"
+            accessibilityRole="button"
+          >
+            <Text style={[s.pillBtnText, { color: colors.accent.primary, fontWeight: "700" }]}>＋</Text>
+          </Pressable>
         </>
       )}
     </View>
@@ -291,6 +284,8 @@ function AppContent() {
             initialYear={selectedDate.getFullYear()}
             onMonthPress={(yr, mo) => {
               setSelectedDate(new Date(yr, mo, 1));
+              setVisibleMonthYear(yr);
+              setVisibleMonthMonth(mo);
               setActiveView("month");
             }}
           />
@@ -298,28 +293,74 @@ function AppContent() {
       )}
       {activeView === "month" && (
         <View testID="view-month" style={{ flex: 1 }}>
+          {/* 서브타이틀: 현재 보이는 월 */}
+          <Pressable
+            style={s.monthSubtitleRow}
+            onPress={() => setPickerVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="연월 선택"
+          >
+            <Text style={[s.monthSubtitle, { color: colors.text.primary }]}>
+              {visibleMonthMonth + 1}월
+            </Text>
+          </Pressable>
+          {/* 고정 요일 바 */}
+          <View style={s.weekdayBar}>
+            {DAYS_OF_WEEK.map((d) => (
+              <Text
+                key={d}
+                style={[
+                  s.weekdayLabel,
+                  { color: colors.text.secondary },
+                  d === "일" && { color: "#D93535" },
+                  d === "토" && { color: "#2E5AAC" },
+                ]}
+              >
+                {d}
+              </Text>
+            ))}
+          </View>
           <MonthView
+            ref={monthViewRef}
             key={calendarKey}
             initialDate={selectedDate}
             onDayPress={(date) => {
               setSelectedDate(date);
-              // 투두 시트 열림: 날짜만 전환 (시트 유지), 닫힘: Day 뷰로 진입
-              if (!todoSheetVisible) {
-                setActiveView("day");
-              }
+              setVisibleDayDate(date);
+              if (!todoSheetVisible) setActiveView("day");
             }}
+            onVisibleMonthChange={(yr, mo) => {
+              setVisibleMonthYear(yr);
+              setVisibleMonthMonth(mo);
+            }}
+          />
+          <YearMonthPicker
+            year={visibleMonthYear}
+            month={visibleMonthMonth}
+            visible={pickerVisible}
+            onSelect={(y, m) => {
+              setPickerVisible(false);
+              setVisibleMonthYear(y);
+              setVisibleMonthMonth(m);
+              monthViewRef.current?.scrollToMonth(y, m);
+            }}
+            onClose={() => setPickerVisible(false)}
           />
         </View>
       )}
       {activeView === "day" && (
         <View testID="view-day" style={{ flex: 1 }}>
+          {/* 날짜 헤더 타이틀 */}
+          <Text style={[s.dayHeaderTitle, { color: colors.text.primary }]} testID="day-header-title">
+            {formatDayHeaderTitle(visibleDayDate)}
+          </Text>
           <DayView
             key={`${selectedDate.toDateString()}-${calendarKey}`}
             initialDate={selectedDate}
             onEventPress={(event) => setSelectedEvent(event)}
             onDateChange={(date) => {
-              // 투두 시트 열림 상태에서 Day 뷰 스크롤 시 날짜 동기화
-              if (todoSheetVisible) setSelectedDate(date);
+              setVisibleDayDate(date); // 헤더 타이틀 갱신
+              if (todoSheetVisible) setSelectedDate(date); // 투두 시트 날짜 동기화
             }}
           />
         </View>
@@ -479,7 +520,7 @@ function makeStyles(colors: ColorTokens) {
   return StyleSheet.create({
     container: { flex: 1 },
 
-    // 헤더
+    // 헤더 네비게이션 바
     header: {
       flexDirection: "row",
       alignItems: "center",
@@ -516,31 +557,61 @@ function makeStyles(colors: ColorTokens) {
       letterSpacing: -0.3,
     },
 
-    // 푸터
+    // Month View: 서브타이틀 + 요일 바
+    monthSubtitleRow: {
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      paddingBottom: 4,
+    },
+    monthSubtitle: {
+      fontSize: 26,
+      fontWeight: "700",
+      letterSpacing: -0.5,
+    },
+    weekdayBar: {
+      flexDirection: "row",
+      paddingHorizontal: 4,
+      paddingBottom: 2,
+    },
+    weekdayLabel: {
+      flex: 1,
+      textAlign: "center",
+      fontSize: 11,
+      fontWeight: "500",
+    },
+
+    // Day View: 날짜 헤더 타이틀
+    dayHeaderTitle: {
+      fontSize: 15,
+      fontWeight: "600",
+      textAlign: "center",
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border.default,
+      backgroundColor: colors.surface.default,
+    },
+
+    // 투명 푸터 + 회색 pill 버튼
     footer: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 16,
-      paddingVertical: 4,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      minHeight: 52,
-    },
-    footerBtn: {
       paddingHorizontal: 12,
+      paddingVertical: 10,
+      backgroundColor: "transparent",
+    },
+    pillBtn: {
+      backgroundColor: "rgba(120,120,128,0.12)",
+      borderRadius: 18,
+      paddingHorizontal: 16,
       paddingVertical: 8,
-      minHeight: 44,
+      alignItems: "center",
       justifyContent: "center",
     },
-    footerBtnText: {
+    pillBtnText: {
       fontSize: 15,
       fontWeight: "500",
       color: colors.text.primary,
-    },
-    footerRight: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
     },
 
     // 와이드 레이아웃
