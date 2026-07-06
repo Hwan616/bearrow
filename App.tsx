@@ -17,7 +17,7 @@ import {
   requestNotificationPermission,
   setupNotificationHandler,
 } from "@/features/calendar/api/notifications";
-import { DayDetailPanel } from "@/features/calendar/components/DayDetailPanel";
+import { DayView } from "@/features/calendar/components/DayView";
 import { EventDetailSheet } from "@/features/calendar/components/EventDetailSheet";
 import { EventForm } from "@/features/calendar/components/EventForm";
 import { MonthView } from "@/features/calendar/components/MonthView";
@@ -292,11 +292,10 @@ function AppContent() {
       )}
       {activeView === "day" && (
         <View testID="view-day" style={{ flex: 1 }}>
-          <DayDetailPanel
+          <DayView
             key={`${selectedDate.toDateString()}-${calendarKey}`}
-            date={selectedDate}
+            initialDate={selectedDate}
             onEventPress={(event) => setSelectedEvent(event)}
-            onEditTodo={setEditingTodo}
           />
         </View>
       )}

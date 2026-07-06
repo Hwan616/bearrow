@@ -171,7 +171,7 @@
   - 파일: `src/features/calendar/components/MonthView.tsx`, `src/features/calendar/hooks/useMonthItems.ts`
   - 요구사항: `FR-CAL-002`, `FR-INT-001`
 
-- [ ] **7.4 DayView 개편**
+- [x] **7.4 DayView 개편**
   - 완료: 00~24시 시간 그리드 연속 세로 스크롤(이전 날·다음 날 이어짐). FlatList 계열 가상화(앞뒤 며칠만 렌더). 좌측 상단 `YYYY년 MM월 DD일 W요일` 실시간 갱신. 투두는 타임라인 미표시.
   - 파일: `src/features/calendar/components/DayView.tsx`, `src/features/calendar/hooks/useDayScroll.ts`
   - 요구사항: `FR-CAL-002`, `NFR-PERF-001`
