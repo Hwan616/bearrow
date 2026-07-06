@@ -97,14 +97,6 @@ jest.mock("@/features/calendar/components/AddSheet", () => ({
         })
       : null,
 }));
-jest.mock("@/features/calendar/components/SearchSheet", () => ({
-  SearchSheet: ({ visible }: { visible: boolean }) =>
-    visible
-      ? require("react").createElement(require("react-native").View, {
-          testID: "mock-search-sheet",
-        })
-      : null,
-}));
 jest.mock("@/features/settings/components/SettingsSheet", () => ({
   SettingsSheet: ({ visible }: { visible: boolean }) =>
     visible
@@ -162,7 +154,6 @@ describe("앱 초기화", () => {
   it("마이그레이션 완료 후 헤더·푸터가 나타난다", async () => {
     await renderReady();
     expect(screen.getByTestId("btn-add")).toBeTruthy();
-    expect(screen.getByTestId("btn-search")).toBeTruthy();
     expect(screen.getByTestId("btn-today")).toBeTruthy();
     expect(screen.getByTestId("btn-settings-sheet")).toBeTruthy();
   });
@@ -271,11 +262,6 @@ describe("푸터 버튼", () => {
 // ── 4. 헤더 버튼 ──────────────────────────────────────────────────────────────
 
 describe("헤더 버튼", () => {
-  it("검색 버튼이 렌더된다", async () => {
-    await renderReady();
-    expect(screen.getByTestId("btn-search")).toBeTruthy();
-  });
-
   it("추가(+) 버튼이 렌더된다", async () => {
     await renderReady();
     expect(screen.getByTestId("btn-add")).toBeTruthy();
@@ -291,14 +277,6 @@ describe("시트 열림 동작", () => {
       fireEvent.press(screen.getByTestId("btn-add"));
     });
     expect(screen.getByTestId("mock-add-sheet")).toBeTruthy();
-  });
-
-  it("검색 버튼 탭 시 SearchSheet가 열린다", async () => {
-    await renderReady();
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("btn-search"));
-    });
-    expect(screen.getByTestId("mock-search-sheet")).toBeTruthy();
   });
 
   it("할일 버튼 탭 시 TodoSheet가 열린다", async () => {

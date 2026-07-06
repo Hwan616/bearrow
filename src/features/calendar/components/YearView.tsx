@@ -133,7 +133,9 @@ const YearItem = React.memo(function YearItem({
   return (
     <View testID={`year-item-${year}`}>
       <View style={s.yearHeader}>
-        <Text style={s.yearTitle}>{year}년</Text>
+        <Text style={[s.yearTitle, year === today.getFullYear() && s.yearTitleCurrent]}>
+          {year}년
+        </Text>
       </View>
       <View style={s.monthsGrid}>
         {Array.from({ length: 12 }, (_, month) => {
@@ -176,29 +178,37 @@ interface MiniMonthGridProps {
 }
 
 function MiniMonthGrid({ grid, s }: MiniMonthGridProps) {
+  const rows: CalendarDay[][] = [];
+  for (let i = 0; i < grid.length; i += 7) {
+    rows.push(grid.slice(i, i + 7));
+  }
   return (
-    <View style={s.miniGrid}>
-      {grid.map(({ date, isCurrentMonth, isToday }) => {
-        if (!isCurrentMonth) {
-          return <View key={date.toISOString()} style={s.miniCell} />;
-        }
-        const isSun = date.getDay() === 0;
-        return (
-          <View key={date.toISOString()} style={s.miniCell}>
-            <View style={[s.miniDayCircle, isToday && s.miniDayCircleToday]}>
-              <Text
-                style={[
-                  s.miniDayText,
-                  isToday && s.miniDayTextToday,
-                  !isToday && isSun && s.miniDayTextSun,
-                ]}
-              >
-                {date.getDate()}
-              </Text>
-            </View>
-          </View>
-        );
-      })}
+    <View>
+      {rows.map((week, wi) => (
+        <View key={wi} style={s.miniRow}>
+          {week.map(({ date, isCurrentMonth, isToday }) => {
+            if (!isCurrentMonth) {
+              return <View key={date.toISOString()} style={s.miniCell} />;
+            }
+            const isSun = date.getDay() === 0;
+            return (
+              <View key={date.toISOString()} style={s.miniCell}>
+                <View style={[s.miniDayCircle, isToday && s.miniDayCircleToday]}>
+                  <Text
+                    style={[
+                      s.miniDayText,
+                      isToday && s.miniDayTextToday,
+                      !isToday && isSun && s.miniDayTextSun,
+                    ]}
+                  >
+                    {date.getDate()}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      ))}
     </View>
   );
 }
@@ -218,6 +228,9 @@ function makeStyles(colors: ColorTokens) {
       fontWeight: "700",
       letterSpacing: -0.5,
       color: colors.text.primary,
+    },
+    yearTitleCurrent: {
+      color: "#D93535",
     },
     monthsGrid: {
       flexDirection: "row",
@@ -239,12 +252,11 @@ function makeStyles(colors: ColorTokens) {
     miniMonthTitleCurrent: {
       color: "#D93535",
     },
-    miniGrid: {
+    miniRow: {
       flexDirection: "row",
-      flexWrap: "wrap",
     },
     miniCell: {
-      width: `${100 / 7}%`,
+      flex: 1,
       alignItems: "center",
       paddingVertical: 1,
     },

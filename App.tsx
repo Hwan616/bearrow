@@ -19,7 +19,6 @@ import {
 } from "@/features/calendar/api/notifications";
 import { AddSheet } from "@/features/calendar/components/AddSheet";
 import type { AddSheetSegment } from "@/features/calendar/components/AddSheet";
-import { SearchSheet } from "@/features/calendar/components/SearchSheet";
 import { DayView, formatDayHeaderTitle } from "@/features/calendar/components/DayView";
 import { EventDetailSheet } from "@/features/calendar/components/EventDetailSheet";
 import { MonthView } from "@/features/calendar/components/MonthView";
@@ -83,7 +82,6 @@ function AppContent() {
   const [settingsSheetVisible, setSettingsSheetVisible] = useState(false);
   const [addSheetVisible, setAddSheetVisible] = useState(false);
   const [addSheetSegment, setAddSheetSegment] = useState<AddSheetSegment>("event");
-  const [searchSheetVisible, setSearchSheetVisible] = useState(false);
 
   // 폼 모달
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -167,7 +165,7 @@ function AppContent() {
   // 모든 뷰: [뒤로/앱타이틀] ——— [검색] [설정]
 
   const appHeader = (
-    <View style={[s.header, { borderBottomColor: colors.border.default, backgroundColor: colors.surface.default }]}>
+    <View style={[s.header, { borderBottomColor: colors.border.default, backgroundColor: colors.background.primary }]}>
       <View style={s.headerLeft}>
         {backLabel !== null ? (
           <Pressable
@@ -184,15 +182,6 @@ function AppContent() {
         )}
       </View>
       <View style={s.headerRight}>
-        <Pressable
-          testID="btn-search"
-          style={s.headerBtn}
-          onPress={() => setSearchSheetVisible(true)}
-          accessibilityLabel="검색"
-          accessibilityRole="button"
-        >
-          <Text style={s.headerIcon}>🔍</Text>
-        </Pressable>
         <Pressable
           testID="btn-settings-sheet"
           style={s.headerBtn}
@@ -231,10 +220,10 @@ function AppContent() {
             testID="btn-todo-sheet"
             style={s.pillBtn}
             onPress={() => setTodoSheetVisible(true)}
-            accessibilityLabel="할 일"
+            accessibilityLabel="ToDo"
             accessibilityRole="button"
           >
-            <Text style={s.pillBtnText}>할 일</Text>
+            <Text style={s.pillBtnText}>ToDo</Text>
           </Pressable>
           <Pressable
             testID="btn-add"
@@ -417,18 +406,6 @@ function AppContent() {
         onReorder={handleReorder}
       />
 
-      {/* 검색 시트 — AppBottomSheet(컴팩트) / AppSidePanel(와이드) */}
-      <SearchSheet
-        visible={searchSheetVisible}
-        onClose={() => setSearchSheetVisible(false)}
-        isWide={isWide}
-        onNavigate={(date) => {
-          setSelectedDate(date);
-          setActiveView("day");
-          setSearchSheetVisible(false);
-        }}
-      />
-
       {/* 설정 시트 — AppBottomSheet(컴팩트) / AppSidePanel(와이드) */}
       <SettingsSheet
         visible={settingsSheetVisible}
@@ -546,7 +523,9 @@ function makeStyles(colors: ColorTokens) {
     weekdayBar: {
       flexDirection: "row",
       paddingHorizontal: 4,
-      paddingBottom: 2,
+      paddingBottom: 4,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border.default,
     },
     weekdayLabel: {
       flex: 1,

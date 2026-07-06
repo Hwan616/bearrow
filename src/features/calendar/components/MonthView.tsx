@@ -280,6 +280,7 @@ const MonthItem = React.memo(function MonthItem({
   const s = makeStyles(colors);
   const { events, dueTodos, categories } = useMonthItems(year, month);
   const today = new Date();
+  const isThisMonth = year === today.getFullYear() && month === today.getMonth();
   const rawGrid = buildMonthGrid(year, month, today);
   const grid = padTo6Weeks(rawGrid);
   const rows = chunkBy7(grid);
@@ -321,6 +322,8 @@ const MonthItem = React.memo(function MonthItem({
                     return <View key={date.toISOString()} style={s.dayCell} />;
                   }
 
+                  const isFirst = date.getDate() === 1;
+
                   return (
                     <Pressable
                       key={date.toISOString()}
@@ -329,6 +332,11 @@ const MonthItem = React.memo(function MonthItem({
                       accessibilityLabel={`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`}
                       accessibilityRole="button"
                     >
+                      {isFirst && (
+                        <Text style={[s.monthLabelOnFirst, isThisMonth && s.monthLabelCurrent]}>
+                          {month + 1}월
+                        </Text>
+                      )}
                       <View
                         style={[
                           s.dayCircle,
@@ -412,7 +420,10 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     sunday: { color: "#D93535" },
     saturday: { color: "#2E5AAC" },
-    weekRow: {},
+    weekRow: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border.default,
+    },
     dayCellsRow: {
       flexDirection: "row",
     },
@@ -440,6 +451,16 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     todayText: {
       color: colors.text.inverse,
       fontWeight: "700",
+    },
+    monthLabelOnFirst: {
+      fontSize: 9,
+      fontWeight: "600",
+      color: colors.text.secondary,
+      lineHeight: 11,
+      marginBottom: 1,
+    },
+    monthLabelCurrent: {
+      color: "#D93535",
     },
     todoCount: {
       position: "absolute",
