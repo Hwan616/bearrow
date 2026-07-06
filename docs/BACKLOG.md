@@ -145,6 +145,10 @@
   - 완료: `useWindowDimensions` 기반 768pt 분기. 컴팩트(≤767pt): 기존 하단 탭 레이아웃. 와이드(≥768pt): 좌측 사이드바(MonthView + 내비 + 추가버튼) + 우측 메인 콘텐츠(사이드바에서 선택된 날짜의 DayDetailPanel 또는 할일/설정). Android Ripple(`android_ripple`) 주요 버튼에 추가. Modal `presentationStyle="pageSheet"` 제거(플랫폼 중립). Platform 분기 최소화.
   - 파일: `App.tsx`
   - 요구사항: `UI-001`, `NFR-POR-001`
+- [x] **6.7 외부 캘린더 연동 (Google · iCloud)**
+  - 완료: iCalendar 파서(icalParser), CalDAV HTTP 클라이언트(caldavClient), iCloud 동기화(icloudCalendarSync), Google 캘린더 수동 동기화 트리거. 설정 화면에 'iCloud 연결' 및 'Google 캘린더 동기화' 섹션 추가.
+  - 파일: `src/sync/icalParser.ts`, `src/sync/caldavClient.ts`, `src/sync/icloudCalendarSync.ts`, `src/features/settings/hooks/useICloudSync.ts`, `src/features/settings/hooks/useGoogleCalendarSync.ts`, `src/features/settings/components/ICloudConnectSheet.tsx`, `src/features/settings/components/SettingsScreen.tsx`
+  - 요구사항: `FR-SYNC-001`, `FR-SYNC-002`
 
 ## Phase 7 — 출시
 

@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { CategoryManager } from "@/features/category/components/CategoryManager";
+import { useGoogleCalendarSync } from "../hooks/useGoogleCalendarSync";
+import { useICloudSync } from "../hooks/useICloudSync";
+import { ICloudConnectSheet } from "./ICloudConnectSheet";
 import { useAppSettings } from "../AppSettingsContext";
 import { ACCENT_PRESETS, useTheme } from "@/theme";
 import type { ThemeMode } from "@/theme";
@@ -18,6 +21,9 @@ export function SettingsScreen() {
   const { user, isLoading: authLoading, signIn, signOut } = useAuth();
   const { showHolidays, setShowHolidays } = useAppSettings();
   const [catManagerVisible, setCatManagerVisible] = useState(false);
+  const [icloudSheetVisible, setIcloudSheetVisible] = useState(false);
+  const icloud = useICloudSync();
+  const googleSync = useGoogleCalendarSync();
   const s = makeStyles(colors);
 
   async function handleSignIn() {
@@ -142,6 +148,106 @@ export function SettingsScreen() {
         </Pressable>
       </View>
 
+      {/* ── Google 캘린더 동기화 ────────────────────────────── */}
+      {user && (
+        <>
+          <Text style={s.sectionTitle}>Google 캘린더</Text>
+          <View style={[s.card, { backgroundColor: colors.surface.default }]}>
+            <Pressable
+              style={s.syncRow}
+              onPress={() => void googleSync.sync()}
+              disabled={googleSync.isSyncing}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={[s.catName, { color: colors.text.primary }]}>
+                  지금 동기화
+                </Text>
+                {googleSync.lastResult ? (
+                  <Text style={[s.infoText, { color: colors.text.secondary }]}>
+                    {`가져옴 ${googleSync.lastResult.pulled}개 · 올림 ${googleSync.lastResult.pushed}개`}
+                  </Text>
+                ) : null}
+                {googleSync.error ? (
+                  <Text style={[s.infoText, { color: colors.status.error }]}>
+                    {googleSync.error}
+                  </Text>
+                ) : null}
+              </View>
+              {googleSync.isSyncing ? (
+                <ActivityIndicator color={colors.accent.primary} />
+              ) : (
+                <Text style={[s.catChevron, { color: colors.text.disabled }]}>↻</Text>
+              )}
+            </Pressable>
+          </View>
+        </>
+      )}
+
+      {/* ── iCloud 캘린더 ──────────────────────────────────── */}
+      <Text style={s.sectionTitle}>iCloud 캘린더</Text>
+      <View style={[s.card, { backgroundColor: colors.surface.default }]}>
+        {icloud.isLoading ? (
+          <Text style={[s.catName, { color: colors.text.disabled, paddingVertical: 12 }]}>
+            불러오는 중…
+          </Text>
+        ) : icloud.isConnected ? (
+          <>
+            <View style={s.syncRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.catName, { color: colors.text.primary }]}>
+                  {icloud.email}
+                </Text>
+                {icloud.lastResult ? (
+                  <Text style={[s.infoText, { color: colors.text.secondary }]}>
+                    {`${icloud.lastResult.imported}개 일정을 가져왔습니다`}
+                  </Text>
+                ) : null}
+                {icloud.error ? (
+                  <Text style={[s.infoText, { color: colors.status.error }]}>
+                    {icloud.error}
+                  </Text>
+                ) : null}
+              </View>
+              <Pressable
+                onPress={() => void icloud.sync()}
+                disabled={icloud.isSyncing}
+                style={s.syncIconBtn}
+                hitSlop={8}
+              >
+                {icloud.isSyncing ? (
+                  <ActivityIndicator color={colors.accent.primary} />
+                ) : (
+                  <Text style={[s.syncIcon, { color: colors.accent.primary }]}>↻</Text>
+                )}
+              </Pressable>
+            </View>
+            <View style={[s.divider, { backgroundColor: colors.border.default }]} />
+            <Pressable
+              style={s.catRow}
+              onPress={() =>
+                Alert.alert("iCloud 연결 해제", "연결을 해제하시겠습니까?", [
+                  { text: "취소", style: "cancel" },
+                  {
+                    text: "해제",
+                    style: "destructive",
+                    onPress: () => void icloud.disconnect(),
+                  },
+                ])
+              }
+            >
+              <Text style={[s.catName, { color: colors.status.error }]}>연결 해제</Text>
+            </Pressable>
+          </>
+        ) : (
+          <Pressable style={s.catRow} onPress={() => setIcloudSheetVisible(true)}>
+            <Text style={[s.catName, { color: colors.accent.primary }]}>
+              iCloud 연결하기
+            </Text>
+            <Text style={[s.catChevron, { color: colors.text.disabled }]}>›</Text>
+          </Pressable>
+        )}
+      </View>
+
       <View style={{ height: 40 }} />
     </ScrollView>
 
@@ -153,6 +259,17 @@ export function SettingsScreen() {
     >
       <CategoryManager onClose={() => setCatManagerVisible(false)} />
     </Modal>
+
+    <ICloudConnectSheet
+      visible={icloudSheetVisible}
+      onClose={() => setIcloudSheetVisible(false)}
+      onConnect={async (email, password) => {
+        const ok = await icloud.connect(email, password);
+        if (ok) setIcloudSheetVisible(false);
+        return ok;
+      }}
+      connectError={icloud.error}
+    />
     </>
   );
 }
@@ -297,4 +414,20 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       fontSize: 16,
       fontWeight: "500",
     },
+
+    // 동기화 행
+    syncRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      minHeight: 52,
+      gap: 12,
+    },
+    syncIconBtn: {
+      width: 36,
+      height: 36,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    syncIcon: { fontSize: 22 },
+    divider: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
   });
