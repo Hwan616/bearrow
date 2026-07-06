@@ -96,8 +96,17 @@ function AppContent() {
   }
 
   function goToToday() {
-    setSelectedDate(new Date());
-    setActiveView("day");
+    const today = new Date();
+    setSelectedDate(today);
+    if (activeView === "year") {
+      // Year 뷰 → Month 뷰로 전환하여 당월 표시
+      setActiveView("month");
+      setCalendarKey((k) => k + 1);
+    } else if (activeView === "month") {
+      // Month 뷰 유지, calendarKey 갱신으로 당월로 스크롤
+      setCalendarKey((k) => k + 1);
+    }
+    // Day 뷰: selectedDate 변경만으로 key 재생성 → 당일 이동
   }
 
   function getBackLabel(): string | null {

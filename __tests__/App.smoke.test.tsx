@@ -62,7 +62,11 @@ jest.mock("@/features/calendar/components/YearView", () => ({
   YearView: () => null,
 }));
 jest.mock("@/features/calendar/components/MonthView", () => ({
-  MonthView: () => null,
+  MonthView: ({ onDayPress }: { onDayPress?: (date: Date) => void }) =>
+    require("react").createElement(require("react-native").Pressable, {
+      testID: "mock-month-day-cell",
+      onPress: () => onDayPress?.(new Date(2026, 6, 6)),
+    }),
 }));
 jest.mock("@/features/calendar/components/DayView", () => ({
   DayView: () => null,
@@ -170,12 +174,24 @@ describe("뷰 전환", () => {
     expect(screen.getByTestId("view-month")).toBeTruthy();
   });
 
-  it("오늘 버튼을 누르면 Day 뷰로 이동한다", async () => {
+  it("Month 뷰에서 오늘 버튼을 누르면 Month 뷰를 유지한다", async () => {
     await renderReady();
     await act(async () => {
       fireEvent.press(screen.getByTestId("btn-today"));
     });
-    expect(screen.getByTestId("view-day")).toBeTruthy();
+    expect(screen.getByTestId("view-month")).toBeTruthy();
+  });
+
+  it("Year 뷰에서 오늘 버튼을 누르면 Month 뷰로 이동한다", async () => {
+    await renderReady();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("btn-back")); // Month → Year
+    });
+    expect(screen.getByTestId("view-year")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("btn-today"));
+    });
+    expect(screen.getByTestId("view-month")).toBeTruthy();
   });
 
   it("Month 뷰에서 뒤로가기를 누르면 Year 뷰로 이동한다", async () => {
@@ -189,14 +205,28 @@ describe("뷰 전환", () => {
 
   it("Day 뷰에서 뒤로가기를 누르면 Month 뷰로 이동한다", async () => {
     await renderReady();
+    // 날짜 셀 탭 → Day 뷰 진입
     await act(async () => {
-      fireEvent.press(screen.getByTestId("btn-today"));
+      fireEvent.press(screen.getByTestId("mock-month-day-cell"));
     });
     expect(screen.getByTestId("view-day")).toBeTruthy();
     await act(async () => {
       fireEvent.press(screen.getByTestId("btn-back"));
     });
     expect(screen.getByTestId("view-month")).toBeTruthy();
+  });
+
+  it("Day 뷰에서 오늘 버튼을 누르면 Day 뷰를 유지한다", async () => {
+    await renderReady();
+    // 날짜 셀 탭 → Day 뷰 진입
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("mock-month-day-cell"));
+    });
+    expect(screen.getByTestId("view-day")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("btn-today"));
+    });
+    expect(screen.getByTestId("view-day")).toBeTruthy();
   });
 
   it("Year 뷰에서는 뒤로가기 버튼이 없다", async () => {
