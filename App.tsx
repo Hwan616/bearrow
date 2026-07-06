@@ -25,7 +25,7 @@ import { YearView } from "@/features/calendar/components/YearView";
 import type { Event } from "@/features/calendar/types";
 import { ensureDefaultCategory } from "@/features/category/api/categories";
 import { AppSettingsProvider } from "@/features/settings/AppSettingsContext";
-import { SettingsScreen } from "@/features/settings/components/SettingsScreen";
+import { SettingsSheet } from "@/features/settings/components/SettingsSheet";
 import { TodoForm } from "@/features/todo/components/TodoForm";
 import { TodoSheet } from "@/features/todo/components/TodoSheet";
 import { useTodos } from "@/features/todo/hooks/useTodos";
@@ -396,28 +396,12 @@ function AppContent() {
         onReorder={handleReorder}
       />
 
-      {/* 설정 시트 — 7.7에서 BottomSheet/SidePanel로 교체 */}
-      <Modal
+      {/* 설정 시트 — AppBottomSheet(컴팩트) / AppSidePanel(와이드) */}
+      <SettingsSheet
         visible={settingsSheetVisible}
-        animationType="slide"
-        onRequestClose={() => setSettingsSheetVisible(false)}
-      >
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.primary }}>
-          <View
-            style={[s.sheetHeader, { borderBottomColor: colors.border.default }]}
-          >
-            <Text style={[s.sheetTitle, { color: colors.text.primary }]}>설정</Text>
-            <Pressable
-              onPress={() => setSettingsSheetVisible(false)}
-              style={s.headerBtn}
-              accessibilityLabel="닫기"
-            >
-              <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>닫기</Text>
-            </Pressable>
-          </View>
-          <SettingsScreen />
-        </SafeAreaView>
-      </Modal>
+        onClose={() => setSettingsSheetVisible(false)}
+        isWide={isWide}
+      />
     </>
   );
 
@@ -540,32 +524,6 @@ function makeStyles(colors: ColorTokens) {
       flexDirection: "row",
       alignItems: "center",
       gap: 4,
-    },
-
-    // 시트 헤더 (모달 내부 — 7.5~7.7에서 실제 시트로 교체)
-    sheetHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-    },
-    sheetTitle: {
-      fontSize: 17,
-      fontWeight: "600",
-    },
-    sheetAddBtn: {
-      margin: 16,
-      paddingVertical: 14,
-      borderRadius: 12,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    sheetAddBtnText: {
-      color: "#fff",
-      fontSize: 15,
-      fontWeight: "600",
     },
 
     // 와이드 레이아웃

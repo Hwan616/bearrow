@@ -186,7 +186,7 @@
   - 파일: `src/features/todo/components/TodoSheet.tsx`, `src/features/todo/hooks/useTodos.ts`(정렬 업데이트)
   - 요구사항: `FR-TODO-001~006`, `UI-001`
 
-- [ ] **7.7 설정 시트**
+- [x] **7.7 설정 시트**
   - 완료: 설정 버튼 → AppBottomSheet/AppSidePanel에 기존 SettingsScreen 래핑. 상단 드래그 또는 닫기 버튼으로만 닫힘.
   - 파일: `src/features/settings/components/SettingsSheet.tsx`
   - 요구사항: `UI-002`
