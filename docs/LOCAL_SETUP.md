@@ -5,9 +5,9 @@
 
 ## 역할 분담
 
-- **Claude가 하는 일**: 코드 파일 생성·수정, 백로그 작업 구현, 테스트 작성, 변경 요약 보고, git 커밋.
-- **사용자가 직접 하는 일(터미널)**: 최초 `npm install`, GitHub 원격 연결, `git push`, 스토어 릴리즈 승인.
-  - 대용량 의존성 설치/푸시 등 네트워크 작업은 사용자 터미널이 더 빠르고 안정적이다.
+- **Claude가 하는 일**: 코드 파일 생성·수정, 백로그 작업 구현, 테스트 작성, 변경 요약 보고, git 커밋, **`git push origin main` 자동 실행** (작업 완료마다).
+- **사용자가 직접 하는 일(터미널)**: 최초 `npm install`, GitHub 원격 연결(`git remote add origin ...`), 스토어 릴리즈 승인.
+  - 외부 서비스 설정(Google Cloud Console, Supabase Dashboard, Apple Developer)은 사용자가 직접 수행한다.
 
 ## 최초 1회 설정 (사용자 터미널에서)
 
@@ -24,6 +24,22 @@ npm run typecheck && npm run lint && npm test
 git remote add origin https://github.com/<계정>/bearrow.git
 git push -u origin main
 ```
+
+## 외부 서비스 설정 (기능별 1회)
+
+### Google 캘린더 연동
+1. [console.cloud.google.com](https://console.cloud.google.com) → 새 프로젝트 생성
+2. APIs & Services → Google Calendar API 활성화
+3. 사용자 인증 정보 → OAuth 2.0 클라이언트 ID 생성 (웹 애플리케이션)
+   - 승인된 리디렉션 URI: `https://<supabase-project>.supabase.co/auth/v1/callback`
+4. Supabase Dashboard → Authentication → Providers → Google → 클라이언트 ID·Secret 입력
+5. `.env` 파일에 `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` 설정
+6. 앱에서 설정 → "Google로 로그인" → 이후 "Google 캘린더 동기화" 버튼 사용
+
+### iCloud 캘린더 연동
+1. [appleid.apple.com](https://appleid.apple.com) → 보안 → 앱 전용 암호 생성
+2. 앱에서 설정 → "iCloud 연결하기" → Apple ID + 앱 전용 암호 입력
+3. 자격 증명은 기기 SecureStore에만 저장됨 (서버 미전송)
 
 ## CI/CD 활성화 (GitHub에서) — 완전 무료(GitHub Actions + Fastlane)
 
