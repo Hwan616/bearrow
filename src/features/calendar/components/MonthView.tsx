@@ -1,5 +1,12 @@
-import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type ViewToken,
+} from "react-native";
 
 import { useAppSettings } from "@/features/settings/AppSettingsContext";
 import { useTheme } from "@/theme";
@@ -22,18 +29,50 @@ const BAR_MARGIN = 2;
 const MAX_TRACKS = 2;
 const EVENT_AREA_HEIGHT = MAX_TRACKS * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN;
 
+// ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
+const MONTH_HEADER_HEIGHT = 44;    // paddingVertical:12×2 + title text
+const WEEK_LABELS_HEIGHT = 24;     // paddingVertical:4×2 + text + marginBottom:2
+const WEEK_ROW_HEIGHT = 90;        // dayCells:44 + eventBars:34 + holidays:12
+const FIXED_WEEKS = 6;             // always 6 rows per month (padded)
+const MONTH_ITEM_HEIGHT =
+  MONTH_HEADER_HEIGHT + WEEK_LABELS_HEIGHT + FIXED_WEEKS * WEEK_ROW_HEIGHT;
+// 44 + 24 + 540 = 608
+
+const MONTH_WINDOW = 49; // ±24 months
+
+// ── 타입 ──────────────────────────────────────────────────────────────────────
+
+type YearMonth = { year: number; month: number };
+
 interface EventBarData {
   eventId: string;
   title: string;
   color: string;
-  startCol: number; // 0–6
-  endCol: number;   // 0–6
-  track: number;    // 0 or 1
+  startCol: number;
+  endCol: number;
+  track: number;
 }
 
-interface MonthViewProps {
-  initialDate?: Date;
-  onDayPress?: (date: Date) => void;
+// ── 헬퍼 ──────────────────────────────────────────────────────────────────────
+
+function generateMonthList(center: Date): YearMonth[] {
+  const half = Math.floor(MONTH_WINDOW / 2);
+  return Array.from({ length: MONTH_WINDOW }, (_, i) => {
+    const d = new Date(center.getFullYear(), center.getMonth() + (i - half), 1);
+    return { year: d.getFullYear(), month: d.getMonth() };
+  });
+}
+
+function padTo6Weeks(grid: CalendarDay[]): CalendarDay[] {
+  const padded = [...grid];
+  while (padded.length < 42) {
+    const last = padded[padded.length - 1]!;
+    const d = new Date(last.date);
+    d.setDate(last.date.getDate() + 1);
+    d.setHours(0, 0, 0, 0);
+    padded.push({ date: d, isCurrentMonth: false, isToday: false });
+  }
+  return padded;
 }
 
 function chunkBy7<T>(arr: T[]): T[][] {
@@ -52,7 +91,6 @@ function getEventColumns(
   let endCol = -1;
   for (let col = 0; col < 7; col++) {
     const day = weekDays[col]!;
-    // day.date is midnight; dayEnd is end-of-day
     const dayEndMs = day.date.getTime() + 24 * 60 * 60 * 1000 - 1;
     if (event.startsAt.getTime() <= dayEndMs && event.endsAt.getTime() >= day.date.getTime()) {
       if (startCol === -1) startCol = col;
@@ -92,7 +130,7 @@ function computeEventBars(
         break;
       }
     }
-    if (track === -1) continue; // all tracks occupied, skip
+    if (track === -1) continue;
 
     bars.push({
       eventId: event.id,
@@ -107,18 +145,157 @@ function computeEventBars(
   return bars;
 }
 
-export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
-  const base = initialDate ?? new Date();
-  const [year, setYear] = useState(base.getFullYear());
-  const [month, setMonth] = useState(base.getMonth());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [pickerVisible, setPickerVisible] = useState(false);
+// ── MonthView ─────────────────────────────────────────────────────────────────
 
+interface MonthViewProps {
+  initialDate?: Date;
+  onDayPress?: (date: Date) => void;
+}
+
+export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
   const { colors } = useTheme();
   const { showHolidays } = useAppSettings();
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const base = useMemo(() => initialDate ?? new Date(), []);
+  const months = useRef(generateMonthList(base)).current;
+  const initialIndex = Math.floor(MONTH_WINDOW / 2);
+
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [pickerYear, setPickerYear] = useState(base.getFullYear());
+  const [pickerMonth, setPickerMonth] = useState(base.getMonth());
+  const [pickerVisible, setPickerVisible] = useState(false);
+
+  const listRef = useRef<FlatList<YearMonth>>(null);
+
+  useEffect(() => {
+    const offset = initialIndex * MONTH_ITEM_HEIGHT;
+    const id = setTimeout(() => {
+      listRef.current?.scrollToOffset({ offset, animated: false });
+    }, 0);
+    return () => clearTimeout(id);
+  }, [initialIndex]);
+
+  const onViewableItemsChangedRef = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const first = viewableItems[0];
+      if (first) {
+        const ym = first.item as YearMonth;
+        setPickerYear(ym.year);
+        setPickerMonth(ym.month);
+      }
+    },
+  );
+  const onViewableItemsChanged = onViewableItemsChangedRef.current;
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+
+  const handleDayPress = useCallback(
+    (date: Date) => {
+      setSelectedDate(date);
+      onDayPress?.(date);
+    },
+    [onDayPress],
+  );
+
+  const handleTitlePress = useCallback((year: number, month: number) => {
+    setPickerYear(year);
+    setPickerMonth(month);
+    setPickerVisible(true);
+  }, []);
+
+  const handlePickerSelect = useCallback(
+    (y: number, m: number) => {
+      setPickerVisible(false);
+      const idx = months.findIndex((item) => item.year === y && item.month === m);
+      if (idx >= 0) {
+        listRef.current?.scrollToIndex({ index: idx, animated: true });
+      }
+    },
+    [months],
+  );
+
+  const getItemLayout = useCallback(
+    (_: unknown, index: number) => ({
+      length: MONTH_ITEM_HEIGHT,
+      offset: MONTH_ITEM_HEIGHT * index,
+      index,
+    }),
+    [],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: YearMonth }) => (
+      <MonthItem
+        year={item.year}
+        month={item.month}
+        selectedDate={selectedDate}
+        onDayPress={handleDayPress}
+        onTitlePress={handleTitlePress}
+        showHolidays={showHolidays}
+        colors={colors}
+      />
+    ),
+    [selectedDate, handleDayPress, handleTitlePress, showHolidays, colors],
+  );
+
+  const keyExtractor = useCallback(
+    (item: YearMonth) => `${item.year}-${item.month}`,
+    [],
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
+      <FlatList<YearMonth>
+        ref={listRef}
+        data={months}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        getItemLayout={getItemLayout}
+        initialScrollIndex={initialIndex}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        windowSize={5}
+        removeClippedSubviews
+        showsVerticalScrollIndicator={false}
+        testID="month-list"
+      />
+      <YearMonthPicker
+        year={pickerYear}
+        month={pickerMonth}
+        visible={pickerVisible}
+        onSelect={handlePickerSelect}
+        onClose={() => setPickerVisible(false)}
+      />
+    </View>
+  );
+}
+
+// ── MonthItem ─────────────────────────────────────────────────────────────────
+
+interface MonthItemProps {
+  year: number;
+  month: number;
+  selectedDate: Date | null;
+  onDayPress: (date: Date) => void;
+  onTitlePress: (year: number, month: number) => void;
+  showHolidays: boolean;
+  colors: ReturnType<typeof useTheme>["colors"];
+}
+
+const MonthItem = React.memo(function MonthItem({
+  year,
+  month,
+  selectedDate,
+  onDayPress,
+  onTitlePress,
+  showHolidays,
+  colors,
+}: MonthItemProps) {
+  const s = makeStyles(colors);
   const { events, dueTodos, categories } = useMonthItems(year, month);
   const today = new Date();
-  const grid = buildMonthGrid(year, month, today);
+  const rawGrid = buildMonthGrid(year, month, today);
+  const grid = padTo6Weeks(rawGrid);
   const rows = chunkBy7(grid);
 
   const holidayMap = useMemo(
@@ -134,55 +311,19 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
   const getCategoryColor = (categoryId: string | null | undefined): string =>
     (categoryId ? categoryColorMap.get(categoryId) : undefined) ?? colors.accent.primary;
 
-  const goToPrev = () => {
-    if (month === 0) { setYear((y) => y - 1); setMonth(11); }
-    else setMonth((m) => m - 1);
-  };
-
-  const goToNext = () => {
-    if (month === 11) { setYear((y) => y + 1); setMonth(0); }
-    else setMonth((m) => m + 1);
-  };
-
-  const handleDayPress = (date: Date) => {
-    setSelectedDate(date);
-    onDayPress?.(date);
-  };
-
-  const s = makeStyles(colors);
-
   return (
-    <View style={s.container}>
-      {/* 헤더 */}
-      <View style={s.header}>
-        <Pressable
-          onPress={goToPrev}
-          style={s.navBtn}
-          hitSlop={12}
-          accessibilityLabel="이전 달"
-          accessibilityRole="button"
-        >
-          <Text style={s.navArrow}>‹</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setPickerVisible(true)}
-          accessibilityLabel="연월 선택"
-          accessibilityRole="button"
-        >
-          <Text style={s.monthTitle} maxFontSizeMultiplier={1.3}>
-            {formatMonthTitle(year, month)}
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={goToNext}
-          style={s.navBtn}
-          hitSlop={12}
-          accessibilityLabel="다음 달"
-          accessibilityRole="button"
-        >
-          <Text style={s.navArrow}>›</Text>
-        </Pressable>
-      </View>
+    <View style={s.monthItem}>
+      {/* 월 제목 — 탭하면 YearMonthPicker 열림 */}
+      <Pressable
+        style={s.header}
+        onPress={() => onTitlePress(year, month)}
+        accessibilityLabel="연월 선택"
+        accessibilityRole="button"
+      >
+        <Text style={s.monthTitle} maxFontSizeMultiplier={1.3}>
+          {formatMonthTitle(year, month)}
+        </Text>
+      </Pressable>
 
       {/* 요일 헤더 */}
       <View style={s.weekLabelRow}>
@@ -195,14 +336,6 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
           </Text>
         ))}
       </View>
-
-      <YearMonthPicker
-        year={year}
-        month={month}
-        visible={pickerVisible}
-        onSelect={(y, m) => { setYear(y); setMonth(m); }}
-        onClose={() => setPickerVisible(false)}
-      />
 
       {/* 주(週) 단위 그리드 */}
       <View testID="month-grid">
@@ -226,7 +359,7 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
                     <Pressable
                       key={date.toISOString()}
                       style={s.dayCell}
-                      onPress={() => handleDayPress(date)}
+                      onPress={() => onDayPress(date)}
                       accessibilityLabel={`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`}
                       accessibilityRole="button"
                     >
@@ -302,31 +435,22 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
       </View>
     </View>
   );
-}
+});
+
+// ── 스타일 ────────────────────────────────────────────────────────────────────
 
 const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
   StyleSheet.create({
-    container: {
+    monthItem: {
       backgroundColor: colors.background.primary,
       paddingHorizontal: 4,
     },
     header: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
+      justifyContent: "center",
       paddingVertical: 12,
       paddingHorizontal: 8,
-    },
-    navBtn: {
-      minWidth: 44,
-      minHeight: 44,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    navArrow: {
-      fontSize: 28,
-      color: colors.text.primary,
-      lineHeight: 32,
     },
     monthTitle: {
       fontSize: 17,
@@ -347,9 +471,7 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     sunday: { color: "#D93535" },
     saturday: { color: "#2E5AAC" },
-    weekRow: {
-      // each week row contains: day cells + event bars + holiday labels
-    },
+    weekRow: {},
     dayCellsRow: {
       flexDirection: "row",
     },

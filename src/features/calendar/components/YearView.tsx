@@ -1,9 +1,16 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
 
-import { useYearData } from "../hooks/useYearData";
+import { buildMonthGrid } from "../utils/calendarUtils";
 import type { CalendarDay } from "../utils/calendarUtils";
 
 const DAYS_SHORT = ["일", "월", "화", "수", "목", "금", "토"] as const;
@@ -12,57 +19,135 @@ const MONTH_NAMES = [
   "7월", "8월", "9월", "10월", "11월", "12월",
 ] as const;
 
+// ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
+const MINI_CELL_HEIGHT = 18;       // paddingVertical:1×2 + circle height:16
+const MINI_TITLE_HEIGHT = 21;      // fontSize:13 lineHeight + marginBottom:4
+const MINI_WEEK_ROW_HEIGHT = 12;   // fontSize:8 approximation
+const FIXED_MINI_ROWS = 6;         // always 6 rows per mini month (padded)
+const MINI_MONTH_HEIGHT =
+  16 + MINI_TITLE_HEIGHT + MINI_WEEK_ROW_HEIGHT + FIXED_MINI_ROWS * MINI_CELL_HEIGHT;
+// paddingVertical:8×2=16 + 21 + 12 + 108 = 157
+const YEAR_HEADER_HEIGHT = 60;     // paddingVertical:16×2 + fontSize:22 lineHeight
+const YEAR_ITEM_HEIGHT = YEAR_HEADER_HEIGHT + 4 * MINI_MONTH_HEIGHT;
+// 60 + 4×157 = 688
+
+const YEAR_WINDOW = 21; // ±10 years
+
+function generateYearList(initialYear: number): number[] {
+  const half = Math.floor(YEAR_WINDOW / 2);
+  return Array.from({ length: YEAR_WINDOW }, (_, i) => initialYear + (i - half));
+}
+
+function padMiniGridTo6Rows(grid: CalendarDay[]): CalendarDay[] {
+  const padded = [...grid];
+  while (padded.length < 42) {
+    const last = padded[padded.length - 1]!;
+    const d = new Date(last.date);
+    d.setDate(last.date.getDate() + 1);
+    d.setHours(0, 0, 0, 0);
+    padded.push({ date: d, isCurrentMonth: false, isToday: false });
+  }
+  return padded;
+}
+
+// ── YearView ──────────────────────────────────────────────────────────────────
+
 interface Props {
   initialYear?: number;
   onMonthPress: (year: number, month: number) => void;
 }
 
 export function YearView({ initialYear, onMonthPress }: Props) {
-  const { year, months, goToPrevYear, goToNextYear } = useYearData(initialYear);
   const { colors } = useTheme();
-  const s = makeStyles(colors);
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
+
+  const baseYear = initialYear ?? today.getFullYear();
+  const years = useRef(generateYearList(baseYear)).current;
+  const initialIndex = Math.floor(YEAR_WINDOW / 2);
+
+  const listRef = useRef<FlatList<number>>(null);
+
+  useEffect(() => {
+    const offset = initialIndex * YEAR_ITEM_HEIGHT;
+    const id = setTimeout(() => {
+      listRef.current?.scrollToOffset({ offset, animated: false });
+    }, 0);
+    return () => clearTimeout(id);
+  }, [initialIndex]);
+
+  const getItemLayout = useCallback(
+    (_: unknown, index: number) => ({
+      length: YEAR_ITEM_HEIGHT,
+      offset: YEAR_ITEM_HEIGHT * index,
+      index,
+    }),
+    [],
+  );
+
+  const renderItem = useCallback(
+    ({ item: year }: { item: number }) => (
+      <YearItem
+        year={year}
+        today={today}
+        onMonthPress={onMonthPress}
+        colors={colors}
+      />
+    ),
+    [onMonthPress, colors, today],
+  );
+
+  const keyExtractor = useCallback((year: number) => String(year), []);
 
   return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={s.scrollContent}
+    <FlatList<number>
+      ref={listRef}
+      data={years}
+      renderItem={renderItem}
+      keyExtractor={keyExtractor}
+      getItemLayout={getItemLayout}
+      initialScrollIndex={initialIndex}
+      windowSize={3}
+      removeClippedSubviews
       showsVerticalScrollIndicator={false}
-    >
-      {/* 연도 내비게이션 헤더 */}
-      <View style={s.yearHeader}>
-        <Pressable
-          testID="btn-prev-year"
-          onPress={goToPrevYear}
-          style={s.yearNavBtn}
-          hitSlop={12}
-          accessibilityLabel="이전 연도"
-          accessibilityRole="button"
-        >
-          <Text style={s.yearNavArrow}>‹</Text>
-        </Pressable>
-        <Text style={s.yearTitle}>{year}년</Text>
-        <Pressable
-          testID="btn-next-year"
-          onPress={goToNextYear}
-          style={s.yearNavBtn}
-          hitSlop={12}
-          accessibilityLabel="다음 연도"
-          accessibilityRole="button"
-        >
-          <Text style={s.yearNavArrow}>›</Text>
-        </Pressable>
-      </View>
+      testID="year-list"
+      contentContainerStyle={{ paddingBottom: 24 }}
+    />
+  );
+}
 
-      {/* 12개월 그리드 (3열 × 4행) */}
+// ── YearItem ──────────────────────────────────────────────────────────────────
+
+interface YearItemProps {
+  year: number;
+  today: Date;
+  onMonthPress: (year: number, month: number) => void;
+  colors: ColorTokens;
+}
+
+const YearItem = React.memo(function YearItem({
+  year,
+  today,
+  onMonthPress,
+  colors,
+}: YearItemProps) {
+  const s = makeStyles(colors);
+
+  return (
+    <View testID={`year-item-${year}`}>
+      <View style={s.yearHeader}>
+        <Text style={s.yearTitle}>{year}년</Text>
+      </View>
       <View style={s.monthsGrid}>
-        {months.map(({ month, grid }) => {
+        {Array.from({ length: 12 }, (_, month) => {
+          const rawGrid = buildMonthGrid(year, month);
+          const grid = padMiniGridTo6Rows(rawGrid);
           const isCurrentMonth =
             today.getFullYear() === year && today.getMonth() === month;
+
           return (
             <Pressable
               key={month}
-              testID={`year-month-${month}`}
+              testID={`year-month-${year}-${month}`}
               style={s.miniMonthWrapper}
               onPress={() => onMonthPress(year, month)}
               accessibilityLabel={`${year}년 ${month + 1}월`}
@@ -81,9 +166,11 @@ export function YearView({ initialYear, onMonthPress }: Props) {
           );
         })}
       </View>
-    </ScrollView>
+    </View>
   );
-}
+});
+
+// ── MiniMonthGrid ─────────────────────────────────────────────────────────────
 
 interface MiniMonthGridProps {
   grid: CalendarDay[];
@@ -93,15 +180,11 @@ interface MiniMonthGridProps {
 function MiniMonthGrid({ grid, s }: MiniMonthGridProps) {
   return (
     <>
-      {/* 요일 헤더 */}
       <View style={s.miniWeekRow}>
         {DAYS_SHORT.map((d) => (
-          <Text key={d} style={s.miniWeekLabel}>
-            {d}
-          </Text>
+          <Text key={d} style={s.miniWeekLabel}>{d}</Text>
         ))}
       </View>
-      {/* 날짜 그리드 */}
       <View style={s.miniGrid}>
         {grid.map(({ date, isCurrentMonth, isToday }) => {
           const isSun = date.getDay() === 0;
@@ -127,30 +210,14 @@ function MiniMonthGrid({ grid, s }: MiniMonthGridProps) {
   );
 }
 
+// ── 스타일 ────────────────────────────────────────────────────────────────────
+
 function makeStyles(colors: ColorTokens) {
   return StyleSheet.create({
-    scrollContent: {
-      paddingBottom: 24,
-    },
-
-    // 연도 헤더
     yearHeader: {
-      flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       paddingVertical: 16,
-      gap: 24,
-    },
-    yearNavBtn: {
-      minWidth: 44,
-      minHeight: 44,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    yearNavArrow: {
-      fontSize: 28,
-      lineHeight: 32,
-      color: colors.text.primary,
     },
     yearTitle: {
       fontSize: 22,
@@ -158,8 +225,6 @@ function makeStyles(colors: ColorTokens) {
       letterSpacing: -0.5,
       color: colors.text.primary,
     },
-
-    // 12개월 그리드
     monthsGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
@@ -180,8 +245,6 @@ function makeStyles(colors: ColorTokens) {
     miniMonthTitleCurrent: {
       color: colors.accent.primary,
     },
-
-    // 미니 월 그리드
     miniWeekRow: {
       flexDirection: "row",
     },

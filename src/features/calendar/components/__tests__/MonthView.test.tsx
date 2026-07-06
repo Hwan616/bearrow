@@ -105,7 +105,8 @@ describe("MonthView", () => {
     await act(async () => {
       render(<MonthView initialDate={new Date(2026, 6, 1)} />);
     });
-    expect(screen.getByTestId("month-grid")).toBeTruthy();
+    // FlatList로 여러 달을 렌더하므로 getAllByTestId 사용
+    expect(screen.getAllByTestId("month-grid").length).toBeGreaterThan(0);
   });
 
   it("날짜를 탭하면 onDayPress가 호출된다", async () => {
@@ -185,23 +186,13 @@ describe("MonthView", () => {
     );
   });
 
-  it("이전 달 버튼을 누르면 월이 변경된다", async () => {
+  it("month-list FlatList가 렌더된다 (무한 스크롤)", async () => {
     await act(async () => {
       render(<MonthView initialDate={new Date(2026, 6, 1)} />);
     });
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText("이전 달"));
-    });
-    expect(screen.getByText("2026년 6월")).toBeTruthy();
-  });
-
-  it("다음 달 버튼을 누르면 월이 변경된다", async () => {
-    await act(async () => {
-      render(<MonthView initialDate={new Date(2026, 6, 1)} />);
-    });
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText("다음 달"));
-    });
-    expect(screen.getByText("2026년 8월")).toBeTruthy();
+    // FlatList 컨테이너 확인
+    expect(screen.getByTestId("month-list")).toBeTruthy();
+    // 현재 달 제목 확인
+    expect(screen.getByText("2026년 7월")).toBeTruthy();
   });
 });

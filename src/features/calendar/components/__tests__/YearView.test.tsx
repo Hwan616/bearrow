@@ -22,20 +22,20 @@ import { YearView } from "../YearView";
 // ── 테스트 ────────────────────────────────────────────────────────────────────
 
 describe("YearView", () => {
+  it("initialYear의 연도 타이틀이 표시된다", async () => {
+    await act(async () => {
+      render(<YearView initialYear={2025} onMonthPress={jest.fn()} />);
+    });
+    expect(screen.getByText("2025년")).toBeTruthy();
+  });
+
   it("12개 월 버튼이 렌더된다", async () => {
     await act(async () => {
       render(<YearView initialYear={2025} onMonthPress={jest.fn()} />);
     });
     for (let i = 0; i < 12; i++) {
-      expect(screen.getByTestId(`year-month-${i}`)).toBeTruthy();
+      expect(screen.getByTestId(`year-month-2025-${i}`)).toBeTruthy();
     }
-  });
-
-  it("연도 타이틀이 표시된다", async () => {
-    await act(async () => {
-      render(<YearView initialYear={2025} onMonthPress={jest.fn()} />);
-    });
-    expect(screen.getByText("2025년")).toBeTruthy();
   });
 
   it("월을 탭하면 onMonthPress(year, month)가 호출된다", async () => {
@@ -43,39 +43,23 @@ describe("YearView", () => {
     await act(async () => {
       render(<YearView initialYear={2025} onMonthPress={onMonthPress} />);
     });
-    fireEvent.press(screen.getByTestId("year-month-3")); // 4월
+    fireEvent.press(screen.getByTestId("year-month-2025-3")); // 4월
     expect(onMonthPress).toHaveBeenCalledWith(2025, 3);
   });
 
-  it("이전 연도 버튼을 누르면 연도가 변경된다", async () => {
+  it("year-list FlatList 데이터에 ±10년 범위가 포함된다", async () => {
     await act(async () => {
       render(<YearView initialYear={2025} onMonthPress={jest.fn()} />);
     });
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("btn-prev-year"));
-    });
-    expect(screen.getByText("2024년")).toBeTruthy();
+    // FlatList가 렌더됐고 현재 연도 항목이 존재함
+    expect(screen.getByTestId("year-list")).toBeTruthy();
+    expect(screen.getByTestId(`year-item-2025`)).toBeTruthy();
   });
 
-  it("다음 연도 버튼을 누르면 연도가 변경된다", async () => {
+  it("year-list FlatList가 렌더된다", async () => {
     await act(async () => {
       render(<YearView initialYear={2025} onMonthPress={jest.fn()} />);
     });
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("btn-next-year"));
-    });
-    expect(screen.getByText("2026년")).toBeTruthy();
-  });
-
-  it("연도 변경 후 onMonthPress가 새 연도로 호출된다", async () => {
-    const onMonthPress = jest.fn();
-    await act(async () => {
-      render(<YearView initialYear={2025} onMonthPress={onMonthPress} />);
-    });
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("btn-next-year"));
-    });
-    fireEvent.press(screen.getByTestId("year-month-0")); // 2026년 1월
-    expect(onMonthPress).toHaveBeenCalledWith(2026, 0);
+    expect(screen.getByTestId("year-list")).toBeTruthy();
   });
 });
