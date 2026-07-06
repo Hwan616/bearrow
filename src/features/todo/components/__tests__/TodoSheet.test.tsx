@@ -71,6 +71,8 @@ const MOCK_TODO = {
   dueDate: null,
   categoryId: null,
   eventId: null,
+  assignedDate: new Date(),
+  hasDueTime: false,
   sortOrder: 0,
   note: null,
   createdAt: new Date(),

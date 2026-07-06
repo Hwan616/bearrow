@@ -39,7 +39,6 @@ jest.mock("drizzle-orm", () => ({
   and: jest.fn((...args) => ({ op: "and", args })),
   gte: jest.fn((col, val) => ({ op: "gte", col, val })),
   lte: jest.fn((col, val) => ({ op: "lte", col, val })),
-  isNotNull: jest.fn((col) => ({ op: "isNotNull", col })),
 }));
 
 // ── fixtures ────────────────────────────────────────────────────────────────
@@ -55,6 +54,8 @@ const mockTodo = {
   dueDate: null,
   categoryId: null,
   eventId: null,
+  assignedDate: now,
+  hasDueTime: false,
   sortOrder: 0,
   createdAt: now,
   updatedAt: now,
@@ -143,6 +144,25 @@ describe("updateTodo", () => {
       "할일을 찾을 수 없습니다",
     );
   });
+
+  it("dueDate 변경 시 assignedDate·hasDueTime이 자동 동기화된다", async () => {
+    const newDate = new Date(2026, 7, 1);
+    const updated = { ...mockTodo, dueDate: newDate, assignedDate: newDate, hasDueTime: true };
+    mockTodoReturning.mockResolvedValue([updated]);
+    await updateTodo("todo-1", { dueDate: newDate });
+    expect(mockTodoSet).toHaveBeenCalledWith(
+      expect.objectContaining({ dueDate: newDate, assignedDate: newDate, hasDueTime: true }),
+    );
+  });
+
+  it("dueDate를 null로 설정하면 hasDueTime=false가 된다", async () => {
+    const updated = { ...mockTodo, dueDate: null, hasDueTime: false };
+    mockTodoReturning.mockResolvedValue([updated]);
+    await updateTodo("todo-1", { dueDate: null });
+    expect(mockTodoSet).toHaveBeenCalledWith(
+      expect.objectContaining({ dueDate: null, hasDueTime: false }),
+    );
+  });
 });
 
 // ── deleteTodo ──────────────────────────────────────────────────────────────
@@ -185,12 +205,14 @@ describe("createTodoFromEvent", () => {
 
     const result = await createTodoFromEvent(event, todoNow);
 
+    const expectedDueDate = new Date(2026, 5, 15, 0, 0, 0, 0);
     expect(mockTodoValues).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "mock-uuid",
         title: "팀 미팅",
         eventId: "ev-1",
-        dueDate: new Date(2026, 5, 15, 0, 0, 0, 0),
+        dueDate: expectedDueDate,
+        assignedDate: expectedDueDate,
         isCompleted: false,
         categoryId: null,
       }),

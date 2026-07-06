@@ -21,8 +21,8 @@ describe("runMigrations", () => {
 
     await runMigrations(db as never);
 
-    // _migrations 테이블 생성 1회 + MIGRATIONS 배열 항목 수(현재 7건)만큼 SQL 실행
-    expect(db.execAsync).toHaveBeenCalledTimes(8); // 1(tracker) + 7(migrations)
+    // _migrations 테이블 생성 1회 + MIGRATIONS 배열 항목 수(현재 8건)만큼 SQL 실행
+    expect(db.execAsync).toHaveBeenCalledTimes(9); // 1(tracker) + 8(migrations)
     expect(db.runAsync).toHaveBeenCalledWith(
       "INSERT INTO _migrations (name) VALUES (?)",
       ["0001_create_events"],
@@ -50,6 +50,10 @@ describe("runMigrations", () => {
     expect(db.runAsync).toHaveBeenCalledWith(
       "INSERT INTO _migrations (name) VALUES (?)",
       ["0007_create_sync_tables"],
+    );
+    expect(db.runAsync).toHaveBeenCalledWith(
+      "INSERT INTO _migrations (name) VALUES (?)",
+      ["0008_add_assigned_date_to_todos"],
     );
   });
 
@@ -127,6 +131,17 @@ describe("runMigrations", () => {
 
     expect(db.execAsync).toHaveBeenCalledWith(
       expect.stringContaining("ALTER TABLE todos ADD COLUMN event_id"),
+    );
+  });
+
+  it("execAsync에 todos.assigned_date 컬럼 추가 SQL이 포함된다", async () => {
+    const db = makeMockDb();
+    db.getFirstAsync.mockResolvedValue(null);
+
+    await runMigrations(db as never);
+
+    expect(db.execAsync).toHaveBeenCalledWith(
+      expect.stringContaining("ALTER TABLE todos ADD COLUMN assigned_date"),
     );
   });
 });

@@ -34,6 +34,8 @@ export const todos = sqliteTable("todos", {
   dueDate: int("due_date", { mode: "timestamp" }),   // 마감일 (캘린더 연동, FR-TODO-005)
   categoryId: text("category_id"),
   eventId: text("event_id"),                          // 파생 출처 이벤트 (FR-INT-004)
+  assignedDate: int("assigned_date", { mode: "timestamp" }).notNull(),  // 캘린더 표시 날짜 (항상 존재)
+  hasDueTime: int("has_due_time", { mode: "boolean" }).notNull().default(false), // dueDate에 시간 성분 여부
   sortOrder: int("sort_order").notNull().default(0),
   createdAt: int("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: int("updated_at", { mode: "timestamp" }).notNull(),

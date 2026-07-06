@@ -52,6 +52,8 @@ const MOCK_TODO = {
   categoryId: "cat-1",
   note: null,
   eventId: null,
+  assignedDate: NOW,
+  hasDueTime: false,
   sortOrder: 0,
   createdAt: NOW,
   updatedAt: NOW,

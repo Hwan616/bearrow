@@ -18,6 +18,7 @@ type ServerTodoRow = {
   id: string; title: string; note: string | null; is_completed: number;
   completed_at: number | null; due_date: number | null; category_id: string | null;
   event_id: string | null; sort_order: number; created_at: number; updated_at: number;
+  assigned_date: number; has_due_time: number;
 };
 
 type ServerCategoryRow = {
@@ -61,12 +62,13 @@ async function applyServerTodo(row: ServerTodoRow): Promise<boolean> {
     row.id, row.title, row.note, row.is_completed,
     row.completed_at, row.due_date, row.category_id,
     row.event_id, row.sort_order, row.created_at, row.updated_at,
+    row.assigned_date, row.has_due_time,
   ];
   await sqliteDb.runAsync(
     `INSERT OR REPLACE INTO todos
        (id, title, note, is_completed, completed_at, due_date, category_id,
-        event_id, sort_order, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        event_id, sort_order, created_at, updated_at, assigned_date, has_due_time)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     vals,
   );
   return true;

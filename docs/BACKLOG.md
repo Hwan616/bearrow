@@ -201,7 +201,7 @@
   - 파일: `src/features/calendar/components/SearchSheet.tsx`, `src/features/calendar/api/search.ts`
   - 요구사항: `FR-CAL-007`
 
-- [ ] **7.10 todos 스키마 변경·마이그레이션**
+- [x] **7.10 todos 스키마 변경·마이그레이션**
   - 완료: todos 테이블에 `assigned_date`(필수, 날짜 전용) + `has_due_time`(boolean) 컬럼 추가. 마이그레이션 — 기존 dueDate 있는 할일 → assigned_date로 이전, 없는 할일 → createdAt 날짜 배정. todos API·useTodos·동기화 엔진 스키마 반영.
   - 파일: `src/db/schema.ts`, `src/db/migrate.ts`, `src/features/todo/api/todos.ts`, `src/features/todo/hooks/useTodos.ts`, `src/sync/`
   - 요구사항: `FR-TODO-005`, `NFR-CON-002`

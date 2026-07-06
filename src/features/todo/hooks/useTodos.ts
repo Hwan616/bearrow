@@ -85,6 +85,8 @@ export function useTodos(): UseTodosReturn {
         isCompleted: false,
         completedAt: null,
         dueDate: dueDate ?? null,
+        assignedDate: dueDate ?? now,
+        hasDueTime: dueDate != null,
         categoryId,
         sortOrder: nextSortOrder,
         createdAt: now,

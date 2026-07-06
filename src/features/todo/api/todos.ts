@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, isNotNull, lte } from "drizzle-orm";
+import { and, asc, eq, gte, lte } from "drizzle-orm";
 import * as Crypto from "expo-crypto";
 
 import { db } from "@/db/client";
@@ -25,7 +25,17 @@ export async function updateTodo(
   id: string,
   data: Partial<Omit<NewTodo, "id">>,
 ): Promise<Todo> {
-  const rows = await db.update(todos).set(data).where(eq(todos.id, id)).returning();
+  const updates: Partial<Omit<NewTodo, "id">> = { ...data };
+  // dueDate가 변경될 때 assignedDate·hasDueTime 자동 동기화
+  if ("dueDate" in data) {
+    if (data.dueDate != null) {
+      updates.assignedDate = data.dueDate;
+      updates.hasDueTime = true;
+    } else {
+      updates.hasDueTime = false;
+    }
+  }
+  const rows = await db.update(todos).set(updates).where(eq(todos.id, id)).returning();
   const row = rows[0];
   if (!row) throw new Error("할일을 찾을 수 없습니다");
   return row;
@@ -35,13 +45,13 @@ export async function deleteTodo(id: string): Promise<void> {
   await db.delete(todos).where(eq(todos.id, id));
 }
 
-// 마감일이 from~to 범위 내에 있는 할일 반환 (캘린더 연동용)
+// assigned_date 범위 내 할일 반환 (캘린더 연동용) — 모든 할일이 assignedDate를 가짐
 export async function getTodosByDueDateRange(from: Date, to: Date): Promise<Todo[]> {
   return db
     .select()
     .from(todos)
-    .where(and(isNotNull(todos.dueDate), gte(todos.dueDate, from), lte(todos.dueDate, to)))
-    .orderBy(asc(todos.dueDate), asc(todos.sortOrder));
+    .where(and(gte(todos.assignedDate, from), lte(todos.assignedDate, to)))
+    .orderBy(asc(todos.assignedDate), asc(todos.sortOrder));
 }
 
 // 이벤트에서 할일 파생 — title·마감일·eventId를 이벤트에서 채운다 (FR-INT-004)
@@ -59,6 +69,8 @@ export async function createTodoFromEvent(
     isCompleted: false,
     completedAt: null,
     dueDate,
+    assignedDate: dueDate,
+    hasDueTime: false,
     categoryId: null,
     eventId: event.id,
     sortOrder: 0,

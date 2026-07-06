@@ -43,6 +43,8 @@ const makeTodo = (overrides: Partial<{ id: string; title: string; isCompleted: b
   dueDate: null,
   categoryId: null,
   completedAt: null,
+  assignedDate: new Date(),
+  hasDueTime: false,
   sortOrder: 0,
   createdAt: new Date(),
   updatedAt: new Date(),

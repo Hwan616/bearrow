@@ -88,6 +88,15 @@ const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    name: "0008_add_assigned_date_to_todos",
+    sql: `
+      ALTER TABLE todos ADD COLUMN assigned_date INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE todos ADD COLUMN has_due_time INTEGER NOT NULL DEFAULT 0;
+      UPDATE todos SET assigned_date = COALESCE(due_date, created_at);
+      UPDATE todos SET has_due_time = CASE WHEN due_date IS NOT NULL THEN 1 ELSE 0 END;
+    `,
+  },
 ];
 
 // 앱 시작 시 한 번 호출한다 (예: App.tsx useEffect).
