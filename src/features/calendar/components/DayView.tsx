@@ -41,9 +41,10 @@ function formatTime(date: Date): string {
 interface DayViewProps {
   initialDate: Date;
   onEventPress?: (event: Event) => void;
+  onDateChange?: (date: Date) => void;
 }
 
-export function DayView({ initialDate, onEventPress }: DayViewProps) {
+export function DayView({ initialDate, onEventPress, onDateChange }: DayViewProps) {
   const { colors } = useTheme();
   const { dates, initialIndex, visibleDate, onVisibleDateChange } = useDayScroll(initialDate);
   const listRef = useRef<FlatList<Date>>(null);
@@ -53,6 +54,13 @@ export function DayView({ initialDate, onEventPress }: DayViewProps) {
   // onViewableItemsChanged ref 생성 시 최신 참조를 확보하기 위해 ref로 래핑
   const onVisibleDateChangeRef = useRef(onVisibleDateChange);
   onVisibleDateChangeRef.current = onVisibleDateChange;
+
+  // 외부에 현재 보이는 날짜 전파 (투두 시트 날짜 동기화)
+  const onDateChangeRef = useRef(onDateChange);
+  onDateChangeRef.current = onDateChange;
+  useEffect(() => {
+    onDateChangeRef.current?.(visibleDate);
+  }, [visibleDate]);
 
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {

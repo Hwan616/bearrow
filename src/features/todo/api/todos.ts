@@ -67,6 +67,16 @@ export async function createTodoFromEvent(
   });
 }
 
+// 순서 일괄 업데이트 — orderedIds 배열의 순서를 sortOrder 0, 1, 2… 로 저장
+export async function updateSortOrders(orderedIds: string[]): Promise<void> {
+  const now = new Date();
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      db.update(todos).set({ sortOrder: index, updatedAt: now }).where(eq(todos.id, id)),
+    ),
+  );
+}
+
 // 완료 상태 전환 — completed=true이면 completedAt을 현재 시각으로, false이면 null로
 export async function toggleTodo(
   id: string,

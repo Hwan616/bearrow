@@ -181,7 +181,7 @@
   - 파일: `src/ui/AppBottomSheet.tsx`, `src/ui/AppSidePanel.tsx`
   - 요구사항: `UI-001`, `NFR-CON-001`
 
-- [ ] **7.6 투두 시트**
+- [x] **7.6 투두 시트**
   - 완료: 할일 버튼 → AppBottomSheet/AppSidePanel에 투두 리스트 표시. 스냅 2단계(50%·90%). 드래그 순서 변경(sortOrder 저장). Day view 스크롤 시 날짜에 맞춰 목록 실시간 전환. 투두 열림 시 우측 하단 설정 버튼만 남음. 기존 TodoForm 재사용.
   - 파일: `src/features/todo/components/TodoSheet.tsx`, `src/features/todo/hooks/useTodos.ts`(정렬 업데이트)
   - 요구사항: `FR-TODO-001~006`, `UI-001`

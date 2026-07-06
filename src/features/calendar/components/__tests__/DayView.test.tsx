@@ -155,4 +155,12 @@ describe("DayView", () => {
     // 로딩 중이면 이벤트 제목이 없어야 한다
     expect(screen.queryByText("오전 회의")).toBeNull();
   });
+
+  it("onDateChange prop이 전달되면 마운트 시 호출된다", async () => {
+    const onDateChange = jest.fn();
+    await act(async () => {
+      render(<DayView initialDate={INITIAL_DATE} onDateChange={onDateChange} />);
+    });
+    expect(onDateChange).toHaveBeenCalled();
+  });
 });

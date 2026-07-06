@@ -5,6 +5,7 @@ import {
   getTodos,
   getTodosByDueDateRange,
   toggleTodo,
+  updateSortOrders,
   updateTodo,
 } from "../todos";
 
@@ -231,5 +232,36 @@ describe("toggleTodo", () => {
     await toggleTodo("todo-1", true); // now 생략
     const setArg = mockTodoSet.mock.calls[0]?.[0] as { completedAt: Date };
     expect(setArg.completedAt).toBeInstanceOf(Date);
+  });
+});
+
+// ── updateSortOrders ─────────────────────────────────────────────────────────
+
+describe("updateSortOrders", () => {
+  it("각 id를 인덱스 순서로 업데이트한다", async () => {
+    mockTodoUpdateWhere.mockResolvedValue(undefined);
+    await updateSortOrders(["c", "a", "b"]);
+    // update가 3번 호출됐는지 확인
+    const { db } = jest.requireMock("@/db/client") as { db: { update: jest.Mock } };
+    expect(db.update).toHaveBeenCalledTimes(3);
+    // 첫 번째 set에 sortOrder:0 포함
+    expect(mockTodoSet).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ sortOrder: 0 }),
+    );
+    expect(mockTodoSet).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ sortOrder: 1 }),
+    );
+    expect(mockTodoSet).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({ sortOrder: 2 }),
+    );
+  });
+
+  it("빈 배열이면 update를 호출하지 않는다", async () => {
+    await updateSortOrders([]);
+    const { db } = jest.requireMock("@/db/client") as { db: { update: jest.Mock } };
+    expect(db.update).not.toHaveBeenCalled();
   });
 });

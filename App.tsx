@@ -27,8 +27,7 @@ import { ensureDefaultCategory } from "@/features/category/api/categories";
 import { AppSettingsProvider } from "@/features/settings/AppSettingsContext";
 import { SettingsScreen } from "@/features/settings/components/SettingsScreen";
 import { TodoForm } from "@/features/todo/components/TodoForm";
-import { TodoList } from "@/features/todo/components/TodoList";
-import { TodoMiniCalendar } from "@/features/todo/components/TodoMiniCalendar";
+import { TodoSheet } from "@/features/todo/components/TodoSheet";
 import { useTodos } from "@/features/todo/hooks/useTodos";
 import type { Todo } from "@/features/todo/types";
 import { Sentry } from "@/lib/sentry";
@@ -75,8 +74,7 @@ function AppContent() {
   const [reschedulingTodo, setReschedulingTodo] = useState<Todo | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-  const { sections, handleToggle, handleDelete, handleCreate, handleUpdate } = useTodos();
-  const allTodos = sections.flatMap((ss) => ss.todos);
+  const { sections, allTodos, handleToggle, handleDelete, handleCreate, handleUpdate, handleReorder } = useTodos();
 
   useEffect(() => {
     setupNotificationHandler();
@@ -219,44 +217,54 @@ function AppContent() {
         },
       ]}
     >
-      <Pressable
-        testID="btn-today"
-        style={s.footerBtn}
-        onPress={goToToday}
-        accessibilityLabel="오늘"
-        accessibilityRole="button"
-      >
-        <Text style={[s.footerBtnText, { color: colors.accent.primary }]}>오늘</Text>
-      </Pressable>
-      <View style={s.footerRight}>
-        {activeView !== "year" && (
+      {/* 투두 시트 열림 시: 설정 버튼만 표시 */}
+      {todoSheetVisible ? (
+        <View style={[s.footerRight, { flex: 1, justifyContent: "flex-end" }]}>
           <Pressable
-            testID="btn-todo-sheet"
+            testID="btn-settings-sheet"
             style={s.footerBtn}
-            onPress={() => setTodoSheetVisible(true)}
-            accessibilityLabel="할 일"
+            onPress={() => setSettingsSheetVisible(true)}
+            accessibilityLabel="설정"
             accessibilityRole="button"
           >
-            <Text
-              style={[
-                s.footerBtnText,
-                todoSheetVisible && { color: colors.accent.primary },
-              ]}
-            >
-              할 일
-            </Text>
+            <Text style={s.footerBtnText}>설정</Text>
           </Pressable>
-        )}
-        <Pressable
-          testID="btn-settings-sheet"
-          style={s.footerBtn}
-          onPress={() => setSettingsSheetVisible(true)}
-          accessibilityLabel="설정"
-          accessibilityRole="button"
-        >
-          <Text style={s.footerBtnText}>설정</Text>
-        </Pressable>
-      </View>
+        </View>
+      ) : (
+        <>
+          <Pressable
+            testID="btn-today"
+            style={s.footerBtn}
+            onPress={goToToday}
+            accessibilityLabel="오늘"
+            accessibilityRole="button"
+          >
+            <Text style={[s.footerBtnText, { color: colors.accent.primary }]}>오늘</Text>
+          </Pressable>
+          <View style={s.footerRight}>
+            {activeView !== "year" && (
+              <Pressable
+                testID="btn-todo-sheet"
+                style={s.footerBtn}
+                onPress={() => setTodoSheetVisible(true)}
+                accessibilityLabel="할 일"
+                accessibilityRole="button"
+              >
+                <Text style={s.footerBtnText}>할 일</Text>
+              </Pressable>
+            )}
+            <Pressable
+              testID="btn-settings-sheet"
+              style={s.footerBtn}
+              onPress={() => setSettingsSheetVisible(true)}
+              accessibilityLabel="설정"
+              accessibilityRole="button"
+            >
+              <Text style={s.footerBtnText}>설정</Text>
+            </Pressable>
+          </View>
+        </>
+      )}
     </View>
   );
 
@@ -296,6 +304,10 @@ function AppContent() {
             key={`${selectedDate.toDateString()}-${calendarKey}`}
             initialDate={selectedDate}
             onEventPress={(event) => setSelectedEvent(event)}
+            onDateChange={(date) => {
+              // 투두 시트 열림 상태에서 Day 뷰 스크롤 시 날짜 동기화
+              if (todoSheetVisible) setSelectedDate(date);
+            }}
           />
         </View>
       )}
@@ -359,56 +371,30 @@ function AppContent() {
         )}
       </Modal>
 
-      {/* 할일 시트 — 7.5/7.6에서 BottomSheet/SidePanel로 교체 */}
-      <Modal
+      {/* 투두 시트 — AppBottomSheet(컴팩트) / AppSidePanel(와이드) */}
+      <TodoSheet
         visible={todoSheetVisible}
-        animationType="slide"
-        onRequestClose={() => setTodoSheetVisible(false)}
-      >
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.primary }}>
-          <View
-            style={[s.sheetHeader, { borderBottomColor: colors.border.default }]}
-          >
-            <Text style={[s.sheetTitle, { color: colors.text.primary }]}>할 일</Text>
-            <Pressable
-              onPress={() => setTodoSheetVisible(false)}
-              style={s.headerBtn}
-              accessibilityLabel="닫기"
-            >
-              <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>닫기</Text>
-            </Pressable>
-          </View>
-          <TodoMiniCalendar
-            todos={allTodos}
-            reschedulingTodo={reschedulingTodo}
-            onDatePick={(date) => void handleReschedule(date)}
-            onCancelReschedule={() => setReschedulingTodo(null)}
-          />
-          <View style={{ flex: 1 }}>
-            <TodoList
-              sections={sections}
-              onToggle={handleToggle}
-              onDelete={handleDelete}
-              onEdit={(todo) => {
-                setTodoSheetVisible(false);
-                setEditingTodo(todo);
-              }}
-              onReschedule={setReschedulingTodo}
-            />
-          </View>
-          <Pressable
-            testID="btn-add-todo"
-            style={[s.sheetAddBtn, { backgroundColor: colors.accent.primary }]}
-            onPress={() => {
-              setTodoSheetVisible(false);
-              setTodoFormVisible(true);
-            }}
-            accessibilityLabel="새 할일 추가"
-          >
-            <Text style={s.sheetAddBtnText}>＋  새 할일</Text>
-          </Pressable>
-        </SafeAreaView>
-      </Modal>
+        onClose={() => setTodoSheetVisible(false)}
+        isWide={isWide}
+        selectedDate={selectedDate}
+        sections={sections}
+        allTodos={allTodos}
+        reschedulingTodo={reschedulingTodo}
+        onToggle={handleToggle}
+        onDelete={handleDelete}
+        onEdit={(todo) => {
+          setTodoSheetVisible(false);
+          setEditingTodo(todo);
+        }}
+        onReschedule={setReschedulingTodo}
+        onCancelReschedule={() => setReschedulingTodo(null)}
+        onDatePick={(date) => void handleReschedule(date)}
+        onAddTodo={() => {
+          setTodoSheetVisible(false);
+          setTodoFormVisible(true);
+        }}
+        onReorder={handleReorder}
+      />
 
       {/* 설정 시트 — 7.7에서 BottomSheet/SidePanel로 교체 */}
       <Modal
