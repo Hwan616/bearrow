@@ -590,7 +590,7 @@ function makeStyles(colors: ColorTokens) {
     },
     // 모든 pill 버튼은 동일 크기 (minWidth) + 텍스트 중앙 정렬
     pillBtn: {
-      backgroundColor: "rgba(120,120,128,0.12)",
+      backgroundColor: colors.background.tertiary,
       borderRadius: 18,
       minWidth: 72,
       height: 38,

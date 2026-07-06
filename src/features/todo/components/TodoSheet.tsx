@@ -67,35 +67,35 @@ export function TodoSheet({
 
   const content = (
     <View style={s.container} testID="todo-sheet-content">
-      {/* 헤더 */}
+      {/* 헤더: 닫기(좌, wide) — 날짜(중) — 정렬(우) */}
       <View style={[s.header, { borderBottomColor: colors.border.default }]}>
+        {isWide ? (
+          <Pressable
+            testID="btn-sheet-close"
+            onPress={onClose}
+            style={s.headerBtn}
+            accessibilityLabel="닫기"
+            accessibilityRole="button"
+          >
+            <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>닫기</Text>
+          </Pressable>
+        ) : (
+          <View style={s.headerBtn} />
+        )}
         <Text style={[s.dateLabel, { color: colors.text.primary }]}>
           {formatSheetDate(selectedDate)}
         </Text>
-        <View style={s.headerActions}>
-          <Pressable
-            testID="btn-reorder-toggle"
-            onPress={() => setIsReordering((v) => !v)}
-            style={s.headerBtn}
-            accessibilityLabel={isReordering ? "정렬 완료" : "순서 변경"}
-            accessibilityRole="button"
-          >
-            <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>
-              {isReordering ? "완료" : "정렬"}
-            </Text>
-          </Pressable>
-          {isWide && (
-            <Pressable
-              testID="btn-sheet-close"
-              onPress={onClose}
-              style={s.headerBtn}
-              accessibilityLabel="닫기"
-              accessibilityRole="button"
-            >
-              <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>닫기</Text>
-            </Pressable>
-          )}
-        </View>
+        <Pressable
+          testID="btn-reorder-toggle"
+          onPress={() => setIsReordering((v) => !v)}
+          style={s.headerBtn}
+          accessibilityLabel={isReordering ? "정렬 완료" : "순서 변경"}
+          accessibilityRole="button"
+        >
+          <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>
+            {isReordering ? "완료" : "정렬"}
+          </Text>
+        </Pressable>
       </View>
 
       {/* 투두 목록 */}
@@ -240,12 +240,10 @@ function makeStyles(colors: ColorTokens) {
       borderBottomWidth: StyleSheet.hairlineWidth,
     },
     dateLabel: {
+      flex: 1,
       fontSize: 16,
       fontWeight: "600",
-    },
-    headerActions: {
-      flexDirection: "row",
-      gap: 4,
+      textAlign: "center",
     },
     headerBtn: {
       paddingHorizontal: 8,

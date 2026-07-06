@@ -1,9 +1,8 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
-import { AppBottomSheet } from "@/ui/AppBottomSheet";
-import { AppSidePanel } from "@/ui/AppSidePanel";
 import { useTheme } from "@/theme";
+
 import { SettingsScreen } from "./SettingsScreen";
 
 export interface SettingsSheetProps {
@@ -12,66 +11,64 @@ export interface SettingsSheetProps {
   isWide: boolean;
 }
 
-export function SettingsSheet({ visible, onClose, isWide }: SettingsSheetProps) {
+export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const { colors } = useTheme();
 
-  const content = (
-    <View testID="settings-sheet-content" style={styles.content}>
-      {isWide && (
-        <View style={[styles.header, { borderBottomColor: colors.border.default }]}>
-          <Text style={[styles.title, { color: colors.text.primary }]}>설정</Text>
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background.primary }]}>
+        {/* 헤더: 닫기(좌) — 설정(중) — spacer(우) */}
+        <View style={[styles.header, { borderBottomColor: colors.border.default, backgroundColor: colors.surface.default }]}>
           <Pressable
             testID="btn-settings-close"
             onPress={onClose}
-            style={styles.closeBtn}
+            style={styles.headerBtn}
             accessibilityLabel="닫기"
             accessibilityRole="button"
           >
-            <Text style={[styles.closeBtnText, { color: colors.accent.primary }]}>닫기</Text>
+            <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>닫기</Text>
           </Pressable>
+          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>설정</Text>
+          <View style={styles.headerBtn} />
         </View>
-      )}
-      <SettingsScreen />
-    </View>
-  );
-
-  if (isWide) {
-    return (
-      <AppSidePanel visible={visible} onClose={onClose}>
-        {content}
-      </AppSidePanel>
-    );
-  }
-
-  return (
-    <AppBottomSheet visible={visible} onClose={onClose}>
-      {content}
-    </AppBottomSheet>
+        <View testID="settings-sheet-content" style={{ flex: 1 }}>
+          <SettingsScreen />
+        </View>
+      </SafeAreaView>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1 },
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    minHeight: 52,
   },
-  title: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  closeBtn: {
+  headerBtn: {
     paddingHorizontal: 8,
     paddingVertical: 6,
+    minWidth: 60,
     minHeight: 44,
     justifyContent: "center",
   },
-  closeBtnText: {
+  headerBtnText: {
     fontSize: 15,
     fontWeight: "600",
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    flex: 1,
+    textAlign: "center",
   },
 });

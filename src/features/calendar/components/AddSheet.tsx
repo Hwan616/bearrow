@@ -38,6 +38,19 @@ export function AddSheet({
   const content = (
     <View testID="add-sheet-content" style={styles.content}>
       <View style={[styles.header, { borderBottomColor: colors.border.default }]}>
+        {/* 닫기(좌, wide만) */}
+        {isWide ? (
+          <Pressable
+            testID="btn-add-sheet-close"
+            onPress={onClose}
+            style={styles.closeBtn}
+            accessibilityLabel="닫기"
+            accessibilityRole="button"
+          >
+            <Text style={[styles.closeBtnText, { color: colors.accent.primary }]}>닫기</Text>
+          </Pressable>
+        ) : null}
+        {/* 세그먼트 (중앙) */}
         <View style={styles.segmentRow}>
           <Pressable
             testID="btn-segment-event"
@@ -78,17 +91,8 @@ export function AddSheet({
             </Text>
           </Pressable>
         </View>
-        {isWide && (
-          <Pressable
-            testID="btn-add-sheet-close"
-            onPress={onClose}
-            style={styles.closeBtn}
-            accessibilityLabel="닫기"
-            accessibilityRole="button"
-          >
-            <Text style={[styles.closeBtnText, { color: colors.accent.primary }]}>닫기</Text>
-          </Pressable>
-        )}
+        {/* 우측 spacer (wide 모드에서 세그먼트 중앙 정렬 유지) */}
+        {isWide ? <View style={styles.closeBtn} /> : null}
       </View>
 
       <View style={styles.form}>

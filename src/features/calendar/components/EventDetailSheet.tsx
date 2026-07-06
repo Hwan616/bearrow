@@ -73,14 +73,14 @@ export function EventDetailSheet({ event, onClose, onSaved, onDeleted, onTodoCre
     <SafeAreaView style={s.container}>
       {/* 헤더 */}
       <View style={[s.header, { borderBottomColor: colors.border.default }]}>
-        <Pressable onPress={handleDelete} style={s.headerBtn} accessibilityLabel="일정 삭제">
-          <Text style={[s.headerBtnText, { color: colors.status.error }]}>삭제</Text>
+        <Pressable onPress={onClose} style={s.headerBtn} accessibilityLabel="닫기">
+          <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>닫기</Text>
         </Pressable>
         <Text style={s.headerTitle} numberOfLines={1}>
           일정 상세
         </Text>
-        <Pressable onPress={onClose} style={s.headerBtn} accessibilityLabel="닫기">
-          <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>닫기</Text>
+        <Pressable onPress={handleDelete} style={s.headerBtn} accessibilityLabel="일정 삭제">
+          <Text style={[s.headerBtnText, { color: colors.status.error }]}>삭제</Text>
         </Pressable>
       </View>
 

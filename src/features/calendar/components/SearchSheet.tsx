@@ -58,6 +58,18 @@ export function SearchSheet({ visible, onClose, isWide, onNavigate }: SearchShee
   const content = (
     <View testID="search-sheet-content" style={styles.content}>
       <View style={[styles.header, { borderBottomColor: colors.border.default }]}>
+        {/* 닫기 버튼 (좌, wide만) */}
+        {isWide && (
+          <Pressable
+            testID="btn-search-close"
+            onPress={onClose}
+            style={styles.closeBtn}
+            accessibilityLabel="닫기"
+            accessibilityRole="button"
+          >
+            <Text style={[styles.closeBtnText, { color: colors.accent.primary }]}>닫기</Text>
+          </Pressable>
+        )}
         <View style={[styles.searchBox, { backgroundColor: colors.background.secondary, borderColor: colors.border.default }]}>
           <Text style={[styles.searchIcon, { color: colors.text.disabled }]}>🔍</Text>
           <TextInput
@@ -80,17 +92,6 @@ export function SearchSheet({ visible, onClose, isWide, onNavigate }: SearchShee
             </Pressable>
           )}
         </View>
-        {isWide && (
-          <Pressable
-            testID="btn-search-close"
-            onPress={onClose}
-            style={styles.closeBtn}
-            accessibilityLabel="닫기"
-            accessibilityRole="button"
-          >
-            <Text style={[styles.closeBtnText, { color: colors.accent.primary }]}>닫기</Text>
-          </Pressable>
-        )}
       </View>
 
       {isLoading ? (
