@@ -108,7 +108,7 @@ export function YearView({ initialYear, onMonthPress }: Props) {
       removeClippedSubviews
       showsVerticalScrollIndicator={false}
       testID="year-list"
-      contentContainerStyle={{ paddingBottom: 24 }}
+      contentContainerStyle={{ paddingBottom: 80 }}
     />
   );
 }

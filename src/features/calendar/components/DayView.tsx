@@ -119,6 +119,7 @@ export function DayView({ initialDate, onEventPress, onDateChange }: DayViewProp
         windowSize={5}
         removeClippedSubviews
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 72 }}
         testID="day-list"
       />
     </View>

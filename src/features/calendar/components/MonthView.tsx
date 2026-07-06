@@ -247,6 +247,7 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
         windowSize={5}
         removeClippedSubviews
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 72 }}
         testID="month-list"
       />
     </View>

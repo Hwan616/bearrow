@@ -237,8 +237,10 @@ function AppContent() {
   // Year: [오늘] ———
   // Month/Day: [오늘] ——— [할 일] [＋]
 
+  // 투명 오버레이 푸터 — 캘린더 컨텐츠 위에 띄움 (position: absolute)
+  // box-none: 버튼 바깥 투명 영역은 터치를 아래 컨텐츠로 통과시킴
   const appFooter = (
-    <View style={s.footer}>
+    <View style={s.footer} pointerEvents="box-none">
       <Pressable
         testID="btn-today"
         style={s.pillBtn}
@@ -248,7 +250,7 @@ function AppContent() {
       >
         <Text style={s.pillBtnText}>오늘</Text>
       </Pressable>
-      <View style={{ flex: 1 }} />
+      <View style={{ flex: 1 }} pointerEvents="none" />
       {activeView !== "year" && (
         <>
           <Pressable
@@ -592,19 +594,25 @@ function makeStyles(colors: ColorTokens) {
       backgroundColor: colors.surface.default,
     },
 
-    // 투명 푸터 + 회색 pill 버튼
+    // 캘린더 위에 떠 있는 투명 오버레이 푸터
     footer: {
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: 12,
       paddingVertical: 10,
       backgroundColor: "transparent",
     },
+    // 모든 pill 버튼은 동일 크기 (minWidth) + 텍스트 중앙 정렬
     pillBtn: {
       backgroundColor: "rgba(120,120,128,0.12)",
       borderRadius: 18,
+      minWidth: 72,
+      height: 38,
       paddingHorizontal: 16,
-      paddingVertical: 8,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -612,6 +620,7 @@ function makeStyles(colors: ColorTokens) {
       fontSize: 15,
       fontWeight: "500",
       color: colors.text.primary,
+      textAlign: "center",
     },
 
     // 와이드 레이아웃
