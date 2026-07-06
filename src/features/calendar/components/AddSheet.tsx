@@ -16,7 +16,7 @@ export interface AddSheetProps {
   initialDate?: Date;
   initialSegment?: AddSheetSegment;
   onEventSave: () => void;
-  onTodoSave: (title: string, categoryId: string, note?: string, dueDate?: Date | null) => Promise<void>;
+  onTodoSave: (title: string, categoryId: string, note?: string) => Promise<void>;
 }
 
 export function AddSheet({

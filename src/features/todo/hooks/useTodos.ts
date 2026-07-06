@@ -7,7 +7,7 @@ import type { Category } from "@/features/category/types";
 import {
   createTodo,
   deleteTodo,
-  getTodos,
+  getTodosByDate,
   toggleTodo,
   updateSortOrders,
   updateTodo,
@@ -22,36 +22,24 @@ export type UseTodosReturn = {
   refresh: () => Promise<void>;
   handleToggle: (id: string, completed: boolean) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
-  handleCreate: (
-    title: string,
-    categoryId: string,
-    note?: string,
-    dueDate?: Date | null,
-  ) => Promise<void>;
-  handleUpdate: (
-    id: string,
-    title: string,
-    categoryId: string,
-    note?: string,
-    dueDate?: Date | null,
-  ) => Promise<void>;
+  handleCreate: (title: string, categoryId: string, note?: string) => Promise<void>;
+  handleUpdate: (id: string, title: string, categoryId: string, note?: string) => Promise<void>;
   handleReorder: (orderedIds: string[]) => Promise<void>;
 };
 
-export function useTodos(): UseTodosReturn {
+export function useTodos(selectedDate: Date): UseTodosReturn {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  // ref로 최신 todos 참조 (handleCreate의 sortOrder 계산 시 stale closure 방지)
   const todosRef = useRef(todos);
   todosRef.current = todos;
 
   const refresh = useCallback(async () => {
-    const [t, c] = await Promise.all([getTodos(), getCategories()]);
+    const [t, c] = await Promise.all([getTodosByDate(selectedDate), getCategories()]);
     setTodos(t);
     setCategories(c);
     setIsLoading(false);
-  }, []);
+  }, [selectedDate]);
 
   useEffect(() => {
     void refresh();
@@ -74,8 +62,14 @@ export function useTodos(): UseTodosReturn {
   );
 
   const handleCreate = useCallback(
-    async (title: string, categoryId: string, note?: string, dueDate?: Date | null) => {
+    async (title: string, categoryId: string, note?: string) => {
       const now = new Date();
+      const assignedDate = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate(),
+        0, 0, 0, 0,
+      );
       const nextSortOrder =
         todosRef.current.reduce((m, t) => Math.max(m, t.sortOrder), -1) + 1;
       await createTodo({
@@ -84,9 +78,9 @@ export function useTodos(): UseTodosReturn {
         note: note?.trim() || null,
         isCompleted: false,
         completedAt: null,
-        dueDate: dueDate ?? null,
-        assignedDate: dueDate ?? now,
-        hasDueTime: dueDate != null,
+        dueDate: null,
+        assignedDate,
+        hasDueTime: false,
         categoryId,
         sortOrder: nextSortOrder,
         createdAt: now,
@@ -94,16 +88,15 @@ export function useTodos(): UseTodosReturn {
       });
       await refresh();
     },
-    [refresh],
+    [refresh, selectedDate],
   );
 
   const handleUpdate = useCallback(
-    async (id: string, title: string, categoryId: string, note?: string, dueDate?: Date | null) => {
+    async (id: string, title: string, categoryId: string, note?: string) => {
       await updateTodo(id, {
         title: title.trim(),
         categoryId,
         note: note?.trim() || null,
-        dueDate: dueDate ?? null,
         updatedAt: new Date(),
       });
       await refresh();

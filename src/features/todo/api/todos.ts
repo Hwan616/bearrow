@@ -25,20 +25,21 @@ export async function updateTodo(
   id: string,
   data: Partial<Omit<NewTodo, "id">>,
 ): Promise<Todo> {
-  const updates: Partial<Omit<NewTodo, "id">> = { ...data };
-  // dueDate가 변경될 때 assignedDate·hasDueTime 자동 동기화
-  if ("dueDate" in data) {
-    if (data.dueDate != null) {
-      updates.assignedDate = data.dueDate;
-      updates.hasDueTime = true;
-    } else {
-      updates.hasDueTime = false;
-    }
-  }
-  const rows = await db.update(todos).set(updates).where(eq(todos.id, id)).returning();
+  const rows = await db.update(todos).set(data).where(eq(todos.id, id)).returning();
   const row = rows[0];
   if (!row) throw new Error("할일을 찾을 수 없습니다");
   return row;
+}
+
+// 특정 날짜(assignedDate)에 해당하는 할일만 반환
+export async function getTodosByDate(date: Date): Promise<Todo[]> {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+  const end = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+  return db
+    .select()
+    .from(todos)
+    .where(and(gte(todos.assignedDate, start), lte(todos.assignedDate, end)))
+    .orderBy(asc(todos.isCompleted), asc(todos.sortOrder), asc(todos.createdAt));
 }
 
 export async function deleteTodo(id: string): Promise<void> {

@@ -145,6 +145,7 @@ function computeEventBars(
 
 export interface MonthViewHandle {
   scrollToMonth: (year: number, month: number) => void;
+  clearSelection: () => void;
 }
 
 interface MonthViewProps {
@@ -171,6 +172,9 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
     scrollToMonth(year: number, month: number) {
       const idx = months.findIndex((m) => m.year === year && m.month === month);
       if (idx >= 0) listRef.current?.scrollToIndex({ index: idx, animated: true });
+    },
+    clearSelection() {
+      setSelectedDate(null);
     },
   }), [months]);
 

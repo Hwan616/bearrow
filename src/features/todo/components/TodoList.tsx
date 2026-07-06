@@ -13,12 +13,11 @@ interface Props {
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
   onEdit: (todo: Todo) => void;
-  onReschedule?: (todo: Todo) => void;
 }
 
 type ListSection = TodoSection & { data: Todo[] };
 
-export function TodoList({ sections, onToggle, onDelete, onEdit, onReschedule }: Props) {
+export function TodoList({ sections, onToggle, onDelete, onEdit }: Props) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
@@ -55,7 +54,6 @@ export function TodoList({ sections, onToggle, onDelete, onEdit, onReschedule }:
               onToggle={onToggle}
               onDelete={onDelete}
               onEdit={onEdit}
-              onReschedule={onReschedule}
             />
           </View>
         );

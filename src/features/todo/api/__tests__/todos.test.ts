@@ -3,6 +3,7 @@ import {
   createTodoFromEvent,
   deleteTodo,
   getTodos,
+  getTodosByDate,
   getTodosByDueDateRange,
   toggleTodo,
   updateSortOrders,
@@ -145,23 +146,24 @@ describe("updateTodo", () => {
     );
   });
 
-  it("dueDate 변경 시 assignedDate·hasDueTime이 자동 동기화된다", async () => {
-    const newDate = new Date(2026, 7, 1);
-    const updated = { ...mockTodo, dueDate: newDate, assignedDate: newDate, hasDueTime: true };
-    mockTodoReturning.mockResolvedValue([updated]);
-    await updateTodo("todo-1", { dueDate: newDate });
-    expect(mockTodoSet).toHaveBeenCalledWith(
-      expect.objectContaining({ dueDate: newDate, assignedDate: newDate, hasDueTime: true }),
-    );
+});
+
+// ── getTodosByDate ──────────────────────────────────────────────────────────
+
+describe("getTodosByDate", () => {
+  it("해당 날짜의 할일을 반환한다", async () => {
+    const date = new Date(2026, 6, 7); // 2026-07-07
+    mockTodoOrderBy.mockResolvedValue([mockTodo]);
+    const result = await getTodosByDate(date);
+    expect(mockTodoFrom).toHaveBeenCalled();
+    expect(mockTodoWhere).toHaveBeenCalled();
+    expect(mockTodoOrderBy).toHaveBeenCalled();
+    expect(result).toEqual([mockTodo]);
   });
 
-  it("dueDate를 null로 설정하면 hasDueTime=false가 된다", async () => {
-    const updated = { ...mockTodo, dueDate: null, hasDueTime: false };
-    mockTodoReturning.mockResolvedValue([updated]);
-    await updateTodo("todo-1", { dueDate: null });
-    expect(mockTodoSet).toHaveBeenCalledWith(
-      expect.objectContaining({ dueDate: null, hasDueTime: false }),
-    );
+  it("빈 결과를 반환할 수 있다", async () => {
+    mockTodoOrderBy.mockResolvedValue([]);
+    expect(await getTodosByDate(new Date())).toEqual([]);
   });
 });
 

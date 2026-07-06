@@ -89,7 +89,7 @@ function AppContent() {
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-  const { sections, allTodos, handleToggle, handleDelete, handleCreate, handleUpdate, handleReorder } = useTodos();
+  const { sections, allTodos, handleToggle, handleDelete, handleCreate, handleUpdate, handleReorder } = useTodos(selectedDate);
 
   useEffect(() => {
     setupNotificationHandler();
@@ -142,27 +142,15 @@ function AppContent() {
     setCalendarKey((k) => k + 1);
   }
 
-  async function handleTodoCreate(
-    title: string,
-    categoryId: string,
-    note?: string,
-    dueDate?: Date | null,
-  ) {
-    await handleCreate(title, categoryId, note, dueDate);
+  async function handleTodoCreate(title: string, categoryId: string, note?: string) {
+    await handleCreate(title, categoryId, note);
     setAddSheetVisible(false);
-    if (dueDate) setCalendarKey((k) => k + 1);
   }
 
-  async function handleTodoUpdate(
-    title: string,
-    categoryId: string,
-    note?: string,
-    dueDate?: Date | null,
-  ) {
+  async function handleTodoUpdate(title: string, categoryId: string, note?: string) {
     if (!editingTodo) return;
-    await handleUpdate(editingTodo.id, title, categoryId, note, dueDate);
+    await handleUpdate(editingTodo.id, title, categoryId, note);
     setEditingTodo(null);
-    if (dueDate !== editingTodo.dueDate) setCalendarKey((k) => k + 1);
   }
 
   if (!ready) {
@@ -407,7 +395,10 @@ function AppContent() {
       {/* 투두 시트 — AppBottomSheet(컴팩트) / AppSidePanel(와이드) */}
       <TodoSheet
         visible={todoSheetVisible}
-        onClose={() => setTodoSheetVisible(false)}
+        onClose={() => {
+          setTodoSheetVisible(false);
+          monthViewRef.current?.clearSelection();
+        }}
         isWide={isWide}
         selectedDate={selectedDate}
         sections={sections}

@@ -6,17 +6,15 @@ import { useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
 
 import type { Todo } from "../types";
-import { formatDueDate, isDueDatePast, isDueDateToday } from "../utils/todoDateUtils";
 
 interface Props {
   todo: Todo;
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
   onEdit: (todo: Todo) => void;
-  onReschedule?: (todo: Todo) => void;
 }
 
-export function TodoItem({ todo, onToggle, onDelete, onEdit, onReschedule }: Props) {
+export function TodoItem({ todo, onToggle, onDelete, onEdit }: Props) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const swipeRef = useRef<Swipeable>(null);
@@ -70,32 +68,7 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit, onReschedule }: Pro
             {todo.note}
           </Text>
         ) : null}
-        {todo.dueDate ? (
-          <Text
-            style={[
-              styles.dueDate,
-              isDueDatePast(todo.dueDate) && { color: colors.status.error },
-              isDueDateToday(todo.dueDate) && { color: colors.accent.primary, fontWeight: "600" },
-            ]}
-            maxFontSizeMultiplier={1.5}
-          >
-            📅 {formatDueDate(todo.dueDate)}
-          </Text>
-        ) : null}
       </View>
-
-      {/* 날짜 변경 버튼 */}
-      {onReschedule && (
-        <Pressable
-          onPress={() => onReschedule(todo)}
-          style={styles.rescheduleBtn}
-          hitSlop={8}
-          accessibilityLabel="날짜 변경"
-          accessibilityRole="button"
-        >
-          <Text style={styles.rescheduleBtnText}>↗</Text>
-        </Pressable>
-      )}
 
       {/* 웹: 항상 삭제 버튼 노출 (스와이프 불가) */}
       {Platform.OS === "web" && (
@@ -159,11 +132,6 @@ function makeStyles(colors: ColorTokens) {
       color: colors.text.secondary,
       marginTop: 2,
     },
-    dueDate: {
-      fontSize: 12,
-      color: colors.text.secondary,
-      marginTop: 3,
-    },
     deleteAction: {
       backgroundColor: colors.status.error,
       justifyContent: "center",
@@ -177,16 +145,6 @@ function makeStyles(colors: ColorTokens) {
     },
     webDeleteBtn: {
       padding: 8,
-    },
-    rescheduleBtn: {
-      minWidth: 32,
-      minHeight: 32,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    rescheduleBtnText: {
-      fontSize: 16,
-      color: colors.text.secondary,
     },
   });
 }
