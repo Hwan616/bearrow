@@ -7,7 +7,7 @@ import { useGoogleCalendarSync } from "../hooks/useGoogleCalendarSync";
 import { useICloudSync } from "../hooks/useICloudSync";
 import { ICloudConnectSheet } from "./ICloudConnectSheet";
 import { useAppSettings } from "../AppSettingsContext";
-import { ACCENT_PRESETS, useTheme } from "@/theme";
+import { useTheme } from "@/theme";
 import type { ThemeMode } from "@/theme";
 
 const MODE_OPTIONS: { label: string; value: ThemeMode }[] = [
@@ -17,7 +17,7 @@ const MODE_OPTIONS: { label: string; value: ThemeMode }[] = [
 ];
 
 export function SettingsScreen() {
-  const { colors, mode, setMode, accentColor, setAccentColor } = useTheme();
+  const { colors, mode, setMode } = useTheme();
   const { user, isLoading: authLoading, signIn, signOut } = useAuth();
   const { showHolidays, setShowHolidays } = useAppSettings();
   const [catManagerVisible, setCatManagerVisible] = useState(false);
@@ -99,26 +99,6 @@ export function SettingsScreen() {
               </Text>
             </Pressable>
           ))}
-        </View>
-      </View>
-
-      {/* ── 강조색 ──────────────────────────────────────────── */}
-      <Text style={s.sectionTitle}>강조색</Text>
-      <View style={[s.card, { backgroundColor: colors.surface.default }]}>
-        <View style={s.swatchRow}>
-          {ACCENT_PRESETS.map((preset) => {
-            const isSelected = accentColor === preset.color;
-            return (
-              <Pressable
-                key={preset.color}
-                style={[s.swatch, { backgroundColor: preset.color }, isSelected && s.swatchSelected]}
-                onPress={() => setAccentColor(preset.color)}
-                accessibilityLabel={preset.label}
-              >
-                {isSelected && <Text style={s.swatchCheck}>✓</Text>}
-              </Pressable>
-            );
-          })}
         </View>
       </View>
 
@@ -321,29 +301,6 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       fontSize: 14,
       fontWeight: "500",
       color: colors.text.primary,
-    },
-
-    // 강조색 스와치
-    swatchRow: {
-      flexDirection: "row",
-      gap: 12,
-      flexWrap: "wrap",
-    },
-    swatch: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    swatchSelected: {
-      borderWidth: 3,
-      borderColor: colors.border.strong,
-    },
-    swatchCheck: {
-      color: "#fff",
-      fontWeight: "700",
-      fontSize: 16,
     },
 
     // 설정 행 (토글 등)

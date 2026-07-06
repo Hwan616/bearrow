@@ -13,7 +13,6 @@ import type { ColorTokens } from "@/theme/tokens";
 import { buildMonthGrid } from "../utils/calendarUtils";
 import type { CalendarDay } from "../utils/calendarUtils";
 
-const DAYS_SHORT = ["일", "월", "화", "수", "목", "금", "토"] as const;
 const MONTH_NAMES = [
   "1월", "2월", "3월", "4월", "5월", "6월",
   "7월", "8월", "9월", "10월", "11월", "12월",
@@ -22,14 +21,13 @@ const MONTH_NAMES = [
 // ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
 const MINI_CELL_HEIGHT = 18;       // paddingVertical:1×2 + circle height:16
 const MINI_TITLE_HEIGHT = 21;      // fontSize:13 lineHeight + marginBottom:4
-const MINI_WEEK_ROW_HEIGHT = 12;   // fontSize:8 approximation
 const FIXED_MINI_ROWS = 6;         // always 6 rows per mini month (padded)
 const MINI_MONTH_HEIGHT =
-  16 + MINI_TITLE_HEIGHT + MINI_WEEK_ROW_HEIGHT + FIXED_MINI_ROWS * MINI_CELL_HEIGHT;
-// paddingVertical:8×2=16 + 21 + 12 + 108 = 157
+  16 + MINI_TITLE_HEIGHT + FIXED_MINI_ROWS * MINI_CELL_HEIGHT;
+// paddingVertical:8×2=16 + 21 + 108 = 145
 const YEAR_HEADER_HEIGHT = 60;     // paddingVertical:16×2 + fontSize:22 lineHeight
 const YEAR_ITEM_HEIGHT = YEAR_HEADER_HEIGHT + 4 * MINI_MONTH_HEIGHT;
-// 60 + 4×157 = 688
+// 60 + 4×145 = 640
 
 const YEAR_WINDOW = 21; // ±10 years
 
@@ -179,34 +177,29 @@ interface MiniMonthGridProps {
 
 function MiniMonthGrid({ grid, s }: MiniMonthGridProps) {
   return (
-    <>
-      <View style={s.miniWeekRow}>
-        {DAYS_SHORT.map((d) => (
-          <Text key={d} style={s.miniWeekLabel}>{d}</Text>
-        ))}
-      </View>
-      <View style={s.miniGrid}>
-        {grid.map(({ date, isCurrentMonth, isToday }) => {
-          const isSun = date.getDay() === 0;
-          return (
-            <View key={date.toISOString()} style={s.miniCell}>
-              <View style={[s.miniDayCircle, isToday && s.miniDayCircleToday]}>
-                <Text
-                  style={[
-                    s.miniDayText,
-                    !isCurrentMonth && s.miniDayTextOutside,
-                    isToday && s.miniDayTextToday,
-                    !isToday && isSun && isCurrentMonth && s.miniDayTextSun,
-                  ]}
-                >
-                  {date.getDate()}
-                </Text>
-              </View>
+    <View style={s.miniGrid}>
+      {grid.map(({ date, isCurrentMonth, isToday }) => {
+        if (!isCurrentMonth) {
+          return <View key={date.toISOString()} style={s.miniCell} />;
+        }
+        const isSun = date.getDay() === 0;
+        return (
+          <View key={date.toISOString()} style={s.miniCell}>
+            <View style={[s.miniDayCircle, isToday && s.miniDayCircleToday]}>
+              <Text
+                style={[
+                  s.miniDayText,
+                  isToday && s.miniDayTextToday,
+                  !isToday && isSun && s.miniDayTextSun,
+                ]}
+              >
+                {date.getDate()}
+              </Text>
             </View>
-          );
-        })}
-      </View>
-    </>
+          </View>
+        );
+      })}
+    </View>
   );
 }
 
@@ -215,9 +208,10 @@ function MiniMonthGrid({ grid, s }: MiniMonthGridProps) {
 function makeStyles(colors: ColorTokens) {
   return StyleSheet.create({
     yearHeader: {
-      alignItems: "center",
+      alignItems: "flex-start",
       justifyContent: "center",
       paddingVertical: 16,
+      paddingHorizontal: 16,
     },
     yearTitle: {
       fontSize: 22,
@@ -243,17 +237,7 @@ function makeStyles(colors: ColorTokens) {
       color: colors.text.primary,
     },
     miniMonthTitleCurrent: {
-      color: colors.accent.primary,
-    },
-    miniWeekRow: {
-      flexDirection: "row",
-    },
-    miniWeekLabel: {
-      flex: 1,
-      textAlign: "center",
-      fontSize: 8,
-      fontWeight: "500",
-      color: colors.text.secondary,
+      color: "#D93535",
     },
     miniGrid: {
       flexDirection: "row",
@@ -272,7 +256,7 @@ function makeStyles(colors: ColorTokens) {
       justifyContent: "center",
     },
     miniDayCircleToday: {
-      backgroundColor: colors.accent.primary,
+      backgroundColor: "#D93535",
     },
     miniDayText: {
       fontSize: 9,

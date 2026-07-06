@@ -211,7 +211,7 @@ describe("ensureDefaultCategory", () => {
     mockCatReturning.mockResolvedValue([mockCategory]);
     await ensureDefaultCategory();
     expect(mockCatValues).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "카테고리", color: "#2E5AAC" }),
+      expect.objectContaining({ name: "일상", color: "#2E5AAC" }),
     );
   });
 

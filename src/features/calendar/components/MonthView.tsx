@@ -355,6 +355,10 @@ const MonthItem = React.memo(function MonthItem({
                   const holidayName = isCurrentMonth ? (holidayMap.get(date.getDate()) ?? null) : null;
                   const isHoliday = holidayName !== null;
 
+                  if (!isCurrentMonth) {
+                    return <View key={date.toISOString()} style={s.dayCell} />;
+                  }
+
                   return (
                     <Pressable
                       key={date.toISOString()}
@@ -373,7 +377,6 @@ const MonthItem = React.memo(function MonthItem({
                         <Text
                           style={[
                             s.dayText,
-                            !isCurrentMonth && s.outsideMonth,
                             isToday && s.todayText,
                             !isToday && (isSun || isHoliday) && s.sunday,
                             !isToday && isSat && !isHoliday && s.saturday,
@@ -382,7 +385,7 @@ const MonthItem = React.memo(function MonthItem({
                           {date.getDate()}
                         </Text>
                       </View>
-                      {incompleteCount > 0 && isCurrentMonth && (
+                      {incompleteCount > 0 && (
                         <Text
                           style={s.todoCount}
                           testID={`todo-count-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`}

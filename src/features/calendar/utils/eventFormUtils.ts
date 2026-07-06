@@ -11,6 +11,7 @@ export type EventFormValues = {
   note: string;
   recurrence: RecurrenceOption;
   reminderMinutes: number | null;
+  categoryId: string;
 };
 
 // 폼 기본값 — 신규: 다음 정시~+1시간, 편집: 기존 값
@@ -27,6 +28,7 @@ export function makeDefaultValues(
       note: event.note ?? "",
       recurrence: "none",
       reminderMinutes: null,
+      categoryId: event.categoryId ?? "",
     };
   }
   const start = new Date(base);
@@ -34,7 +36,7 @@ export function makeDefaultValues(
   start.setHours(start.getHours() + 1);
   const end = new Date(start);
   end.setHours(end.getHours() + 1);
-  return { title: "", isAllDay: false, startsAt: start, endsAt: end, note: "", recurrence: "none", reminderMinutes: null };
+  return { title: "", isAllDay: false, startsAt: start, endsAt: end, note: "", recurrence: "none", reminderMinutes: null, categoryId: "" };
 }
 
 // 시간 유효성 검사 — 오류 메시지 또는 null
@@ -72,7 +74,7 @@ export function buildNewEvent(
     startsAt,
     endsAt,
     note: values.note.trim() || null,
-    categoryId: null,
+    categoryId: values.categoryId || null,
     source: "local",
     externalId: null,
     rrule: values.recurrence !== "none" ? buildRRuleString(values.recurrence, startsAt) : null,

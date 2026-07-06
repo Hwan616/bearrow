@@ -59,7 +59,7 @@ export async function ensureDefaultCategory(): Promise<void> {
     const now = new Date();
     await createCategory({
       id: Crypto.randomUUID(),
-      name: "카테고리",
+      name: "일상",
       color: "#2E5AAC",
       sortOrder: 0,
       createdAt: now,
