@@ -161,7 +161,7 @@
   - 파일: `App.tsx`, `src/features/calendar/components/` (기존 정리)
   - 요구사항: `UI-001`, `NFR-CON-001`
 
-- [ ] **7.2 YearView 컴포넌트**
+- [x] **7.2 YearView 컴포넌트**
   - 완료: 12개월 미니 캘린더 그리드. 일정·할일 미표시. 월 탭 → Month view. 설정 버튼만 우측 하단.
   - 파일: `src/features/calendar/components/YearView.tsx`, `src/features/calendar/hooks/useYearData.ts`
   - 요구사항: `FR-CAL-002`

@@ -59,6 +59,9 @@ jest.mock("react-native-gesture-handler", () => {
 jest.mock("@/features/calendar/components/MonthView", () => ({
   MonthView: () => null,
 }));
+jest.mock("@/features/calendar/components/YearView", () => ({
+  YearView: () => null,
+}));
 jest.mock("@/features/calendar/components/DayDetailPanel", () => ({
   DayDetailPanel: () => null,
 }));

@@ -21,6 +21,7 @@ import { DayDetailPanel } from "@/features/calendar/components/DayDetailPanel";
 import { EventDetailSheet } from "@/features/calendar/components/EventDetailSheet";
 import { EventForm } from "@/features/calendar/components/EventForm";
 import { MonthView } from "@/features/calendar/components/MonthView";
+import { YearView } from "@/features/calendar/components/YearView";
 import type { Event } from "@/features/calendar/types";
 import { ensureDefaultCategory } from "@/features/category/api/categories";
 import { AppSettingsProvider } from "@/features/settings/AppSettingsContext";
@@ -264,16 +265,21 @@ function AppContent() {
   const calendarView = (
     <>
       {activeView === "year" && (
-        <View testID="view-year" style={s.viewPlaceholder}>
-          <Text style={[s.placeholderText, { color: colors.text.secondary }]}>
-            연도별 보기 준비 중
-          </Text>
+        <View testID="view-year" style={{ flex: 1 }}>
+          <YearView
+            initialYear={selectedDate.getFullYear()}
+            onMonthPress={(yr, mo) => {
+              setSelectedDate(new Date(yr, mo, 1));
+              setActiveView("month");
+            }}
+          />
         </View>
       )}
       {activeView === "month" && (
         <View testID="view-month" style={{ flex: 1 }}>
           <MonthView
             key={calendarKey}
+            initialDate={selectedDate}
             onDayPress={(date) => {
               setSelectedDate(date);
               // 투두 시트가 닫혀있으면 Day 뷰로 진입 (7.6에서 시트 연동 추가)
@@ -573,16 +579,6 @@ function makeStyles(colors: ColorTokens) {
       color: "#fff",
       fontSize: 15,
       fontWeight: "600",
-    },
-
-    // 뷰 플레이스홀더 (7.2에서 YearView로 교체)
-    viewPlaceholder: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    placeholderText: {
-      fontSize: 16,
     },
 
     // 와이드 레이아웃
