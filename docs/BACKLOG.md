@@ -156,7 +156,7 @@
 > 데이터·동기화·기능 API 레이어는 유지. App.tsx 셸·뷰 컴포넌트만 재구성.
 > 의존성 사전 승인: `@gorhom/bottom-sheet` (바텀시트 제스처).
 
-- [ ] **7.1 App.tsx 셸 재구성**
+- [x] **7.1 App.tsx 셸 재구성**
   - 완료: 하단 탭바 제거. `activeView` 상태(`year | month | day`)로 뷰 전환. 공통 헤더(뒤로가기·검색·+)·공통 푸터(오늘·할일·설정) 뼈대. 768pt 와이드 분기 유지. 기존 testID 정비.
   - 파일: `App.tsx`, `src/features/calendar/components/` (기존 정리)
   - 요구사항: `UI-001`, `NFR-CON-001`

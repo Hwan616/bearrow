@@ -1,5 +1,5 @@
 /**
- * 앱 셸(탭바·FAB·화면 전환)에 대한 컴포넌트 수준 스모크 테스트.
+ * 앱 셸(헤더·푸터·뷰 전환)에 대한 컴포넌트 수준 스모크 테스트.
  * 하위 feature 컴포넌트는 모킹하여 App 수준 플로우에만 집중한다.
  */
 
@@ -55,7 +55,7 @@ jest.mock("react-native-gesture-handler", () => {
   };
 });
 
-// feature 컴포넌트 — 탭 콘텐츠 영역 모킹하여 탭바 플로우에만 집중
+// feature 컴포넌트 — 헤더·푸터·뷰 전환 플로우에만 집중
 jest.mock("@/features/calendar/components/MonthView", () => ({
   MonthView: () => null,
 }));
@@ -73,6 +73,9 @@ jest.mock("@/features/todo/components/TodoList", () => ({
 }));
 jest.mock("@/features/todo/components/TodoForm", () => ({
   TodoForm: () => null,
+}));
+jest.mock("@/features/todo/components/TodoMiniCalendar", () => ({
+  TodoMiniCalendar: () => null,
 }));
 jest.mock("@/features/settings/components/SettingsScreen", () => ({
   SettingsScreen: () => null,
@@ -99,15 +102,10 @@ import App from "../App";
 
 // ── 헬퍼 ─────────────────────────────────────────────────────────────────────
 
-/**
- * 마이그레이션 완료 후 ready 상태의 App을 렌더한다.
- * act() 내부에서 render하여 모든 pending 마이크로태스크가 플러시되도록 보장한다.
- */
 async function renderReady() {
   mockRunMigrations.mockResolvedValue(undefined);
   await act(async () => {
     render(<App />);
-    // runMigrations().then() 체인이 act 내부에서 완료되도록 마이크로태스크를 플러시
     await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
@@ -117,82 +115,107 @@ async function renderReady() {
 // ── 1. 앱 초기화 ──────────────────────────────────────────────────────────────
 
 describe("앱 초기화", () => {
-  it("마이그레이션 전에는 탭바가 보이지 않는다", async () => {
-    mockRunMigrations.mockReturnValue(new Promise(() => {})); // 미완료 유지
+  it("마이그레이션 전에는 헤더 버튼이 보이지 않는다", async () => {
+    mockRunMigrations.mockReturnValue(new Promise(() => {}));
     await act(async () => {
       render(<App />);
     });
-    expect(screen.queryByTestId("tab-calendar")).toBeNull();
+    expect(screen.queryByTestId("btn-add")).toBeNull();
   });
 
-  it("마이그레이션 완료 후 탭바 세 개가 나타난다", async () => {
+  it("마이그레이션 완료 후 헤더·푸터가 나타난다", async () => {
     await renderReady();
-    expect(screen.getByTestId("tab-calendar")).toBeTruthy();
-    expect(screen.getByTestId("tab-todo")).toBeTruthy();
-    expect(screen.getByTestId("tab-settings")).toBeTruthy();
-  });
-});
-
-// ── 2. 탭 전환 ────────────────────────────────────────────────────────────────
-
-describe("탭 전환", () => {
-  it("기본 탭은 캘린더다", async () => {
-    await renderReady();
-    expect(screen.getByTestId("tab-calendar").props.accessibilityState?.selected).toBe(true);
-    expect(screen.getByTestId("tab-todo").props.accessibilityState?.selected).toBe(false);
-  });
-
-  it("할일 탭을 누르면 해당 탭이 선택된다", async () => {
-    await renderReady();
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("tab-todo"));
-    });
-    expect(screen.getByTestId("tab-todo").props.accessibilityState?.selected).toBe(true);
-    expect(screen.getByTestId("tab-calendar").props.accessibilityState?.selected).toBe(false);
-  });
-
-  it("설정 탭을 누르면 해당 탭이 선택된다", async () => {
-    await renderReady();
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("tab-settings"));
-    });
-    expect(screen.getByTestId("tab-settings").props.accessibilityState?.selected).toBe(true);
-  });
-
-  it("캘린더 탭으로 다시 돌아올 수 있다", async () => {
-    await renderReady();
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("tab-todo"));
-    });
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("tab-calendar"));
-    });
-    expect(screen.getByTestId("tab-calendar").props.accessibilityState?.selected).toBe(true);
+    expect(screen.getByTestId("btn-add")).toBeTruthy();
+    expect(screen.getByTestId("btn-search")).toBeTruthy();
+    expect(screen.getByTestId("btn-today")).toBeTruthy();
+    expect(screen.getByTestId("btn-settings-sheet")).toBeTruthy();
   });
 });
 
-// ── 3. FAB 접근성 ─────────────────────────────────────────────────────────────
+// ── 2. 뷰 전환 ────────────────────────────────────────────────────────────────
 
-describe("FAB(새로 추가) 버튼", () => {
-  it("캘린더 탭에서 FAB가 렌더된다", async () => {
+describe("뷰 전환", () => {
+  it("기본 뷰는 Month(월)다", async () => {
     await renderReady();
-    expect(screen.getByTestId("fab-add-event")).toBeTruthy();
+    expect(screen.getByTestId("view-month")).toBeTruthy();
   });
 
-  it("할일 탭에서 FAB가 렌더된다", async () => {
+  it("오늘 버튼을 누르면 Day 뷰로 이동한다", async () => {
     await renderReady();
     await act(async () => {
-      fireEvent.press(screen.getByTestId("tab-todo"));
+      fireEvent.press(screen.getByTestId("btn-today"));
     });
-    expect(screen.getByTestId("fab-add-todo")).toBeTruthy();
+    expect(screen.getByTestId("view-day")).toBeTruthy();
   });
 
-  it("설정 탭에서는 FAB가 없다", async () => {
+  it("Month 뷰에서 뒤로가기를 누르면 Year 뷰로 이동한다", async () => {
+    await renderReady();
+    expect(screen.getByTestId("view-month")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("btn-back"));
+    });
+    expect(screen.getByTestId("view-year")).toBeTruthy();
+  });
+
+  it("Day 뷰에서 뒤로가기를 누르면 Month 뷰로 이동한다", async () => {
     await renderReady();
     await act(async () => {
-      fireEvent.press(screen.getByTestId("tab-settings"));
+      fireEvent.press(screen.getByTestId("btn-today"));
     });
-    expect(screen.queryByTestId("fab-add-event")).toBeNull();
-    expect(screen.queryByTestId("fab-add-todo")).toBeNull();
+    expect(screen.getByTestId("view-day")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("btn-back"));
+    });
+    expect(screen.getByTestId("view-month")).toBeTruthy();
+  });
+
+  it("Year 뷰에서는 뒤로가기 버튼이 없다", async () => {
+    await renderReady();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("btn-back"));
+    });
+    expect(screen.getByTestId("view-year")).toBeTruthy();
+    expect(screen.queryByTestId("btn-back")).toBeNull();
+  });
+});
+
+// ── 3. 푸터 버튼 ──────────────────────────────────────────────────────────────
+
+describe("푸터 버튼", () => {
+  it("Year 뷰에서는 할일 버튼이 없다", async () => {
+    await renderReady();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("btn-back"));
+    });
+    expect(screen.queryByTestId("btn-todo-sheet")).toBeNull();
+  });
+
+  it("Month 뷰에서는 할일 버튼이 있다", async () => {
+    await renderReady();
+    expect(screen.getByTestId("btn-todo-sheet")).toBeTruthy();
+  });
+
+  it("설정 버튼이 항상 렌더된다", async () => {
+    await renderReady();
+    expect(screen.getByTestId("btn-settings-sheet")).toBeTruthy();
+    // Year 뷰에서도 설정 버튼은 유지
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("btn-back"));
+    });
+    expect(screen.getByTestId("btn-settings-sheet")).toBeTruthy();
+  });
+});
+
+// ── 4. 헤더 버튼 ──────────────────────────────────────────────────────────────
+
+describe("헤더 버튼", () => {
+  it("검색 버튼이 렌더된다", async () => {
+    await renderReady();
+    expect(screen.getByTestId("btn-search")).toBeTruthy();
+  });
+
+  it("추가(+) 버튼이 렌더된다", async () => {
+    await renderReady();
+    expect(screen.getByTestId("btn-add")).toBeTruthy();
   });
 });
