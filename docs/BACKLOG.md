@@ -176,7 +176,7 @@
   - 파일: `src/features/calendar/components/DayView.tsx`, `src/features/calendar/hooks/useDayScroll.ts`
   - 요구사항: `FR-CAL-002`, `NFR-PERF-001`
 
-- [ ] **7.5 BottomSheet/SidePanel 컨테이너 시스템**
+- [x] **7.5 BottomSheet/SidePanel 컨테이너 시스템**
   - 완료: `@gorhom/bottom-sheet` 설치. 컴팩트용 `AppBottomSheet`(스냅 50%·90%, 50% 미만 드래그 시 닫힘)와 와이드용 `AppSidePanel`(우측 고정) 컴포넌트. 두 컨테이너가 동일 children을 렌더. GestureHandlerRootView 연동.
   - 파일: `src/ui/AppBottomSheet.tsx`, `src/ui/AppSidePanel.tsx`
   - 요구사항: `UI-001`, `NFR-CON-001`
