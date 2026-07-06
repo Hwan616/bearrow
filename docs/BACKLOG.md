@@ -206,7 +206,7 @@
   - 파일: `src/db/schema.ts`, `src/db/migrate.ts`, `src/features/todo/api/todos.ts`, `src/features/todo/hooks/useTodos.ts`, `src/sync/`
   - 요구사항: `FR-TODO-005`, `NFR-CON-002`
 
-- [ ] **7.11 마무리·회귀 검증**
+- [x] **7.11 마무리·회귀 검증**
   - 완료: E2E 스모크 테스트 testID 갱신. 유지 기능(rrule·알림·공휴일·카테고리·테마·Google/iCloud 연동) 전체 회귀 확인. typecheck·lint·test 전부 green.
   - 파일: `__tests__/App.smoke.test.tsx`, 관련 테스트 파일 정비
   - 요구사항: 전체

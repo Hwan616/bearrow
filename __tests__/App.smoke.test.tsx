@@ -1,5 +1,5 @@
 /**
- * 앱 셸(헤더·푸터·뷰 전환)에 대한 컴포넌트 수준 스모크 테스트.
+ * 앱 셸(헤더·푸터·뷰 전환·시트 열림)에 대한 컴포넌트 수준 스모크 테스트.
  * 하위 feature 컴포넌트는 모킹하여 App 수준 플로우에만 집중한다.
  */
 
@@ -55,43 +55,70 @@ jest.mock("react-native-gesture-handler", () => {
   };
 });
 
-// feature 컴포넌트 — 헤더·푸터·뷰 전환 플로우에만 집중
-jest.mock("@/features/calendar/components/MonthView", () => ({
-  MonthView: () => null,
-}));
+// ── feature 컴포넌트 모킹 ─────────────────────────────────────────────────────
+// App.tsx가 직접 import하는 컴포넌트만 모킹한다.
+
 jest.mock("@/features/calendar/components/YearView", () => ({
   YearView: () => null,
 }));
-jest.mock("@/features/calendar/components/DayDetailPanel", () => ({
-  DayDetailPanel: () => null,
+jest.mock("@/features/calendar/components/MonthView", () => ({
+  MonthView: () => null,
+}));
+jest.mock("@/features/calendar/components/DayView", () => ({
+  DayView: () => null,
 }));
 jest.mock("@/features/calendar/components/EventDetailSheet", () => ({
   EventDetailSheet: () => null,
 }));
-jest.mock("@/features/calendar/components/EventForm", () => ({
-  EventForm: () => null,
-}));
-jest.mock("@/features/todo/components/TodoList", () => ({
-  TodoList: () => null,
-}));
 jest.mock("@/features/todo/components/TodoForm", () => ({
   TodoForm: () => null,
 }));
-jest.mock("@/features/todo/components/TodoMiniCalendar", () => ({
-  TodoMiniCalendar: () => null,
+
+// 시트 컴포넌트 — visible=true 일 때 testID를 노출해 열림 여부를 검증할 수 있게 한다.
+jest.mock("@/features/todo/components/TodoSheet", () => ({
+  TodoSheet: ({ visible }: { visible: boolean }) =>
+    visible
+      ? require("react").createElement(require("react-native").View, {
+          testID: "mock-todo-sheet",
+        })
+      : null,
 }));
-jest.mock("@/features/settings/components/SettingsScreen", () => ({
-  SettingsScreen: () => null,
+jest.mock("@/features/calendar/components/AddSheet", () => ({
+  AddSheet: ({ visible }: { visible: boolean }) =>
+    visible
+      ? require("react").createElement(require("react-native").View, {
+          testID: "mock-add-sheet",
+        })
+      : null,
 }));
+jest.mock("@/features/calendar/components/SearchSheet", () => ({
+  SearchSheet: ({ visible }: { visible: boolean }) =>
+    visible
+      ? require("react").createElement(require("react-native").View, {
+          testID: "mock-search-sheet",
+        })
+      : null,
+}));
+jest.mock("@/features/settings/components/SettingsSheet", () => ({
+  SettingsSheet: ({ visible }: { visible: boolean }) =>
+    visible
+      ? require("react").createElement(require("react-native").View, {
+          testID: "mock-settings-sheet",
+        })
+      : null,
+}));
+
 jest.mock("@/features/todo/hooks/useTodos", () => ({
   useTodos: () => ({
     sections: [],
+    allTodos: [],
     isLoading: false,
     refresh: jest.fn(),
     handleToggle: jest.fn(),
     handleDelete: jest.fn(),
     handleCreate: jest.fn(),
     handleUpdate: jest.fn(),
+    handleReorder: jest.fn(),
   }),
 }));
 
@@ -220,5 +247,41 @@ describe("헤더 버튼", () => {
   it("추가(+) 버튼이 렌더된다", async () => {
     await renderReady();
     expect(screen.getByTestId("btn-add")).toBeTruthy();
+  });
+});
+
+// ── 5. 시트 열림 동작 ──────────────────────────────────────────────────────────
+
+describe("시트 열림 동작", () => {
+  it("추가(+) 버튼 탭 시 AddSheet가 열린다", async () => {
+    await renderReady();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("btn-add"));
+    });
+    expect(screen.getByTestId("mock-add-sheet")).toBeTruthy();
+  });
+
+  it("검색 버튼 탭 시 SearchSheet가 열린다", async () => {
+    await renderReady();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("btn-search"));
+    });
+    expect(screen.getByTestId("mock-search-sheet")).toBeTruthy();
+  });
+
+  it("할일 버튼 탭 시 TodoSheet가 열린다", async () => {
+    await renderReady();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("btn-todo-sheet"));
+    });
+    expect(screen.getByTestId("mock-todo-sheet")).toBeTruthy();
+  });
+
+  it("설정 버튼 탭 시 SettingsSheet가 열린다", async () => {
+    await renderReady();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("btn-settings-sheet"));
+    });
+    expect(screen.getByTestId("mock-settings-sheet")).toBeTruthy();
   });
 });
