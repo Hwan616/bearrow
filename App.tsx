@@ -597,7 +597,7 @@ function makeStyles(colors: ColorTokens) {
     // 캘린더 위에 떠 있는 투명 오버레이 푸터
     footer: {
       position: "absolute",
-      bottom: 0,
+      bottom: 10,
       left: 0,
       right: 0,
       flexDirection: "row",
