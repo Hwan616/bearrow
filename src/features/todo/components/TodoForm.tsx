@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useImperativeHandle, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   KeyboardAvoidingView,
@@ -25,13 +25,19 @@ type FormValues = {
   categoryId: string;
 };
 
+export interface TodoFormHandle {
+  submit(): void;
+}
+
 interface Props {
   initial?: Todo;
+  hideHeader?: boolean;
   onSave: (title: string, categoryId: string, note?: string) => Promise<void>;
   onCancel: () => void;
 }
 
-export function TodoForm({ initial, onSave, onCancel }: Props) {
+export const TodoForm = React.forwardRef<TodoFormHandle, Props>(
+function TodoForm({ initial, hideHeader = false, onSave, onCancel }, ref) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
@@ -65,28 +71,32 @@ export function TodoForm({ initial, onSave, onCancel }: Props) {
     await onSave(values.title, values.categoryId, values.note || undefined);
   }
 
+  useImperativeHandle(ref, () => ({
+    submit: () => { void handleSubmit(onSubmit)(); },
+  }));
+
   const isEdit = !!initial;
 
-  return (
-    <SafeAreaView style={styles.container}>
+  const inner = (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <Pressable onPress={onCancel} style={styles.headerBtn}>
-          <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>취소</Text>
-        </Pressable>
-        <Text style={styles.headerTitle}>{isEdit ? "할일 편집" : "새 할일"}</Text>
-        <Pressable
-          onPress={handleSubmit(onSubmit)}
-          disabled={isSubmitting}
-          style={styles.headerBtn}
-        >
-          <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>{isEdit ? "저장" : "추가"}</Text>
-        </Pressable>
-      </View>
+      {!hideHeader && (
+        <View style={styles.header}>
+          <Pressable onPress={onCancel} style={styles.headerBtn}>
+            <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>취소</Text>
+          </Pressable>
+          <Text style={styles.headerTitle}>{isEdit ? "할일 편집" : "새 할일"}</Text>
+          <Pressable
+            onPress={handleSubmit(onSubmit)}
+            disabled={isSubmitting}
+            style={styles.headerBtn}
+          >
+            <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>{isEdit ? "저장" : "추가"}</Text>
+          </Pressable>
+        </View>
+      )}
 
       <ScrollView style={styles.body} keyboardShouldPersistTaps="handled">
         {/* 제목 */}
@@ -149,9 +159,11 @@ export function TodoForm({ initial, onSave, onCancel }: Props) {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-    </SafeAreaView>
   );
-}
+
+  if (hideHeader) return inner;
+  return <SafeAreaView style={styles.container}>{inner}</SafeAreaView>;
+});
 
 // ── CategoryPicker ──────────────────────────────────────────────────────────
 

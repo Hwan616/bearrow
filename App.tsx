@@ -9,6 +9,26 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+
+// ── 아이콘 컴포넌트 ────────────────────────────────────────────────────────────
+
+function GearIcon({ size = 20, color }: { size?: number; color: string }) {
+  return (
+    <Text style={{ fontSize: size, color, lineHeight: size + 2, includeFontPadding: false }}>
+      {'⚙︎'}
+    </Text>
+  );
+}
+
+function PlusIcon({ size = 18, color }: { size?: number; color: string }) {
+  const bar = Math.max(2, Math.round(size * 0.13));
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ position: "absolute", width: Math.round(size * 0.75), height: bar, backgroundColor: color, borderRadius: bar / 2 }} />
+      <View style={{ position: "absolute", height: Math.round(size * 0.75), width: bar, backgroundColor: color, borderRadius: bar / 2 }} />
+    </View>
+  );
+}
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { sqliteDb } from "@/db/client";
@@ -189,7 +209,7 @@ function AppContent() {
           accessibilityLabel="설정"
           accessibilityRole="button"
         >
-          <Text style={[s.headerBtnText, { color: colors.text.secondary }]}>설정</Text>
+          <GearIcon size={22} color={colors.text.secondary} />
         </Pressable>
       </View>
     </View>
@@ -232,7 +252,7 @@ function AppContent() {
             accessibilityLabel="추가"
             accessibilityRole="button"
           >
-            <Text style={[s.pillBtnText, { color: colors.accent.primary, fontWeight: "700" }]}>＋</Text>
+            <PlusIcon size={18} color={colors.accent.primary} />
           </Pressable>
         </>
       )}

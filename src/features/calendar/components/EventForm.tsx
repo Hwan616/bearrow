@@ -1,5 +1,5 @@
 import * as Crypto from "expo-crypto";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useImperativeHandle, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   KeyboardAvoidingView,
@@ -48,14 +48,20 @@ const DateTimePicker =
     ? (require("@react-native-community/datetimepicker") as { default: React.ComponentType<Record<string, unknown>> }).default
     : null;
 
+export interface EventFormHandle {
+  submit(): void;
+}
+
 interface Props {
   initialEvent?: Event;
   initialDate?: Date;
+  hideHeader?: boolean;
   onSave: () => void;
   onCancel: () => void;
 }
 
-export function EventForm({ initialEvent, initialDate, onSave, onCancel }: Props) {
+export const EventForm = React.forwardRef<EventFormHandle, Props>(
+function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onCancel }, ref) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
@@ -100,7 +106,6 @@ export function EventForm({ initialEvent, initialDate, onSave, onCancel }: Props
       } else {
         await createEvent(data);
       }
-      // 기존 알림 취소 후 조건 충족 시 재예약
       await cancelEventNotification(id);
       if (shouldScheduleNotification(data.startsAt, data.reminderMinutes ?? null)) {
         await scheduleEventNotification({
@@ -116,28 +121,32 @@ export function EventForm({ initialEvent, initialDate, onSave, onCancel }: Props
     }
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
+  useImperativeHandle(ref, () => ({
+    submit: () => { void handleSubmit(onSubmit)(); },
+  }));
+
+  const inner = (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <Pressable onPress={onCancel} style={styles.headerBtn}>
-          <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>취소</Text>
-        </Pressable>
-        <Text style={styles.headerTitle}>
-          {initialEvent ? "일정 편집" : "새 일정"}
-        </Text>
-        <Pressable
-          onPress={handleSubmit(onSubmit)}
-          disabled={isSubmitting}
-          style={styles.headerBtn}
-        >
-          <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>저장</Text>
-        </Pressable>
-      </View>
+      {!hideHeader && (
+        <View style={styles.header}>
+          <Pressable onPress={onCancel} style={styles.headerBtn}>
+            <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>취소</Text>
+          </Pressable>
+          <Text style={styles.headerTitle}>
+            {initialEvent ? "일정 편집" : "새 일정"}
+          </Text>
+          <Pressable
+            onPress={handleSubmit(onSubmit)}
+            disabled={isSubmitting}
+            style={styles.headerBtn}
+          >
+            <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>저장</Text>
+          </Pressable>
+        </View>
+      )}
 
       <ScrollView style={styles.body} keyboardShouldPersistTaps="handled">
         {/* 제목 */}
@@ -284,9 +293,11 @@ export function EventForm({ initialEvent, initialDate, onSave, onCancel }: Props
         )}
       </ScrollView>
     </KeyboardAvoidingView>
-    </SafeAreaView>
   );
-}
+
+  if (hideHeader) return inner;
+  return <SafeAreaView style={styles.container}>{inner}</SafeAreaView>;
+});
 
 // ── DateTimeField ──────────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import React, { useCallback, useImperativeHandle, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -21,18 +21,19 @@ import {
 } from "../utils/calendarUtils";
 import { getHolidaysForMonth } from "../utils/koreanHolidays";
 
-// 요일 레이블은 App.tsx 레벨 고정 바로 이동
 const BAR_HEIGHT = 14;
 const BAR_MARGIN = 2;
 const MAX_TRACKS = 2;
 const EVENT_AREA_HEIGHT = MAX_TRACKS * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN;
 
 // ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
-// 제목/요일행은 App.tsx 레벨 고정 헤더로 이동 → MonthItem은 주(週) 그리드만
+// iOS 시스템 폰트 lineHeight 계수 ≈ 1.32
+// monthLabelOnFirst: fontSize:22 lineHeight≈29 + paddingVertical:8 = 37
+const MONTH_LABEL_HEIGHT = 37;     // monthLabelAboveRow 높이
 const WEEK_ROW_HEIGHT = 90;        // dayCells:44 + eventBars:34 + holidays:12
-const FIXED_WEEKS = 6;             // always 6 rows per month (padded)
-const MONTH_ITEM_HEIGHT = FIXED_WEEKS * WEEK_ROW_HEIGHT;
-// 6×90 = 540
+const FIXED_WEEKS = 6;
+const MONTH_ITEM_HEIGHT = MONTH_LABEL_HEIGHT + FIXED_WEEKS * WEEK_ROW_HEIGHT;
+// 37 + 6×90 = 577
 
 const MONTH_WINDOW = 49; // ±24 months
 
@@ -178,14 +179,6 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
     },
   }), [months]);
 
-  useEffect(() => {
-    const offset = initialIndex * MONTH_ITEM_HEIGHT;
-    const id = setTimeout(() => {
-      listRef.current?.scrollToOffset({ offset, animated: false });
-    }, 0);
-    return () => clearTimeout(id);
-  }, [initialIndex]);
-
   const onVisibleMonthChangeRef = useRef(onVisibleMonthChange);
   onVisibleMonthChangeRef.current = onVisibleMonthChange;
 
@@ -246,6 +239,12 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
         keyExtractor={keyExtractor}
         getItemLayout={getItemLayout}
         initialScrollIndex={initialIndex}
+        onScrollToIndexFailed={() => {
+          listRef.current?.scrollToOffset({
+            offset: initialIndex * MONTH_ITEM_HEIGHT,
+            animated: false,
+          });
+        }}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         windowSize={5}
@@ -285,6 +284,9 @@ const MonthItem = React.memo(function MonthItem({
   const grid = padTo6Weeks(rawGrid);
   const rows = chunkBy7(grid);
 
+  // 첫 번째 주에서 현재 달 첫 번째 날의 열(column) 인덱스
+  const firstDayCol = rows[0]?.findIndex((d) => d.isCurrentMonth) ?? 0;
+
   const holidayMap = useMemo(
     () => (showHolidays ? getHolidaysForMonth(year, month) : new Map<number, string>()),
     [year, month, showHolidays],
@@ -300,110 +302,134 @@ const MonthItem = React.memo(function MonthItem({
 
   return (
     <View style={s.monthItem}>
-      {/* 주(週) 단위 그리드 */}
       <View testID="month-grid">
         {rows.map((weekDays, rowIndex) => {
           const eventBars = computeEventBars(weekDays, events, getCategoryColor);
 
+          // 이번 주에서 현재 달에 속하는 첫 번째·마지막 열 인덱스
+          const firstActiveCol = weekDays.findIndex((d) => d.isCurrentMonth);
+          const lastActiveCol = weekDays.reduce(
+            (acc, d, i) => (d.isCurrentMonth ? i : acc),
+            -1,
+          );
+
           return (
             <React.Fragment key={rowIndex}>
+              {/* MM월 레이블 — 1일 위 열에 정렬 */}
               {rowIndex === 0 && (
                 <View style={s.monthLabelAboveRow}>
+                  {Array.from({ length: firstDayCol }, (_, i) => (
+                    <View key={`sp-${i}`} style={s.monthLabelSpacer} />
+                  ))}
                   <Text style={[s.monthLabelOnFirst, isThisMonth && s.monthLabelCurrent]}>
                     {month + 1}월
                   </Text>
                 </View>
               )}
-            <View style={s.weekRow}>
-              {/* 날짜 셀 행 */}
-              <View style={s.dayCellsRow}>
-                {weekDays.map(({ date, isCurrentMonth, isToday }) => {
-                  const dayTodos = getTodosForDay(dueTodos, date);
-                  const incompleteCount = dayTodos.filter((t) => !t.isCompleted).length;
-                  const isSelected = selectedDate !== null && isSameDay(date, selectedDate);
-                  const isSun = date.getDay() === 0;
-                  const isSat = date.getDay() === 6;
-                  const holidayName = isCurrentMonth ? (holidayMap.get(date.getDate()) ?? null) : null;
-                  const isHoliday = holidayName !== null;
 
-                  if (!isCurrentMonth) {
-                    return <View key={date.toISOString()} style={s.dayCell} />;
-                  }
-
-                  return (
-                    <Pressable
-                      key={date.toISOString()}
-                      style={s.dayCell}
-                      onPress={() => onDayPress(date)}
-                      accessibilityLabel={`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`}
-                      accessibilityRole="button"
-                    >
-                      <View
-                        style={[
-                          s.dayCircle,
-                          isToday && { backgroundColor: colors.accent.primary },
-                          isSelected && !isToday && { backgroundColor: colors.accent.primaryLight },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            s.dayText,
-                            isToday && s.todayText,
-                            !isToday && (isSun || isHoliday) && s.sunday,
-                            !isToday && isSat && !isHoliday && s.saturday,
-                          ]}
-                        >
-                          {date.getDate()}
-                        </Text>
-                      </View>
-                      {incompleteCount > 0 && (
-                        <Text
-                          style={s.todoCount}
-                          testID={`todo-count-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`}
-                        >
-                          {incompleteCount}
-                        </Text>
-                      )}
-                    </Pressable>
-                  );
-                })}
-              </View>
-
-              {/* 이벤트 바 레이어 */}
-              <View style={s.eventBarsRow}>
-                {eventBars.map((bar) => (
+              <View style={s.weekRow}>
+                {/* 실제 날짜 구간만 커버하는 구분선 */}
+                {firstActiveCol >= 0 && (
                   <View
-                    key={`${bar.eventId}-${rowIndex}`}
-                    testID={`event-bar-${bar.eventId}`}
                     style={[
-                      s.eventBar,
+                      s.weekTopLine,
                       {
-                        left: `${(bar.startCol / 7) * 100}%` as `${number}%`,
-                        right: `${((6 - bar.endCol) / 7) * 100}%` as `${number}%`,
-                        top: bar.track * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN,
-                        backgroundColor: bar.color,
+                        left: `${(firstActiveCol / 7) * 100}%` as `${number}%`,
+                        right: `${((6 - lastActiveCol) / 7) * 100}%` as `${number}%`,
                       },
                     ]}
-                  >
-                    <Text style={s.eventBarText} numberOfLines={1}>
-                      {bar.title}
-                    </Text>
-                  </View>
-                ))}
-              </View>
+                  />
+                )}
 
-              {/* 공휴일 레이블 행 */}
-              <View style={s.holidayLabelsRow}>
-                {weekDays.map(({ date, isCurrentMonth }) => {
-                  const name = isCurrentMonth ? (holidayMap.get(date.getDate()) ?? null) : null;
-                  return (
-                    <Text key={date.toISOString()} style={s.holidayLabel} numberOfLines={1}>
-                      {name ?? ""}
-                    </Text>
-                  );
-                })}
+                {/* 날짜 셀 행 */}
+                <View style={s.dayCellsRow}>
+                  {weekDays.map(({ date, isCurrentMonth, isToday }) => {
+                    const dayTodos = getTodosForDay(dueTodos, date);
+                    const incompleteCount = dayTodos.filter((t) => !t.isCompleted).length;
+                    const isSelected = selectedDate !== null && isSameDay(date, selectedDate);
+                    const isSun = date.getDay() === 0;
+                    const isSat = date.getDay() === 6;
+                    const holidayName = isCurrentMonth ? (holidayMap.get(date.getDate()) ?? null) : null;
+                    const isHoliday = holidayName !== null;
+
+                    if (!isCurrentMonth) {
+                      return <View key={date.toISOString()} style={s.dayCell} />;
+                    }
+
+                    return (
+                      <Pressable
+                        key={date.toISOString()}
+                        style={s.dayCell}
+                        onPress={() => onDayPress(date)}
+                        accessibilityLabel={`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`}
+                        accessibilityRole="button"
+                      >
+                        <View
+                          style={[
+                            s.dayCircle,
+                            isToday && { backgroundColor: colors.accent.primary },
+                            isSelected && !isToday && { backgroundColor: colors.accent.primaryLight },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              s.dayText,
+                              isToday && s.todayText,
+                              !isToday && (isSun || isHoliday) && s.sunday,
+                              !isToday && isSat && !isHoliday && s.saturday,
+                            ]}
+                          >
+                            {date.getDate()}
+                          </Text>
+                        </View>
+                        {incompleteCount > 0 && (
+                          <Text
+                            style={s.todoCount}
+                            testID={`todo-count-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`}
+                          >
+                            {incompleteCount}
+                          </Text>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                {/* 이벤트 바 레이어 */}
+                <View style={s.eventBarsRow}>
+                  {eventBars.map((bar) => (
+                    <View
+                      key={`${bar.eventId}-${rowIndex}`}
+                      testID={`event-bar-${bar.eventId}`}
+                      style={[
+                        s.eventBar,
+                        {
+                          left: `${(bar.startCol / 7) * 100}%` as `${number}%`,
+                          right: `${((6 - bar.endCol) / 7) * 100}%` as `${number}%`,
+                          top: bar.track * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN,
+                          backgroundColor: bar.color,
+                        },
+                      ]}
+                    >
+                      <Text style={s.eventBarText} numberOfLines={1}>
+                        {bar.title}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* 공휴일 레이블 행 */}
+                <View style={s.holidayLabelsRow}>
+                  {weekDays.map(({ date, isCurrentMonth }) => {
+                    const name = isCurrentMonth ? (holidayMap.get(date.getDate()) ?? null) : null;
+                    return (
+                      <Text key={date.toISOString()} style={s.holidayLabel} numberOfLines={1}>
+                        {name ?? ""}
+                      </Text>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
             </React.Fragment>
           );
         })}
@@ -422,9 +448,33 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     sunday: { color: "#D93535" },
     saturday: { color: "#2E5AAC" },
+    monthLabelAboveRow: {
+      flexDirection: "row",
+      paddingTop: 6,
+      paddingBottom: 2,
+    },
+    monthLabelSpacer: {
+      width: `${100 / 7}%` as `${number}%`,
+    },
+    monthLabelOnFirst: {
+      width: `${100 / 7}%` as `${number}%`,
+      fontSize: 22,
+      fontWeight: "700",
+      color: colors.text.secondary,
+      textAlign: "center",
+    },
+    monthLabelCurrent: {
+      color: "#D93535",
+    },
     weekRow: {
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border.default,
+      position: "relative",
+    },
+    weekTopLine: {
+      position: "absolute",
+      top: 0,
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border.strong,
+      zIndex: 1,
     },
     dayCellsRow: {
       flexDirection: "row",
@@ -453,19 +503,6 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     todayText: {
       color: colors.text.inverse,
       fontWeight: "700",
-    },
-    monthLabelAboveRow: {
-      paddingHorizontal: 8,
-      paddingTop: 6,
-      paddingBottom: 2,
-    },
-    monthLabelOnFirst: {
-      fontSize: 22,
-      fontWeight: "700",
-      color: colors.text.secondary,
-    },
-    monthLabelCurrent: {
-      color: "#D93535",
     },
     todoCount: {
       position: "absolute",

@@ -15,59 +15,58 @@ jest.mock("@/theme", () => ({
   }),
 }));
 
-jest.mock("@gorhom/bottom-sheet", () => {
+jest.mock("../EventForm", () => {
   const React = require("react");
-  const { View } = require("react-native");
-  const MockBottomSheet = React.forwardRef(
-    ({ children }: { children?: React.ReactNode }, ref: React.Ref<unknown>) => {
-      React.useImperativeHandle(ref, () => ({ snapToIndex: jest.fn(), close: jest.fn() }));
-      return React.createElement(View, { testID: "mock-bottom-sheet" }, children);
+  const { View, Pressable } = require("react-native");
+  const EventForm = React.forwardRef(
+    (
+      { onSave, onCancel }: { onSave: () => void; onCancel: () => void },
+      ref: React.Ref<{ submit(): void }>,
+    ) => {
+      React.useImperativeHandle(ref, () => ({ submit: onSave }));
+      return React.createElement(
+        View,
+        { testID: "mock-event-form" },
+        React.createElement(Pressable, { testID: "btn-event-save", onPress: onSave }),
+        React.createElement(Pressable, { testID: "btn-event-cancel", onPress: onCancel }),
+      );
     },
   );
-  MockBottomSheet.displayName = "BottomSheet";
-  const MockBottomSheetView = ({ children }: { children?: React.ReactNode }) =>
-    React.createElement(View, null, children);
-  MockBottomSheetView.displayName = "BottomSheetView";
-  return { __esModule: true, default: MockBottomSheet, BottomSheetView: MockBottomSheetView };
+  EventForm.displayName = "EventForm";
+  return { EventForm };
 });
 
-jest.mock("../EventForm", () => ({
-  EventForm: ({ onSave, onCancel }: { onSave: () => void; onCancel: () => void }) =>
-    require("react").createElement(
-      require("react-native").View,
-      { testID: "mock-event-form" },
-      require("react").createElement(
-        require("react-native").Pressable,
-        { testID: "btn-event-save", onPress: onSave },
-      ),
-      require("react").createElement(
-        require("react-native").Pressable,
-        { testID: "btn-event-cancel", onPress: onCancel },
-      ),
-    ),
-}));
-
-jest.mock("@/features/todo/components/TodoForm", () => ({
-  TodoForm: ({
-    onSave,
-    onCancel,
-  }: {
-    onSave: (title: string, categoryId: string, note?: string, dueDate?: Date | null) => Promise<void>;
-    onCancel: () => void;
-  }) =>
-    require("react").createElement(
-      require("react-native").View,
-      { testID: "mock-todo-form" },
-      require("react").createElement(require("react-native").Pressable, {
-        testID: "btn-todo-save",
-        onPress: () => void onSave("제목", "cat-1"),
-      }),
-      require("react").createElement(require("react-native").Pressable, {
-        testID: "btn-todo-cancel",
-        onPress: onCancel,
-      }),
-    ),
-}));
+jest.mock("@/features/todo/components/TodoForm", () => {
+  const React = require("react");
+  const { View, Pressable } = require("react-native");
+  const TodoForm = React.forwardRef(
+    (
+      {
+        onSave,
+        onCancel,
+      }: {
+        onSave: (title: string, categoryId: string) => Promise<void>;
+        onCancel: () => void;
+      },
+      ref: React.Ref<{ submit(): void }>,
+    ) => {
+      React.useImperativeHandle(ref, () => ({
+        submit: () => void onSave("제목", "cat-1"),
+      }));
+      return React.createElement(
+        View,
+        { testID: "mock-todo-form" },
+        React.createElement(Pressable, {
+          testID: "btn-todo-save",
+          onPress: () => void onSave("제목", "cat-1"),
+        }),
+        React.createElement(Pressable, { testID: "btn-todo-cancel", onPress: onCancel }),
+      );
+    },
+  );
+  TodoForm.displayName = "TodoForm";
+  return { TodoForm };
+});
 
 // eslint-disable-next-line import/first
 import { AddSheet } from "../AddSheet";
@@ -96,14 +95,14 @@ describe("AddSheet", () => {
     expect(screen.getByTestId("add-sheet-content")).toBeTruthy();
   });
 
-  it("isWide=false 시 BottomSheet가 렌더된다", async () => {
-    await render(<AddSheet {...defaultProps} isWide={false} />);
-    expect(screen.getByTestId("mock-bottom-sheet")).toBeTruthy();
+  it("닫기 버튼이 항상 표시된다", async () => {
+    await render(<AddSheet {...defaultProps} />);
+    expect(screen.getByTestId("btn-add-sheet-close")).toBeTruthy();
   });
 
-  it("isWide=true 시 side-panel이 렌더된다", async () => {
-    await render(<AddSheet {...defaultProps} isWide={true} />);
-    expect(screen.getByTestId("side-panel")).toBeTruthy();
+  it("추가 버튼이 표시된다", async () => {
+    await render(<AddSheet {...defaultProps} />);
+    expect(screen.getByTestId("btn-add-sheet-save")).toBeTruthy();
   });
 
   it("기본 세그먼트가 event이면 EventForm이 렌더된다", async () => {
@@ -118,7 +117,7 @@ describe("AddSheet", () => {
     expect(screen.queryByTestId("mock-event-form")).toBeNull();
   });
 
-  it("할 일 세그먼트 버튼 탭 시 TodoForm으로 전환된다", async () => {
+  it("ToDo 세그먼트 버튼 탭 시 TodoForm으로 전환된다", async () => {
     await render(<AddSheet {...defaultProps} initialSegment="event" />);
     expect(screen.getByTestId("mock-event-form")).toBeTruthy();
 
@@ -138,16 +137,6 @@ describe("AddSheet", () => {
     });
 
     expect(screen.getByTestId("mock-event-form")).toBeTruthy();
-  });
-
-  it("isWide=true 시 닫기 버튼이 표시된다", async () => {
-    await render(<AddSheet {...defaultProps} isWide={true} />);
-    expect(screen.getByTestId("btn-add-sheet-close")).toBeTruthy();
-  });
-
-  it("isWide=false 시 닫기 버튼이 없다", async () => {
-    await render(<AddSheet {...defaultProps} isWide={false} />);
-    expect(screen.queryByTestId("btn-add-sheet-close")).toBeNull();
   });
 
   it("EventForm onSave 시 onEventSave가 호출된다", async () => {

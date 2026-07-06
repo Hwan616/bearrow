@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Modal, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
-import { AppBottomSheet } from "@/ui/AppBottomSheet";
-import { AppSidePanel } from "@/ui/AppSidePanel";
 import { useTheme } from "@/theme";
-import { EventForm } from "./EventForm";
 import { TodoForm } from "@/features/todo/components/TodoForm";
+import type { TodoFormHandle } from "@/features/todo/components/TodoForm";
+
+import { EventForm } from "./EventForm";
+import type { EventFormHandle } from "./EventForm";
 
 export type AddSheetSegment = "event" | "todo";
 
@@ -22,7 +23,6 @@ export interface AddSheetProps {
 export function AddSheet({
   visible,
   onClose,
-  isWide,
   initialDate,
   initialSegment = "event",
   onEventSave,
@@ -30,113 +30,124 @@ export function AddSheet({
 }: AddSheetProps) {
   const { colors } = useTheme();
   const [segment, setSegment] = useState<AddSheetSegment>(initialSegment);
+  const eventFormRef = useRef<EventFormHandle>(null);
+  const todoFormRef = useRef<TodoFormHandle>(null);
 
   useEffect(() => {
     if (visible) setSegment(initialSegment);
   }, [visible, initialSegment]);
 
-  const content = (
-    <View testID="add-sheet-content" style={styles.content}>
-      <View style={[styles.header, { borderBottomColor: colors.border.default }]}>
-        {/* 닫기(좌, wide만) */}
-        {isWide ? (
-          <Pressable
-            testID="btn-add-sheet-close"
-            onPress={onClose}
-            style={styles.closeBtn}
-            accessibilityLabel="닫기"
-            accessibilityRole="button"
-          >
-            <Text style={[styles.closeBtnText, { color: colors.accent.primary }]}>닫기</Text>
-          </Pressable>
-        ) : null}
-        {/* 세그먼트 (중앙) */}
-        <View style={styles.segmentRow}>
-          <Pressable
-            testID="btn-segment-event"
-            style={[
-              styles.segmentBtn,
-              { borderColor: colors.border.default },
-              segment === "event" && { backgroundColor: colors.accent.primary, borderColor: colors.accent.primary },
-            ]}
-            onPress={() => setSegment("event")}
-            accessibilityRole="button"
-          >
-            <Text
-              style={[
-                styles.segmentText,
-                { color: segment === "event" ? colors.text.inverse : colors.text.primary },
-              ]}
-            >
-              일정
-            </Text>
-          </Pressable>
-          <Pressable
-            testID="btn-segment-todo"
-            style={[
-              styles.segmentBtn,
-              { borderColor: colors.border.default },
-              segment === "todo" && { backgroundColor: colors.accent.primary, borderColor: colors.accent.primary },
-            ]}
-            onPress={() => setSegment("todo")}
-            accessibilityRole="button"
-          >
-            <Text
-              style={[
-                styles.segmentText,
-                { color: segment === "todo" ? colors.text.inverse : colors.text.primary },
-              ]}
-            >
-              할 일
-            </Text>
-          </Pressable>
-        </View>
-        {/* 우측 spacer (wide 모드에서 세그먼트 중앙 정렬 유지) */}
-        {isWide ? <View style={styles.closeBtn} /> : null}
-      </View>
-
-      <View style={styles.form}>
-        {segment === "event" && (
-          <EventForm
-            initialDate={initialDate}
-            onSave={onEventSave}
-            onCancel={onClose}
-          />
-        )}
-        {segment === "todo" && (
-          <TodoForm
-            onSave={onTodoSave}
-            onCancel={onClose}
-          />
-        )}
-      </View>
-    </View>
-  );
-
-  if (isWide) {
-    return (
-      <AppSidePanel visible={visible} onClose={onClose}>
-        {content}
-      </AppSidePanel>
-    );
+  function handleSave() {
+    if (segment === "event") eventFormRef.current?.submit();
+    else todoFormRef.current?.submit();
   }
 
   return (
-    <AppBottomSheet visible={visible} onClose={onClose}>
-      {content}
-    </AppBottomSheet>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background.primary }]}>
+        {/* 헤더: 닫기(좌) — 세그먼트(중) — 추가(우) */}
+        <View style={[styles.header, { borderBottomColor: colors.border.default, backgroundColor: colors.surface.default }]}>
+          <Pressable
+            testID="btn-add-sheet-close"
+            onPress={onClose}
+            style={styles.headerBtn}
+            accessibilityLabel="닫기"
+            accessibilityRole="button"
+          >
+            <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>닫기</Text>
+          </Pressable>
+
+          <View style={styles.segmentRow}>
+            <Pressable
+              testID="btn-segment-event"
+              style={[
+                styles.segmentBtn,
+                { borderColor: colors.border.default },
+                segment === "event" && { backgroundColor: colors.accent.primary, borderColor: colors.accent.primary },
+              ]}
+              onPress={() => setSegment("event")}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.segmentText, { color: segment === "event" ? colors.text.inverse : colors.text.primary }]}>
+                일정
+              </Text>
+            </Pressable>
+            <Pressable
+              testID="btn-segment-todo"
+              style={[
+                styles.segmentBtn,
+                { borderColor: colors.border.default },
+                segment === "todo" && { backgroundColor: colors.accent.primary, borderColor: colors.accent.primary },
+              ]}
+              onPress={() => setSegment("todo")}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.segmentText, { color: segment === "todo" ? colors.text.inverse : colors.text.primary }]}>
+                ToDo
+              </Text>
+            </Pressable>
+          </View>
+
+          <Pressable
+            testID="btn-add-sheet-save"
+            onPress={handleSave}
+            style={styles.headerBtn}
+            accessibilityLabel="추가"
+            accessibilityRole="button"
+          >
+            <Text style={[styles.headerBtnText, { color: colors.accent.primary }]}>추가</Text>
+          </Pressable>
+        </View>
+
+        <View testID="add-sheet-content" style={{ flex: 1 }}>
+          {segment === "event" && (
+            <EventForm
+              ref={eventFormRef}
+              hideHeader
+              initialDate={initialDate}
+              onSave={onEventSave}
+              onCancel={onClose}
+            />
+          )}
+          {segment === "todo" && (
+            <TodoForm
+              ref={todoFormRef}
+              hideHeader
+              onSave={onTodoSave}
+              onCancel={onClose}
+            />
+          )}
+        </View>
+      </SafeAreaView>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1 },
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    minHeight: 52,
+  },
+  headerBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    minWidth: 60,
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  headerBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
   segmentRow: {
     flexDirection: "row",
@@ -152,15 +163,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  closeBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    minHeight: 44,
-    justifyContent: "center",
-  },
-  closeBtnText: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  form: { flex: 1 },
 });
