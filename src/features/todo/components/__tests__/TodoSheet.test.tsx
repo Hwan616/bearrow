@@ -48,14 +48,6 @@ jest.mock("../TodoList", () => ({
     ),
 }));
 
-jest.mock("../TodoMiniCalendar", () => ({
-  TodoMiniCalendar: () =>
-    require("react").createElement(
-      require("react-native").View,
-      { testID: "mock-mini-calendar" },
-    ),
-}));
-
 // eslint-disable-next-line import/first
 import { TodoSheet } from "../TodoSheet";
 
@@ -86,13 +78,9 @@ const defaultProps = {
   selectedDate: SELECTED_DATE,
   sections: [],
   allTodos: [],
-  reschedulingTodo: null,
   onToggle: jest.fn(),
   onDelete: jest.fn(),
   onEdit: jest.fn(),
-  onReschedule: jest.fn(),
-  onCancelReschedule: jest.fn(),
-  onDatePick: jest.fn(),
   onAddTodo: jest.fn(),
   onReorder: jest.fn().mockResolvedValue(undefined),
 };

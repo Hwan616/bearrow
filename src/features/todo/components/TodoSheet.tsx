@@ -16,7 +16,6 @@ import type { ColorTokens } from "@/theme/tokens";
 import type { Todo } from "../types";
 import type { TodoSection } from "../utils/todoListUtils";
 import { TodoList } from "./TodoList";
-import { TodoMiniCalendar } from "./TodoMiniCalendar";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -27,13 +26,9 @@ export interface TodoSheetProps {
   selectedDate: Date;
   sections: TodoSection[];
   allTodos: Todo[];
-  reschedulingTodo: Todo | null;
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
   onEdit: (todo: Todo) => void;
-  onReschedule: (todo: Todo) => void;
-  onCancelReschedule: () => void;
-  onDatePick: (date: Date) => void;
   onAddTodo: () => void;
   onReorder: (orderedIds: string[]) => Promise<void>;
 }
@@ -55,13 +50,9 @@ export function TodoSheet({
   selectedDate,
   sections,
   allTodos,
-  reschedulingTodo,
   onToggle,
   onDelete,
   onEdit,
-  onReschedule,
-  onCancelReschedule,
-  onDatePick,
   onAddTodo,
   onReorder,
 }: TodoSheetProps) {
@@ -107,16 +98,6 @@ export function TodoSheet({
         </View>
       </View>
 
-      {/* 미니 캘린더 (일정 이동용) */}
-      {!isReordering && (
-        <TodoMiniCalendar
-          todos={allTodos}
-          reschedulingTodo={reschedulingTodo}
-          onDatePick={onDatePick}
-          onCancelReschedule={onCancelReschedule}
-        />
-      )}
-
       {/* 투두 목록 */}
       <View style={s.listContainer}>
         {isReordering ? (
@@ -131,7 +112,6 @@ export function TodoSheet({
             onToggle={onToggle}
             onDelete={onDelete}
             onEdit={onEdit}
-            onReschedule={onReschedule}
           />
         )}
       </View>

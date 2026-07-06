@@ -87,7 +87,6 @@ function AppContent() {
 
   // 폼 모달
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
-  const [reschedulingTodo, setReschedulingTodo] = useState<Todo | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   const { sections, allTodos, handleToggle, handleDelete, handleCreate, handleUpdate, handleReorder } = useTodos();
@@ -164,19 +163,6 @@ function AppContent() {
     await handleUpdate(editingTodo.id, title, categoryId, note, dueDate);
     setEditingTodo(null);
     if (dueDate !== editingTodo.dueDate) setCalendarKey((k) => k + 1);
-  }
-
-  async function handleReschedule(newDate: Date) {
-    if (!reschedulingTodo) return;
-    await handleUpdate(
-      reschedulingTodo.id,
-      reschedulingTodo.title,
-      reschedulingTodo.categoryId ?? "",
-      reschedulingTodo.note ?? undefined,
-      newDate,
-    );
-    setReschedulingTodo(null);
-    setCalendarKey((k) => k + 1);
   }
 
   if (!ready) {
@@ -426,16 +412,12 @@ function AppContent() {
         selectedDate={selectedDate}
         sections={sections}
         allTodos={allTodos}
-        reschedulingTodo={reschedulingTodo}
         onToggle={handleToggle}
         onDelete={handleDelete}
         onEdit={(todo) => {
           setTodoSheetVisible(false);
           setEditingTodo(todo);
         }}
-        onReschedule={setReschedulingTodo}
-        onCancelReschedule={() => setReschedulingTodo(null)}
-        onDatePick={(date) => void handleReschedule(date)}
         onAddTodo={() => {
           setTodoSheetVisible(false);
           setAddSheetSegment("todo");
@@ -597,7 +579,7 @@ function makeStyles(colors: ColorTokens) {
     // 캘린더 위에 떠 있는 투명 오버레이 푸터
     footer: {
       position: "absolute",
-      bottom: 10,
+      bottom: 30,
       left: 0,
       right: 0,
       flexDirection: "row",
