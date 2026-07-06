@@ -196,7 +196,7 @@
   - 파일: `src/features/calendar/components/AddSheet.tsx`
   - 요구사항: `FR-CAL-001`, `FR-TODO-001`
 
-- [ ] **7.9 검색**
+- [x] **7.9 검색**
   - 완료: 검색 버튼 → 검색 시트/패널. 일정·할일 제목 기준 검색, 결과 리스트. 결과 탭 시 Year/Month → Month view 해당 날짜, Day → Day view 해당 날짜로 이동.
   - 파일: `src/features/calendar/components/SearchSheet.tsx`, `src/features/calendar/api/search.ts`
   - 요구사항: `FR-CAL-007`

@@ -19,6 +19,7 @@ import {
 } from "@/features/calendar/api/notifications";
 import { AddSheet } from "@/features/calendar/components/AddSheet";
 import type { AddSheetSegment } from "@/features/calendar/components/AddSheet";
+import { SearchSheet } from "@/features/calendar/components/SearchSheet";
 import { DayView } from "@/features/calendar/components/DayView";
 import { EventDetailSheet } from "@/features/calendar/components/EventDetailSheet";
 import { MonthView } from "@/features/calendar/components/MonthView";
@@ -69,6 +70,7 @@ function AppContent() {
   const [settingsSheetVisible, setSettingsSheetVisible] = useState(false);
   const [addSheetVisible, setAddSheetVisible] = useState(false);
   const [addSheetSegment, setAddSheetSegment] = useState<AddSheetSegment>("event");
+  const [searchSheetVisible, setSearchSheetVisible] = useState(false);
 
   // 폼 모달
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -188,6 +190,7 @@ function AppContent() {
         <Pressable
           testID="btn-search"
           style={s.headerBtn}
+          onPress={() => setSearchSheetVisible(true)}
           accessibilityLabel="검색"
           accessibilityRole="button"
         >
@@ -387,6 +390,18 @@ function AppContent() {
           setAddSheetVisible(true);
         }}
         onReorder={handleReorder}
+      />
+
+      {/* 검색 시트 — AppBottomSheet(컴팩트) / AppSidePanel(와이드) */}
+      <SearchSheet
+        visible={searchSheetVisible}
+        onClose={() => setSearchSheetVisible(false)}
+        isWide={isWide}
+        onNavigate={(date) => {
+          setSelectedDate(date);
+          setActiveView("day");
+          setSearchSheetVisible(false);
+        }}
       />
 
       {/* 설정 시트 — AppBottomSheet(컴팩트) / AppSidePanel(와이드) */}
