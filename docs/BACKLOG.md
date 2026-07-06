@@ -150,11 +150,72 @@
   - 파일: `src/sync/icalParser.ts`, `src/sync/caldavClient.ts`, `src/sync/icloudCalendarSync.ts`, `src/features/settings/hooks/useICloudSync.ts`, `src/features/settings/hooks/useGoogleCalendarSync.ts`, `src/features/settings/components/ICloudConnectSheet.tsx`, `src/features/settings/components/SettingsScreen.tsx`
   - 요구사항: `FR-SYNC-001`, `FR-SYNC-002`
 
-## Phase 7 — 출시
+## Phase 7 — 캘린더 기반 UI 전면 개편
 
-- [ ] **7.1 스토어 메타데이터·스크린샷**
-- [ ] **7.2 베타 배포(TestFlight/내부테스트)**
-- [ ] **7.3 정식 릴리즈** — `v*` 태그 → `release.yml` 승인.
+> 기준 문서: `캘린더-투두-개편-프롬프트.md`
+> 데이터·동기화·기능 API 레이어는 유지. App.tsx 셸·뷰 컴포넌트만 재구성.
+> 의존성 사전 승인: `@gorhom/bottom-sheet` (바텀시트 제스처).
+
+- [ ] **7.1 App.tsx 셸 재구성**
+  - 완료: 하단 탭바 제거. `activeView` 상태(`year | month | day`)로 뷰 전환. 공통 헤더(뒤로가기·검색·+)·공통 푸터(오늘·할일·설정) 뼈대. 768pt 와이드 분기 유지. 기존 testID 정비.
+  - 파일: `App.tsx`, `src/features/calendar/components/` (기존 정리)
+  - 요구사항: `UI-001`, `NFR-CON-001`
+
+- [ ] **7.2 YearView 컴포넌트**
+  - 완료: 12개월 미니 캘린더 그리드. 일정·할일 미표시. 월 탭 → Month view. 설정 버튼만 우측 하단.
+  - 파일: `src/features/calendar/components/YearView.tsx`, `src/features/calendar/hooks/useYearData.ts`
+  - 요구사항: `FR-CAL-002`
+
+- [ ] **7.3 MonthView 개편**
+  - 완료: 이벤트 바(Bar) 표시(다일 일정 날짜 걸침). 미완료 할일 개수 회색 숫자(셀 우측). 날짜 탭 동작 — 투두 닫힘 시 Day view 진입, 투두 열림 시 해당 날짜 할일 목록 전환. 기존 공휴일 표시 유지.
+  - 파일: `src/features/calendar/components/MonthView.tsx`, `src/features/calendar/hooks/useMonthItems.ts`
+  - 요구사항: `FR-CAL-002`, `FR-INT-001`
+
+- [ ] **7.4 DayView 개편**
+  - 완료: 00~24시 시간 그리드 연속 세로 스크롤(이전 날·다음 날 이어짐). FlatList 계열 가상화(앞뒤 며칠만 렌더). 좌측 상단 `YYYY년 MM월 DD일 W요일` 실시간 갱신. 투두는 타임라인 미표시.
+  - 파일: `src/features/calendar/components/DayView.tsx`, `src/features/calendar/hooks/useDayScroll.ts`
+  - 요구사항: `FR-CAL-002`, `NFR-PERF-001`
+
+- [ ] **7.5 BottomSheet/SidePanel 컨테이너 시스템**
+  - 완료: `@gorhom/bottom-sheet` 설치. 컴팩트용 `AppBottomSheet`(스냅 50%·90%, 50% 미만 드래그 시 닫힘)와 와이드용 `AppSidePanel`(우측 고정) 컴포넌트. 두 컨테이너가 동일 children을 렌더. GestureHandlerRootView 연동.
+  - 파일: `src/ui/AppBottomSheet.tsx`, `src/ui/AppSidePanel.tsx`
+  - 요구사항: `UI-001`, `NFR-CON-001`
+
+- [ ] **7.6 투두 시트**
+  - 완료: 할일 버튼 → AppBottomSheet/AppSidePanel에 투두 리스트 표시. 스냅 2단계(50%·90%). 드래그 순서 변경(sortOrder 저장). Day view 스크롤 시 날짜에 맞춰 목록 실시간 전환. 투두 열림 시 우측 하단 설정 버튼만 남음. 기존 TodoForm 재사용.
+  - 파일: `src/features/todo/components/TodoSheet.tsx`, `src/features/todo/hooks/useTodos.ts`(정렬 업데이트)
+  - 요구사항: `FR-TODO-001~006`, `UI-001`
+
+- [ ] **7.7 설정 시트**
+  - 완료: 설정 버튼 → AppBottomSheet/AppSidePanel에 기존 SettingsScreen 래핑. 상단 드래그 또는 닫기 버튼으로만 닫힘.
+  - 파일: `src/features/settings/components/SettingsSheet.tsx`
+  - 요구사항: `UI-002`
+
+- [ ] **7.8 일정·할일 추가 시트**
+  - 완료: `+` 버튼 → AppBottomSheet/AppSidePanel. 상단 세그먼트 토글(일정 / 할 일)로 EventForm·TodoForm 전환. 저장 시 시트 닫힘 + 뷰 갱신.
+  - 파일: `src/features/calendar/components/AddSheet.tsx`
+  - 요구사항: `FR-CAL-001`, `FR-TODO-001`
+
+- [ ] **7.9 검색**
+  - 완료: 검색 버튼 → 검색 시트/패널. 일정·할일 제목 기준 검색, 결과 리스트. 결과 탭 시 Year/Month → Month view 해당 날짜, Day → Day view 해당 날짜로 이동.
+  - 파일: `src/features/calendar/components/SearchSheet.tsx`, `src/features/calendar/api/search.ts`
+  - 요구사항: `FR-CAL-007`
+
+- [ ] **7.10 todos 스키마 변경·마이그레이션**
+  - 완료: todos 테이블에 `assigned_date`(필수, 날짜 전용) + `has_due_time`(boolean) 컬럼 추가. 마이그레이션 — 기존 dueDate 있는 할일 → assigned_date로 이전, 없는 할일 → createdAt 날짜 배정. todos API·useTodos·동기화 엔진 스키마 반영.
+  - 파일: `src/db/schema.ts`, `src/db/migrate.ts`, `src/features/todo/api/todos.ts`, `src/features/todo/hooks/useTodos.ts`, `src/sync/`
+  - 요구사항: `FR-TODO-005`, `NFR-CON-002`
+
+- [ ] **7.11 마무리·회귀 검증**
+  - 완료: E2E 스모크 테스트 testID 갱신. 유지 기능(rrule·알림·공휴일·카테고리·테마·Google/iCloud 연동) 전체 회귀 확인. typecheck·lint·test 전부 green.
+  - 파일: `__tests__/App.smoke.test.tsx`, 관련 테스트 파일 정비
+  - 요구사항: 전체
+
+## Phase 8 — 출시
+
+- [ ] **8.1 스토어 메타데이터·스크린샷**
+- [ ] **8.2 베타 배포(TestFlight/내부테스트)**
+- [ ] **8.3 정식 릴리즈** — `v*` 태그 → `release.yml` 승인.
 
 ---
 
