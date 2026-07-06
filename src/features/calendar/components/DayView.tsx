@@ -71,7 +71,7 @@ export function DayView({ initialDate, onEventPress, onDateChange }: DayViewProp
     },
   ).current;
 
-  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
   // 초기 스크롤: 현재 시각(오늘) 또는 오전 8시(다른 날) 기준
   useEffect(() => {
