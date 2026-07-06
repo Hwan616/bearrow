@@ -17,9 +17,10 @@ import {
   requestNotificationPermission,
   setupNotificationHandler,
 } from "@/features/calendar/api/notifications";
+import { AddSheet } from "@/features/calendar/components/AddSheet";
+import type { AddSheetSegment } from "@/features/calendar/components/AddSheet";
 import { DayView } from "@/features/calendar/components/DayView";
 import { EventDetailSheet } from "@/features/calendar/components/EventDetailSheet";
-import { EventForm } from "@/features/calendar/components/EventForm";
 import { MonthView } from "@/features/calendar/components/MonthView";
 import { YearView } from "@/features/calendar/components/YearView";
 import type { Event } from "@/features/calendar/types";
@@ -63,13 +64,13 @@ function AppContent() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calendarKey, setCalendarKey] = useState(0);
 
-  // 시트 가시성 — 7.5~7.7에서 BottomSheet/SidePanel로 교체
+  // 시트 가시성
   const [todoSheetVisible, setTodoSheetVisible] = useState(false);
   const [settingsSheetVisible, setSettingsSheetVisible] = useState(false);
+  const [addSheetVisible, setAddSheetVisible] = useState(false);
+  const [addSheetSegment, setAddSheetSegment] = useState<AddSheetSegment>("event");
 
   // 폼 모달
-  const [eventFormVisible, setEventFormVisible] = useState(false);
-  const [todoFormVisible, setTodoFormVisible] = useState(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [reschedulingTodo, setReschedulingTodo] = useState<Todo | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -106,7 +107,7 @@ function AppContent() {
   // ── 이벤트·투두 핸들러 ─────────────────────────────────────────────────────────
 
   function handleEventSave() {
-    setEventFormVisible(false);
+    setAddSheetVisible(false);
     setCalendarKey((k) => k + 1);
   }
 
@@ -117,7 +118,7 @@ function AppContent() {
     dueDate?: Date | null,
   ) {
     await handleCreate(title, categoryId, note, dueDate);
-    setTodoFormVisible(false);
+    setAddSheetVisible(false);
     if (dueDate) setCalendarKey((k) => k + 1);
   }
 
@@ -195,7 +196,7 @@ function AppContent() {
         <Pressable
           testID="btn-add"
           style={s.headerBtn}
-          onPress={() => setEventFormVisible(true)}
+          onPress={() => { setAddSheetSegment("event"); setAddSheetVisible(true); }}
           accessibilityLabel="추가"
           accessibilityRole="button"
         >
@@ -319,26 +320,6 @@ function AppContent() {
   const modals = (
     <>
       <Modal
-        visible={eventFormVisible}
-        animationType="slide"
-        onRequestClose={() => setEventFormVisible(false)}
-      >
-        <EventForm
-          initialDate={selectedDate}
-          onSave={handleEventSave}
-          onCancel={() => setEventFormVisible(false)}
-        />
-      </Modal>
-
-      <Modal
-        visible={todoFormVisible}
-        animationType="slide"
-        onRequestClose={() => setTodoFormVisible(false)}
-      >
-        <TodoForm onSave={handleTodoCreate} onCancel={() => setTodoFormVisible(false)} />
-      </Modal>
-
-      <Modal
         visible={selectedEvent !== null}
         animationType="slide"
         onRequestClose={() => setSelectedEvent(null)}
@@ -371,6 +352,17 @@ function AppContent() {
         )}
       </Modal>
 
+      {/* 추가 시트 — AppBottomSheet(컴팩트) / AppSidePanel(와이드) */}
+      <AddSheet
+        visible={addSheetVisible}
+        onClose={() => setAddSheetVisible(false)}
+        isWide={isWide}
+        initialDate={selectedDate}
+        initialSegment={addSheetSegment}
+        onEventSave={handleEventSave}
+        onTodoSave={handleTodoCreate}
+      />
+
       {/* 투두 시트 — AppBottomSheet(컴팩트) / AppSidePanel(와이드) */}
       <TodoSheet
         visible={todoSheetVisible}
@@ -391,7 +383,8 @@ function AppContent() {
         onDatePick={(date) => void handleReschedule(date)}
         onAddTodo={() => {
           setTodoSheetVisible(false);
-          setTodoFormVisible(true);
+          setAddSheetSegment("todo");
+          setAddSheetVisible(true);
         }}
         onReorder={handleReorder}
       />

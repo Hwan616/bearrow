@@ -191,7 +191,7 @@
   - 파일: `src/features/settings/components/SettingsSheet.tsx`
   - 요구사항: `UI-002`
 
-- [ ] **7.8 일정·할일 추가 시트**
+- [x] **7.8 일정·할일 추가 시트**
   - 완료: `+` 버튼 → AppBottomSheet/AppSidePanel. 상단 세그먼트 토글(일정 / 할 일)로 EventForm·TodoForm 전환. 저장 시 시트 닫힘 + 뷰 갱신.
   - 파일: `src/features/calendar/components/AddSheet.tsx`
   - 요구사항: `FR-CAL-001`, `FR-TODO-001`
