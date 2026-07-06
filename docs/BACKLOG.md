@@ -166,7 +166,7 @@
   - 파일: `src/features/calendar/components/YearView.tsx`, `src/features/calendar/hooks/useYearData.ts`
   - 요구사항: `FR-CAL-002`
 
-- [ ] **7.3 MonthView 개편**
+- [x] **7.3 MonthView 개편**
   - 완료: 이벤트 바(Bar) 표시(다일 일정 날짜 걸침). 미완료 할일 개수 회색 숫자(셀 우측). 날짜 탭 동작 — 투두 닫힘 시 Day view 진입, 투두 열림 시 해당 날짜 할일 목록 전환. 기존 공휴일 표시 유지.
   - 파일: `src/features/calendar/components/MonthView.tsx`, `src/features/calendar/hooks/useMonthItems.ts`
   - 요구사항: `FR-CAL-002`, `FR-INT-001`

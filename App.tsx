@@ -282,8 +282,10 @@ function AppContent() {
             initialDate={selectedDate}
             onDayPress={(date) => {
               setSelectedDate(date);
-              // 투두 시트가 닫혀있으면 Day 뷰로 진입 (7.6에서 시트 연동 추가)
-              setActiveView("day");
+              // 투두 시트 열림: 날짜만 전환 (시트 유지), 닫힘: Day 뷰로 진입
+              if (!todoSheetVisible) {
+                setActiveView("day");
+              }
             }}
           />
         </View>

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { getCategories } from "@/features/category/api/categories";
+import type { Category } from "@/features/category/types";
 import { getTodosByDueDateRange } from "@/features/todo/api/todos";
 import type { Todo } from "@/features/todo/types";
 
@@ -9,7 +11,8 @@ import { getMonthDateRange } from "../utils/calendarUtils";
 
 export interface UseMonthItemsResult {
   events: Event[];
-  dueTodos: Todo[];       // 해당 월에 마감일이 있는 할일
+  dueTodos: Todo[];
+  categories: Category[];
   isLoading: boolean;
   error: Error | null;
   refetch: () => void;
@@ -18,6 +21,7 @@ export interface UseMonthItemsResult {
 export function useMonthItems(year: number, month: number): UseMonthItemsResult {
   const [events, setEvents] = useState<Event[]>([]);
   const [dueTodos, setDueTodos] = useState<Todo[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [tick, setTick] = useState(0);
@@ -28,11 +32,16 @@ export function useMonthItems(year: number, month: number): UseMonthItemsResult 
     setError(null);
 
     const { from, to } = getMonthDateRange(year, month);
-    Promise.all([getEventsByDateRange(from, to), getTodosByDueDateRange(from, to)])
-      .then(([evts, todos]) => {
+    Promise.all([
+      getEventsByDateRange(from, to),
+      getTodosByDueDateRange(from, to),
+      getCategories(),
+    ])
+      .then(([evts, todos, cats]) => {
         if (!cancelled) {
           setEvents(evts);
           setDueTodos(todos);
+          setCategories(cats);
           setIsLoading(false);
         }
       })
@@ -51,6 +60,7 @@ export function useMonthItems(year: number, month: number): UseMonthItemsResult 
   return {
     events,
     dueTodos,
+    categories,
     isLoading,
     error,
     refetch: () => setTick((t) => t + 1),

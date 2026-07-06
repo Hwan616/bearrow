@@ -5,11 +5,11 @@ import { useAppSettings } from "@/features/settings/AppSettingsContext";
 import { useTheme } from "@/theme";
 
 import { useMonthItems } from "../hooks/useMonthItems";
-import { type Event } from "../types";
+import type { Event } from "../types";
+import type { CalendarDay } from "../utils/calendarUtils";
 import {
   buildMonthGrid,
   formatMonthTitle,
-  getEventsForDay,
   getTodosForDay,
   isSameDay,
 } from "../utils/calendarUtils";
@@ -17,11 +17,94 @@ import { getHolidaysForMonth } from "../utils/koreanHolidays";
 import { YearMonthPicker } from "./YearMonthPicker";
 
 const DAYS_OF_WEEK = ["일", "월", "화", "수", "목", "금", "토"] as const;
-const MAX_EVENT_DOTS = 2; // 이벤트 최대 2개 점 + 할일 1개 점 = 최대 3개
+const BAR_HEIGHT = 14;
+const BAR_MARGIN = 2;
+const MAX_TRACKS = 2;
+const EVENT_AREA_HEIGHT = MAX_TRACKS * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN;
+
+interface EventBarData {
+  eventId: string;
+  title: string;
+  color: string;
+  startCol: number; // 0–6
+  endCol: number;   // 0–6
+  track: number;    // 0 or 1
+}
 
 interface MonthViewProps {
   initialDate?: Date;
-  onDayPress?: (date: Date, events: Event[]) => void;
+  onDayPress?: (date: Date) => void;
+}
+
+function chunkBy7<T>(arr: T[]): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < arr.length; i += 7) {
+    result.push(arr.slice(i, i + 7));
+  }
+  return result;
+}
+
+function getEventColumns(
+  weekDays: CalendarDay[],
+  event: Event,
+): { startCol: number; endCol: number } | null {
+  let startCol = -1;
+  let endCol = -1;
+  for (let col = 0; col < 7; col++) {
+    const day = weekDays[col]!;
+    // day.date is midnight; dayEnd is end-of-day
+    const dayEndMs = day.date.getTime() + 24 * 60 * 60 * 1000 - 1;
+    if (event.startsAt.getTime() <= dayEndMs && event.endsAt.getTime() >= day.date.getTime()) {
+      if (startCol === -1) startCol = col;
+      endCol = col;
+    }
+  }
+  return startCol === -1 ? null : { startCol, endCol };
+}
+
+function computeEventBars(
+  weekDays: CalendarDay[],
+  events: Event[],
+  getCategoryColor: (id: string | null | undefined) => string,
+): EventBarData[] {
+  const weekStart = weekDays[0]!.date;
+  const weekEndDay = weekDays[6]!.date;
+  const weekEndMs = weekEndDay.getTime() + 24 * 60 * 60 * 1000 - 1;
+
+  const weekEvents = events
+    .filter((e) => e.startsAt.getTime() <= weekEndMs && e.endsAt.getTime() >= weekStart.getTime())
+    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
+
+  const trackEndCols: number[] = [-1, -1];
+  const bars: EventBarData[] = [];
+
+  for (const event of weekEvents) {
+    const cols = getEventColumns(weekDays, event);
+    if (!cols) continue;
+
+    const { startCol, endCol } = cols;
+
+    let track = -1;
+    for (let t = 0; t < MAX_TRACKS; t++) {
+      if ((trackEndCols[t] ?? -1) < startCol) {
+        track = t;
+        trackEndCols[t] = endCol;
+        break;
+      }
+    }
+    if (track === -1) continue; // all tracks occupied, skip
+
+    bars.push({
+      eventId: event.id,
+      title: event.title,
+      color: getCategoryColor(event.categoryId),
+      startCol,
+      endCol,
+      track,
+    });
+  }
+
+  return bars;
 }
 
 export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
@@ -33,36 +116,37 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
 
   const { colors } = useTheme();
   const { showHolidays } = useAppSettings();
-  const { events, dueTodos } = useMonthItems(year, month);
+  const { events, dueTodos, categories } = useMonthItems(year, month);
   const today = new Date();
   const grid = buildMonthGrid(year, month, today);
+  const rows = chunkBy7(grid);
 
   const holidayMap = useMemo(
     () => (showHolidays ? getHolidaysForMonth(year, month) : new Map<number, string>()),
     [year, month, showHolidays],
   );
 
+  const categoryColorMap = useMemo(
+    () => new Map(categories.map((c) => [c.id, c.color])),
+    [categories],
+  );
+
+  const getCategoryColor = (categoryId: string | null | undefined): string =>
+    (categoryId ? categoryColorMap.get(categoryId) : undefined) ?? colors.accent.primary;
+
   const goToPrev = () => {
-    if (month === 0) {
-      setYear((y) => y - 1);
-      setMonth(11);
-    } else {
-      setMonth((m) => m - 1);
-    }
+    if (month === 0) { setYear((y) => y - 1); setMonth(11); }
+    else setMonth((m) => m - 1);
   };
 
   const goToNext = () => {
-    if (month === 11) {
-      setYear((y) => y + 1);
-      setMonth(0);
-    } else {
-      setMonth((m) => m + 1);
-    }
+    if (month === 11) { setYear((y) => y + 1); setMonth(0); }
+    else setMonth((m) => m + 1);
   };
 
   const handleDayPress = (date: Date) => {
     setSelectedDate(date);
-    onDayPress?.(date, getEventsForDay(events, date));
+    onDayPress?.(date);
   };
 
   const s = makeStyles(colors);
@@ -101,7 +185,7 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
       </View>
 
       {/* 요일 헤더 */}
-      <View style={s.weekRow}>
+      <View style={s.weekLabelRow}>
         {DAYS_OF_WEEK.map((d) => (
           <Text
             key={d}
@@ -120,58 +204,99 @@ export function MonthView({ initialDate, onDayPress }: MonthViewProps) {
         onClose={() => setPickerVisible(false)}
       />
 
-      {/* 날짜 그리드 */}
-      <View style={s.grid}>
-        {grid.map(({ date, isCurrentMonth, isToday }) => {
-          const dayEvents = getEventsForDay(events, date);
-          const dayTodos = getTodosForDay(dueTodos, date);
-          const isSelected = selectedDate != null && isSameDay(date, selectedDate);
-          const isSun = date.getDay() === 0;
-          const isSat = date.getDay() === 6;
-          const holidayName = isCurrentMonth ? (holidayMap.get(date.getDate()) ?? null) : null;
-          const isHoliday = holidayName !== null;
+      {/* 주(週) 단위 그리드 */}
+      <View testID="month-grid">
+        {rows.map((weekDays, rowIndex) => {
+          const eventBars = computeEventBars(weekDays, events, getCategoryColor);
 
           return (
-            <Pressable
-              key={date.toISOString()}
-              style={s.cell}
-              onPress={() => handleDayPress(date)}
-            >
-              <View
-                style={[
-                  s.dayCircle,
-                  isToday && { backgroundColor: colors.accent.primary },
-                  isSelected && !isToday && { backgroundColor: colors.accent.primaryLight },
-                ]}
-              >
-                <Text
-                  style={[
-                    s.dayText,
-                    !isCurrentMonth && s.outsideMonth,
-                    isToday && s.todayText,
-                    !isToday && (isSun || isHoliday) && s.sunday,
-                    !isToday && isSat && !isHoliday && s.saturday,
-                  ]}
-                >
-                  {date.getDate()}
-                </Text>
+            <View key={rowIndex} style={s.weekRow}>
+              {/* 날짜 셀 행 */}
+              <View style={s.dayCellsRow}>
+                {weekDays.map(({ date, isCurrentMonth, isToday }) => {
+                  const dayTodos = getTodosForDay(dueTodos, date);
+                  const incompleteCount = dayTodos.filter((t) => !t.isCompleted).length;
+                  const isSelected = selectedDate !== null && isSameDay(date, selectedDate);
+                  const isSun = date.getDay() === 0;
+                  const isSat = date.getDay() === 6;
+                  const holidayName = isCurrentMonth ? (holidayMap.get(date.getDate()) ?? null) : null;
+                  const isHoliday = holidayName !== null;
+
+                  return (
+                    <Pressable
+                      key={date.toISOString()}
+                      style={s.dayCell}
+                      onPress={() => handleDayPress(date)}
+                      accessibilityLabel={`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`}
+                      accessibilityRole="button"
+                    >
+                      <View
+                        style={[
+                          s.dayCircle,
+                          isToday && { backgroundColor: colors.accent.primary },
+                          isSelected && !isToday && { backgroundColor: colors.accent.primaryLight },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            s.dayText,
+                            !isCurrentMonth && s.outsideMonth,
+                            isToday && s.todayText,
+                            !isToday && (isSun || isHoliday) && s.sunday,
+                            !isToday && isSat && !isHoliday && s.saturday,
+                          ]}
+                        >
+                          {date.getDate()}
+                        </Text>
+                      </View>
+                      {incompleteCount > 0 && isCurrentMonth && (
+                        <Text
+                          style={s.todoCount}
+                          testID={`todo-count-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`}
+                        >
+                          {incompleteCount}
+                        </Text>
+                      )}
+                    </Pressable>
+                  );
+                })}
               </View>
 
-              {/* 이벤트 점(파랑) + 할일 마감 점(초록) */}
-              <View style={s.dots}>
-                {dayEvents.slice(0, MAX_EVENT_DOTS).map((e) => (
-                  <View key={e.id} style={[s.dot, { backgroundColor: colors.accent.primary }]} />
+              {/* 이벤트 바 레이어 */}
+              <View style={s.eventBarsRow}>
+                {eventBars.map((bar) => (
+                  <View
+                    key={`${bar.eventId}-${rowIndex}`}
+                    testID={`event-bar-${bar.eventId}`}
+                    style={[
+                      s.eventBar,
+                      {
+                        left: `${(bar.startCol / 7) * 100}%` as `${number}%`,
+                        right: `${((6 - bar.endCol) / 7) * 100}%` as `${number}%`,
+                        top: bar.track * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN,
+                        backgroundColor: bar.color,
+                      },
+                    ]}
+                  >
+                    <Text style={s.eventBarText} numberOfLines={1}>
+                      {bar.title}
+                    </Text>
+                  </View>
                 ))}
-                {dayTodos.length > 0 && (
-                  <View style={[s.dot, { backgroundColor: colors.status.success }]} />
-                )}
               </View>
 
-              {/* 공휴일 이름 — 슬롯을 항상 예약해 셀 높이 일관성 유지 */}
-              <Text style={s.holidayLabel} numberOfLines={1}>
-                {isHoliday ? holidayName : ""}
-              </Text>
-            </Pressable>
+              {/* 공휴일 레이블 행 */}
+              <View style={s.holidayLabelsRow}>
+                {weekDays.map(({ date, isCurrentMonth }) => {
+                  const name = isCurrentMonth ? (holidayMap.get(date.getDate()) ?? null) : null;
+                  return (
+                    <Text key={date.toISOString()} style={s.holidayLabel} numberOfLines={1}>
+                      {name ?? ""}
+                    </Text>
+                  );
+                })}
+              </View>
+            </View>
           );
         })}
       </View>
@@ -208,9 +333,9 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       fontWeight: "600",
       color: colors.text.primary,
     },
-    weekRow: {
+    weekLabelRow: {
       flexDirection: "row",
-      marginBottom: 4,
+      marginBottom: 2,
     },
     weekLabel: {
       flex: 1,
@@ -222,15 +347,18 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     sunday: { color: "#D93535" },
     saturday: { color: "#2E5AAC" },
-    grid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
+    weekRow: {
+      // each week row contains: day cells + event bars + holiday labels
     },
-    cell: {
-      width: `${100 / 7}%`,
+    dayCellsRow: {
+      flexDirection: "row",
+    },
+    dayCell: {
+      width: `${100 / 7}%` as `${number}%`,
+      minHeight: 44,
       alignItems: "center",
-      paddingVertical: 2,
-      minHeight: 44, // 터치 타깃 최소 44pt (UI-003)
+      justifyContent: "center",
+      position: "relative",
     },
     dayCircle: {
       width: 32,
@@ -250,25 +378,42 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       color: colors.text.inverse,
       fontWeight: "700",
     },
-    dots: {
-      flexDirection: "row",
-      gap: 2,
-      height: 6,
-      marginTop: 1,
+    todoCount: {
+      position: "absolute",
+      right: 3,
+      top: 4,
+      fontSize: 9,
+      color: colors.text.secondary,
+      fontWeight: "500",
     },
-    dot: {
-      width: 5,
-      height: 5,
-      borderRadius: 3,
+    eventBarsRow: {
+      height: EVENT_AREA_HEIGHT,
+      position: "relative",
+    },
+    eventBar: {
+      position: "absolute",
+      height: BAR_HEIGHT,
+      borderRadius: 2,
+      paddingHorizontal: 3,
+      justifyContent: "center",
+      overflow: "hidden",
+    },
+    eventBarText: {
+      fontSize: 10,
+      color: colors.text.inverse,
+      fontWeight: "500",
+    },
+    holidayLabelsRow: {
+      flexDirection: "row",
+      marginBottom: 2,
     },
     holidayLabel: {
+      flex: 1,
       fontSize: 8,
       color: "#D93535",
-      height: 11,
-      lineHeight: 11,
-      marginTop: 1,
+      height: 10,
+      lineHeight: 10,
       textAlign: "center",
-      width: "100%",
       letterSpacing: -0.3,
     },
   });
