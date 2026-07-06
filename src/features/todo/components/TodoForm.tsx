@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -76,8 +77,9 @@ export function TodoForm({ initial, onSave, onCancel }: Props) {
   const isEdit = !!initial;
 
   return (
+    <SafeAreaView style={styles.container}>
     <KeyboardAvoidingView
-      style={styles.container}
+      style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       {/* 헤더 */}
@@ -167,6 +169,7 @@ export function TodoForm({ initial, onSave, onCancel }: Props) {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

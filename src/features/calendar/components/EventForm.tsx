@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Switch,
@@ -100,8 +101,9 @@ export function EventForm({ initialEvent, initialDate, onSave, onCancel }: Props
   }
 
   return (
+    <SafeAreaView style={styles.container}>
     <KeyboardAvoidingView
-      style={styles.container}
+      style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       {/* 헤더 */}
@@ -248,6 +250,7 @@ export function EventForm({ initialEvent, initialDate, onSave, onCancel }: Props
         )}
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

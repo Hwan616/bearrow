@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { createTodoFromEvent } from "@/features/todo/api/todos";
 import { useTheme } from "@/theme";
@@ -70,7 +70,7 @@ export function EventDetailSheet({ event, onClose, onSaved, onDeleted, onTodoCre
   }
 
   return (
-    <View style={s.container}>
+    <SafeAreaView style={s.container}>
       {/* 헤더 */}
       <View style={[s.header, { borderBottomColor: colors.border.default }]}>
         <Pressable onPress={handleDelete} style={s.headerBtn} accessibilityLabel="일정 삭제">
@@ -139,7 +139,7 @@ export function EventDetailSheet({ event, onClose, onSaved, onDeleted, onTodoCre
           onCancel={() => setEditVisible(false)}
         />
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
