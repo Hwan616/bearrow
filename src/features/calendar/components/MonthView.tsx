@@ -7,11 +7,6 @@ import {
   View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-} from "react-native-reanimated";
 
 import { MONTH_VIEW } from "@/config/layout";
 import { useAppSettings } from "@/features/settings/AppSettingsContext";
@@ -247,13 +242,18 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM_LEVEL);
+  // 핀치 중 실시간으로 변하는 셀(주 행) 높이 (null = 핀치 아님)
+  const [pinchHeight, setPinchHeight] = useState<number | null>(null);
 
-  const zoomCfg = ZOOM_LEVELS[zoomLevel]!;
-  // 레이아웃·렌더 높이는 항상 스냅된 레벨 높이 — 핀치 중엔 transform으로 미리보기
-  const stableWeekRowHeight = zoomCfg.weekRowHeight;
-  const renderWeekRowHeight = stableWeekRowHeight;
-  const zoomMode = zoomCfg.mode;
-  const maxTracks = zoomCfg.maxTracks;
+  // 스냅된 레벨 높이 (핀치 종료 후 확정 값)
+  const stableWeekRowHeight = ZOOM_LEVELS[zoomLevel]!.weekRowHeight;
+  // 렌더 높이: 핀치 중엔 연속값 → 셀 높이가 실시간으로 늘고 줆
+  const renderWeekRowHeight = pinchHeight ?? stableWeekRowHeight;
+  // 표시 상세도(점/얇은 막대/박스 n개)도 현재 높이에서 실시간 파생
+  // → 확대/축소하는 동안 단계적으로 부드럽게 전환되고, 멈춘 높이의 단계로 확정
+  const renderLevel = findNearestZoomLevel(renderWeekRowHeight);
+  const zoomMode = ZOOM_LEVELS[renderLevel]!.mode;
+  const maxTracks = ZOOM_LEVELS[renderLevel]!.maxTracks;
 
   const listRef = useRef<FlatList<YearMonth>>(null);
   const scrollYRef = useRef(0);
@@ -262,54 +262,91 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
   // 핀치 스냅 후 적용할 절대 스크롤 오프셋 (포컬 앵커 유지)
   const pendingScrollOffsetRef = useRef<number | null>(null);
 
-  // 핀치: 터치 지점(포컬)을 기준으로 transform 확대/축소 → 모션 동안 화면 이동 없음
-  const pinchScale = useSharedValue(1);
-  const focalCx = useSharedValue(0);
-  const focalCy = useSharedValue(0);
-  const viewW = useSharedValue(0);
-  const viewH = useSharedValue(0);
-  const curHeight = useSharedValue(stableWeekRowHeight);
-  useEffect(() => { curHeight.value = stableWeekRowHeight; }, [stableWeekRowHeight, curHeight]);
+  const renderWeekRowHeightRef = useRef(renderWeekRowHeight);
+  renderWeekRowHeightRef.current = renderWeekRowHeight;
+  const pinchBaseHeightRef = useRef(stableWeekRowHeight);
+  // 핀치 앵커 — 터치 지점이 가리키던 (달·행) 위치를 높이와 무관하게 저장
+  const pinchAnchorRef = useRef<{
+    focalY: number;
+    monthIdx: number;
+    isHeader: boolean;
+    headerLocalY: number;
+    rowFloat: number;
+  } | null>(null);
 
-  const pinchAnimStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: focalCx.value },
-      { translateY: focalCy.value },
-      { scale: pinchScale.value },
-      { translateX: -focalCx.value },
-      { translateY: -focalCy.value },
-    ],
-  }));
+  // 포컬(터치) 지점이 가리키는 달·행을 주어진 높이 기준으로 계산
+  const computeAnchor = useCallback(
+    (focalY: number, height: number) => {
+      const contentY = scrollYRef.current + focalY;
+      let off = 0;
+      let monthIdx = months.length - 1;
+      let localY = contentY;
+      for (let i = 0; i < months.length; i++) {
+        const hh = getMonthItemHeight(months[i]!.year, months[i]!.month, height);
+        if (contentY < off + hh) {
+          monthIdx = i;
+          localY = contentY - off;
+          break;
+        }
+        off += hh;
+        localY = contentY - off;
+      }
+      const isHeader = localY <= MONTH_LABEL_HEIGHT;
+      return {
+        focalY,
+        monthIdx,
+        isHeader,
+        headerLocalY: isHeader ? Math.max(0, localY) : 0,
+        rowFloat: isHeader ? 0 : (localY - MONTH_LABEL_HEIGHT) / height,
+      };
+    },
+    [months],
+  );
 
-  // onEnd(JS): 스케일 → 가장 가까운 줌 레벨로 스냅 + 포컬 행을 손가락 아래에 고정
-  const commitZoomRef = useRef<(scale: number, focalY: number) => void>(() => {});
-  const runCommitZoom = useCallback((scale: number, focalY: number) => {
-    commitZoomRef.current(scale, focalY);
-  }, []);
+  // 앵커 + 높이 → 포컬 행이 손가락 아래 유지되도록 하는 절대 스크롤 오프셋
+  const anchorScrollOffset = useCallback(
+    (anchor: NonNullable<typeof pinchAnchorRef.current>, height: number) => {
+      let newOffset = 0;
+      for (let i = 0; i < anchor.monthIdx; i++) {
+        newOffset += getMonthItemHeight(months[i]!.year, months[i]!.month, height);
+      }
+      const localY = anchor.isHeader
+        ? anchor.headerLocalY
+        : MONTH_LABEL_HEIGHT + anchor.rowFloat * height;
+      return Math.max(0, newOffset + localY - anchor.focalY);
+    },
+    [months],
+  );
 
+  // 핀치: 셀 높이를 실시간으로 변경(onUpdate), 종료 시 가장 가까운 레벨로 스냅(onEnd)
   const pinchGesture = useMemo(
     () =>
       Gesture.Pinch()
+        .runOnJS(true)
         .onBegin((e) => {
-          "worklet";
-          focalCx.value = e.focalX - viewW.value / 2;
-          focalCy.value = e.focalY - viewH.value / 2;
-          pinchScale.value = 1;
+          pinchBaseHeightRef.current = renderWeekRowHeightRef.current;
+          pinchAnchorRef.current = computeAnchor(e.focalY, renderWeekRowHeightRef.current);
         })
         .onUpdate((e) => {
-          "worklet";
-          const target = curHeight.value * e.scale;
-          const clamped = Math.max(PINCH_MIN_H, Math.min(PINCH_MAX_H, target));
-          pinchScale.value = clamped / curHeight.value;
+          const raw = pinchBaseHeightRef.current * e.scale;
+          // 2px 단위로 반올림해 불필요한 리렌더 최소화
+          const h = Math.round(Math.max(PINCH_MIN_H, Math.min(PINCH_MAX_H, raw)) / 2) * 2;
+          setPinchHeight((prev) => (prev === h ? prev : h));
         })
         .onEnd(() => {
-          "worklet";
-          runOnJS(runCommitZoom)(pinchScale.value, focalCy.value + viewH.value / 2);
-          pinchScale.value = 1;
-          focalCx.value = 0;
-          focalCy.value = 0;
+          const level = findNearestZoomLevel(renderWeekRowHeightRef.current);
+          const anchor = pinchAnchorRef.current;
+          if (anchor) {
+            pendingScrollOffsetRef.current = anchorScrollOffset(
+              anchor,
+              ZOOM_LEVELS[level]!.weekRowHeight,
+            );
+          }
+          pinchAnchorRef.current = null;
+          setPinchHeight(null);
+          setZoomLevel(level);
         }),
-    [focalCx, focalCy, viewW, viewH, pinchScale, curHeight, runCommitZoom],
+    [computeAnchor, anchorScrollOffset],
   );
 
   useImperativeHandle(ref, () => ({
@@ -347,46 +384,17 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
   const onVisibleMonthChangeRef = useRef(onVisibleMonthChange);
   onVisibleMonthChangeRef.current = onVisibleMonthChange;
 
-  // 월별 FlatList 아이템 높이·오프셋 — 핀치 중에도 안정적으로 유지 (stableWeekRowHeight 사용)
+  // 월별 FlatList 아이템 높이·오프셋 — 핀치 중엔 렌더 높이로 실시간 재계산(겹침 방지)
   const itemLayouts = useMemo(() => {
     const result: { height: number; offset: number }[] = [];
     let offset = 0;
     for (const m of months) {
-      const height = getMonthItemHeight(m.year, m.month, stableWeekRowHeight);
+      const height = getMonthItemHeight(m.year, m.month, renderWeekRowHeight);
       result.push({ height, offset });
       offset += height;
     }
     return result;
-  }, [months, stableWeekRowHeight]);
-
-  // 핀치 종료 커밋 — 최신 레이아웃/스크롤을 참조하도록 매 렌더 갱신
-  commitZoomRef.current = (scale: number, focalY: number) => {
-    const oldH = stableWeekRowHeight;
-    const newHeight = Math.max(PINCH_MIN_H, Math.min(PINCH_MAX_H, oldH * scale));
-    const newLevel = findNearestZoomLevel(newHeight);
-    const newH = ZOOM_LEVELS[newLevel]!.weekRowHeight;
-
-    // 포컬이 가리키는 콘텐츠 좌표(구 레이아웃) → 해당 월·행 파악
-    const contentY = scrollYRef.current + focalY;
-    let mIdx = months.length - 1;
-    for (let i = 0; i < months.length; i++) {
-      const bottom = itemLayouts[i]!.offset + itemLayouts[i]!.height;
-      if (contentY < bottom) { mIdx = i; break; }
-    }
-    const localY = contentY - itemLayouts[mIdx]!.offset;
-    // MM월 레이블 높이는 줌과 무관, 그 아래 주(週) 영역만 비율 스케일
-    const newLocalY =
-      localY <= MONTH_LABEL_HEIGHT
-        ? localY
-        : MONTH_LABEL_HEIGHT + ((localY - MONTH_LABEL_HEIGHT) / oldH) * newH;
-    let newOffset = 0;
-    for (let i = 0; i < mIdx; i++) {
-      newOffset += getMonthItemHeight(months[i]!.year, months[i]!.month, newH);
-    }
-    // 포컬 콘텐츠가 같은 화면 Y(focalY)에 오도록 스크롤 오프셋 산출
-    pendingScrollOffsetRef.current = Math.max(0, newOffset + newLocalY - focalY);
-    setZoomLevel(newLevel);
-  };
+  }, [months, renderWeekRowHeight]);
 
   // 스크롤 위치 기반 서브타이틀 갱신
   const handleScroll = useCallback(
@@ -397,7 +405,7 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
       for (let i = 0; i < months.length; i++) {
         const weekCount = getWeekCount(months[i]!.year, months[i]!.month);
         const lastRowTopY =
-          itemLayouts[i]!.offset + MONTH_LABEL_HEIGHT + (weekCount - 1) * stableWeekRowHeight;
+          itemLayouts[i]!.offset + MONTH_LABEL_HEIGHT + (weekCount - 1) * renderWeekRowHeight;
         if (scrollY > lastRowTopY) {
           newIdx = i + 1;
         } else {
@@ -410,16 +418,29 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
         onVisibleMonthChangeRef.current?.(months[newIdx]!.year, months[newIdx]!.month);
       }
     },
-    [months, itemLayouts, stableWeekRowHeight],
+    [months, itemLayouts, renderWeekRowHeight],
   );
 
-  // 핀치 스냅 후: 포컬 앵커를 유지하도록 새 레이아웃 기준 절대 오프셋으로 스크롤 복원
+  // 핀치 중: 높이가 바뀔 때마다 앵커(터치 행)가 손가락 아래에 유지되도록 스크롤 보정
   useEffect(() => {
+    if (pinchHeight === null) return;
+    const anchor = pinchAnchorRef.current;
+    if (!anchor) return;
+    listRef.current?.scrollToOffset({
+      offset: anchorScrollOffset(anchor, pinchHeight),
+      animated: false,
+    });
+  }, [pinchHeight, anchorScrollOffset]);
+
+  // 핀치 종료 후(핀치 높이 해제 시): 포컬 앵커를 유지하도록 스냅 높이 기준 절대 오프셋으로 복원
+  // (레벨이 그대로여도 pinchHeight가 null로 바뀌므로 항상 적용된다)
+  useEffect(() => {
+    if (pinchHeight !== null) return; // 핀치 중엔 라이브 보정 효과가 담당
     const off = pendingScrollOffsetRef.current;
     if (off === null) return;
     pendingScrollOffsetRef.current = null;
     listRef.current?.scrollToOffset({ offset: off, animated: false });
-  }, [zoomLevel]);
+  }, [pinchHeight, zoomLevel]);
 
   // 초기 진입 시 MM월 레이블을 숨기고 첫 주 구분선이 요일바 하단과 맞닿게 스크롤
   useEffect(() => {
@@ -476,39 +497,32 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
     <GestureDetector gesture={pinchGesture}>
       <View
         style={{ flex: 1, backgroundColor: colors.background.primary }}
-        onLayout={(e) => {
-          const { width, height } = e.nativeEvent.layout;
-          viewportHeightRef.current = height;
-          viewW.value = width;
-          viewH.value = height;
-        }}
+        onLayout={(e) => { viewportHeightRef.current = e.nativeEvent.layout.height; }}
       >
-        <Animated.View style={[{ flex: 1 }, pinchAnimStyle]}>
-          <FlatList<YearMonth>
-            ref={listRef}
-            data={months}
-            renderItem={renderItem}
-            keyExtractor={keyExtractor}
-            getItemLayout={getItemLayout}
-            initialScrollIndex={initialIndex}
-            onScrollToIndexFailed={() => {
-              listRef.current?.scrollToOffset({
-                offset: itemLayouts[initialIndex]!.offset + MONTH_LABEL_HEIGHT,
-                animated: false,
-              });
-            }}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            windowSize={9}
-            maxToRenderPerBatch={5}
-            updateCellsBatchingPeriod={40}
-            initialNumToRender={3}
-            removeClippedSubviews
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 72 }}
-            testID="month-list"
-          />
-        </Animated.View>
+        <FlatList<YearMonth>
+          ref={listRef}
+          data={months}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
+          initialScrollIndex={initialIndex}
+          onScrollToIndexFailed={() => {
+            listRef.current?.scrollToOffset({
+              offset: itemLayouts[initialIndex]!.offset + MONTH_LABEL_HEIGHT,
+              animated: false,
+            });
+          }}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          windowSize={9}
+          maxToRenderPerBatch={5}
+          updateCellsBatchingPeriod={40}
+          initialNumToRender={3}
+          removeClippedSubviews
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 72 }}
+          testID="month-list"
+        />
       </View>
     </GestureDetector>
   );
