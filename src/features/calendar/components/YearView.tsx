@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef } from "react";
 import {
   FlatList,
   Pressable,
@@ -6,6 +6,7 @@ import {
   Text,
   View,
 } from "react-native";
+import type { ViewToken } from "react-native";
 
 import { YEAR_VIEW } from "@/config/layout";
 import { useTheme } from "@/theme";
@@ -51,12 +52,18 @@ function padMiniGridTo6Rows(grid: CalendarDay[]): CalendarDay[] {
 
 // ── YearView ──────────────────────────────────────────────────────────────────
 
+export interface YearViewHandle {
+  scrollToYear: (year: number, animated: boolean) => void;
+}
+
 interface Props {
   initialYear?: number;
   onMonthPress: (year: number, month: number) => void;
+  onVisibleYearChange?: (year: number) => void;
 }
 
-export function YearView({ initialYear, onMonthPress }: Props) {
+export const YearView = React.forwardRef<YearViewHandle, Props>(
+  function YearView({ initialYear, onMonthPress, onVisibleYearChange }, ref) {
   const { colors } = useTheme();
   const today = useMemo(() => new Date(), []);
 
@@ -65,6 +72,25 @@ export function YearView({ initialYear, onMonthPress }: Props) {
   const initialIndex = Math.floor(YEAR_WINDOW / 2);
 
   const listRef = useRef<FlatList<number>>(null);
+
+  useImperativeHandle(ref, () => ({
+    scrollToYear(year: number, animated: boolean) {
+      const idx = years.indexOf(year);
+      if (idx < 0) return;
+      listRef.current?.scrollToOffset({ offset: idx * YEAR_ITEM_HEIGHT, animated });
+    },
+  }), [years]);
+
+  const onVisibleYearChangeRef = useRef(onVisibleYearChange);
+  onVisibleYearChangeRef.current = onVisibleYearChange;
+
+  const onViewableItemsChangedRef = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const first = viewableItems[0];
+      if (first) onVisibleYearChangeRef.current?.(first.item as number);
+    }
+  );
+  const onViewableItemsChanged = onViewableItemsChangedRef.current;
 
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({
@@ -107,6 +133,7 @@ export function YearView({ initialYear, onMonthPress }: Props) {
       keyExtractor={keyExtractor}
       getItemLayout={getItemLayout}
       initialScrollIndex={initialIndex}
+      onViewableItemsChanged={onViewableItemsChanged}
       windowSize={3}
       removeClippedSubviews
       showsVerticalScrollIndicator={false}
@@ -114,7 +141,7 @@ export function YearView({ initialYear, onMonthPress }: Props) {
       contentContainerStyle={{ paddingBottom: 80 }}
     />
   );
-}
+});
 
 // ── YearItem ──────────────────────────────────────────────────────────────────
 

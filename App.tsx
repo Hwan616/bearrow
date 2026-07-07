@@ -24,6 +24,7 @@ import { EventDetailSheet } from "@/features/calendar/components/EventDetailShee
 import { MonthView } from "@/features/calendar/components/MonthView";
 import type { MonthViewHandle } from "@/features/calendar/components/MonthView";
 import { YearView } from "@/features/calendar/components/YearView";
+import type { YearViewHandle } from "@/features/calendar/components/YearView";
 import { YearMonthPicker } from "@/features/calendar/components/YearMonthPicker";
 import type { Event } from "@/features/calendar/types";
 import { ensureDefaultCategoriesExist } from "@/features/category/api/categories";
@@ -156,6 +157,9 @@ function AppContent() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calendarKey, setCalendarKey] = useState(0);
 
+  // Year View: 스크롤 중인 연도 추적
+  const [visibleYear, setVisibleYear] = useState(new Date().getFullYear());
+  const yearViewRef = useRef<YearViewHandle>(null);
   // Month View: 스크롤 중인 월 추적 (back 레이블 + 서브타이틀용)
   const [visibleMonthYear, setVisibleMonthYear] = useState(new Date().getFullYear());
   const [visibleMonthMonth, setVisibleMonthMonth] = useState(new Date().getMonth());
@@ -199,18 +203,44 @@ function AppContent() {
 
   function goToToday() {
     const today = new Date();
-    setSelectedDate(today);
+    const todayYear = today.getFullYear();
+    const todayMonth = today.getMonth();
+
     if (activeView === "year") {
-      setVisibleMonthYear(today.getFullYear());
-      setVisibleMonthMonth(today.getMonth());
-      setActiveView("month");
-      setCalendarKey((k) => k + 1);
+      setSelectedDate(today);
+      if (visibleYear === todayYear) {
+        // 당해 보는 중 → Month View로 이동
+        setVisibleMonthYear(todayYear);
+        setVisibleMonthMonth(todayMonth);
+        setActiveView("month");
+        setCalendarKey((k) => k + 1);
+      } else if (Math.abs(visibleYear - todayYear) <= 5) {
+        // ±5년 이내 → 애니메이션 스크롤로 당해 이동
+        yearViewRef.current?.scrollToYear(todayYear, true);
+      } else {
+        // ±5년 초과 → 즉시 당해로 이동 (애니메이션 없음)
+        yearViewRef.current?.scrollToYear(todayYear, false);
+      }
     } else if (activeView === "month") {
-      setVisibleMonthYear(today.getFullYear());
-      setVisibleMonthMonth(today.getMonth());
-      setCalendarKey((k) => k + 1);
+      setSelectedDate(today);
+      if (visibleMonthYear === todayYear && visibleMonthMonth === todayMonth) {
+        // 당월 보는 중 → Day View로 이동
+        setVisibleDayDate(today);
+        setActiveView("day");
+      } else if (visibleMonthYear === todayYear) {
+        // 당해에 속하는 다른 달 → 스크롤로 당월 이동
+        setVisibleMonthYear(todayYear);
+        setVisibleMonthMonth(todayMonth);
+        monthViewRef.current?.scrollToMonth(todayYear, todayMonth);
+      } else {
+        // 다른 연도 → 즉시 당월로 화면 전환
+        setVisibleMonthYear(todayYear);
+        setVisibleMonthMonth(todayMonth);
+        setCalendarKey((k) => k + 1);
+      }
     } else {
-      // Day 뷰: visibleDayDate를 오늘로 맞추면 DayView가 key 재생성으로 이동
+      // Day View: 기존 동작 유지
+      setSelectedDate(today);
       setVisibleDayDate(today);
     }
   }
@@ -339,6 +369,7 @@ function AppContent() {
       {activeView === "year" && (
         <View testID="view-year" style={{ flex: 1 }}>
           <YearView
+            ref={yearViewRef}
             initialYear={selectedDate.getFullYear()}
             onMonthPress={(yr, mo) => {
               setSelectedDate(new Date(yr, mo, 1));
@@ -346,6 +377,7 @@ function AppContent() {
               setVisibleMonthMonth(mo);
               setActiveView("month");
             }}
+            onVisibleYearChange={(yr) => setVisibleYear(yr)}
           />
         </View>
       )}

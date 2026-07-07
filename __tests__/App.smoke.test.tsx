@@ -168,12 +168,12 @@ describe("뷰 전환", () => {
     expect(screen.getByTestId("view-month")).toBeTruthy();
   });
 
-  it("Month 뷰에서 오늘 버튼을 누르면 Month 뷰를 유지한다", async () => {
+  it("Month 뷰에서 당월을 보는 중 오늘 버튼을 누르면 Day 뷰로 이동한다", async () => {
     await renderReady();
     await act(async () => {
       fireEvent.press(screen.getByTestId("btn-today"));
     });
-    expect(screen.getByTestId("view-month")).toBeTruthy();
+    expect(screen.getByTestId("view-day")).toBeTruthy();
   });
 
   it("Year 뷰에서 오늘 버튼을 누르면 Month 뷰로 이동한다", async () => {
