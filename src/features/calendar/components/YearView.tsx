@@ -240,11 +240,11 @@ function makeStyles(colors: ColorTokens) {
     monthsGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      paddingHorizontal: 8,
+      paddingHorizontal: 12,
     },
     miniMonthWrapper: {
       width: "33.33%",
-      paddingHorizontal: 6,
+      paddingHorizontal: 4,
       paddingVertical: 8,
     },
     miniMonthTitle: {
@@ -276,7 +276,7 @@ function makeStyles(colors: ColorTokens) {
       backgroundColor: colors.status.error,
     },
     miniDayText: {
-      fontSize: 9,
+      fontSize: 11,
       color: colors.text.primary,
     },
     miniDayTextOutside: {
