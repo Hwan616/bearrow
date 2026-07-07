@@ -121,6 +121,7 @@ jest.mock("@/features/todo/hooks/useTodos", () => ({
 }));
 
 jest.mock("@/features/category/api/categories", () => ({
+  ensureDefaultCategoriesExist: jest.fn().mockResolvedValue(undefined),
   ensureDefaultCategory: jest.fn().mockResolvedValue(undefined),
 }));
 

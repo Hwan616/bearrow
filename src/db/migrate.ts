@@ -97,6 +97,10 @@ const MIGRATIONS: Migration[] = [
       UPDATE todos SET has_due_time = CASE WHEN due_date IS NOT NULL THEN 1 ELSE 0 END;
     `,
   },
+  {
+    name: "0009_add_scope_to_categories",
+    sql: `ALTER TABLE categories ADD COLUMN scope TEXT NOT NULL DEFAULT 'event';`,
+  },
 ];
 
 // 앱 시작 시 한 번 호출한다 (예: App.tsx useEffect).

@@ -14,7 +14,7 @@ import { useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
 
 import { useCategories } from "../hooks/useCategories";
-import type { Category } from "../types";
+import type { Category, CategoryScope } from "../types";
 import { CategoryForm } from "./CategoryForm";
 
 interface Props {
@@ -24,7 +24,8 @@ interface Props {
 export function CategoryManager({ onClose }: Props) {
   const { colors } = useTheme();
   const s = makeStyles(colors);
-  const { categories, handleCreate, handleUpdate, handleDelete } = useCategories();
+  const [scope, setScope] = useState<CategoryScope>("event");
+  const { categories, handleCreate, handleUpdate, handleDelete } = useCategories(scope);
 
   const [formVisible, setFormVisible] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
@@ -60,7 +61,7 @@ export function CategoryManager({ onClose }: Props) {
     }
     Alert.alert(
       "카테고리 삭제",
-      `"${cat.name}" 카테고리를 삭제하시겠습니까?\n이 카테고리의 할일은 다른 카테고리로 자동 이동합니다.`,
+      `"${cat.name}" 카테고리를 삭제하시겠습니까?\n이 카테고리의 ${scope === "event" ? "일정" : "할일"}은 다른 카테고리로 자동 이동합니다.`,
       [
         { text: "취소", style: "cancel" },
         {
@@ -87,6 +88,26 @@ export function CategoryManager({ onClose }: Props) {
         <Text style={[s.headerTitle, { color: colors.text.primary }]}>카테고리 관리</Text>
         <Pressable onPress={openCreate} style={s.headerBtn}>
           <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>추가</Text>
+        </Pressable>
+      </View>
+
+      {/* 탭: 일정 / ToDo */}
+      <View style={[s.tabRow, { borderBottomColor: colors.border.default }]}>
+        <Pressable
+          style={[s.tab, scope === "event" && { borderBottomColor: colors.accent.primary }]}
+          onPress={() => setScope("event")}
+        >
+          <Text style={[s.tabText, { color: scope === "event" ? colors.accent.primary : colors.text.secondary }]}>
+            일정
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[s.tab, scope === "todo" && { borderBottomColor: colors.accent.primary }]}
+          onPress={() => setScope("todo")}
+        >
+          <Text style={[s.tabText, { color: scope === "todo" ? colors.accent.primary : colors.text.secondary }]}>
+            ToDo
+          </Text>
         </Pressable>
       </View>
 
@@ -164,6 +185,18 @@ function makeStyles(colors: ColorTokens) {
     headerTitle: { fontSize: 17, fontWeight: "600" },
     headerBtn: { minWidth: 44, minHeight: 44, justifyContent: "center" },
     headerBtnText: { fontSize: 17 },
+    tabRow: {
+      flexDirection: "row",
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    tab: {
+      flex: 1,
+      alignItems: "center",
+      paddingVertical: 12,
+      borderBottomWidth: 2,
+      borderBottomColor: "transparent",
+    },
+    tabText: { fontSize: 15, fontWeight: "600" },
     list: { padding: 16, gap: 8 },
     card: { borderRadius: 12, paddingHorizontal: 16 },
     row: {

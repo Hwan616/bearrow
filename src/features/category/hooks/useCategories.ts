@@ -1,8 +1,13 @@
 import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useState } from "react";
 
-import { createCategory, deleteCategory, getCategories, updateCategory } from "../api/categories";
-import type { Category } from "../types";
+import {
+  createCategory,
+  deleteCategory,
+  getCategoriesByScope,
+  updateCategory,
+} from "../api/categories";
+import type { Category, CategoryScope } from "../types";
 
 export type UseCategoriesReturn = {
   categories: Category[];
@@ -13,15 +18,15 @@ export type UseCategoriesReturn = {
   handleDelete: (id: string) => Promise<void>;
 };
 
-export function useCategories(): UseCategoriesReturn {
+export function useCategories(scope: CategoryScope): UseCategoriesReturn {
   const [cats, setCats] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const data = await getCategories();
+    const data = await getCategoriesByScope(scope);
     setCats(data);
     setIsLoading(false);
-  }, []);
+  }, [scope]);
 
   useEffect(() => {
     void refresh();
@@ -34,13 +39,14 @@ export function useCategories(): UseCategoriesReturn {
         id: Crypto.randomUUID(),
         name: name.trim() || "카테고리",
         color,
+        scope,
         sortOrder: cats.length,
         createdAt: now,
         updatedAt: now,
       });
       await refresh();
     },
-    [cats.length, refresh],
+    [scope, cats.length, refresh],
   );
 
   const handleUpdate = useCallback(

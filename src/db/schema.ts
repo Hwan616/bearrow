@@ -45,6 +45,7 @@ export const categories = sqliteTable("categories", {
   id: text("id").notNull().primaryKey(),
   name: text("name").notNull(),
   color: text("color").notNull().default("#2E5AAC"),
+  scope: text("scope").$type<"event" | "todo">().notNull().default("event"),
   sortOrder: int("sort_order").notNull().default(0),
   createdAt: int("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: int("updated_at", { mode: "timestamp" }).notNull(),

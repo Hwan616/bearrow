@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 
-import { getCategories } from "@/features/category/api/categories";
+import { getCategoriesByScope } from "@/features/category/api/categories";
 import type { Category } from "@/features/category/types";
 import { useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
@@ -57,7 +57,7 @@ function TodoForm({ initial, hideHeader = false, onSave, onCancel }, ref) {
   });
 
   useEffect(() => {
-    getCategories().then(setCategories);
+    getCategoriesByScope("todo").then(setCategories);
   }, []);
 
   // 생성 모드에서만: 카테고리 로드 후 첫 번째를 기본값으로 설정
@@ -146,7 +146,7 @@ function TodoForm({ initial, hideHeader = false, onSave, onCancel }, ref) {
             render={({ field }) => (
               <TextInput
                 style={[styles.noteInput, { color: colors.text.primary }]}
-                placeholder="메모 (선택)"
+                placeholder="메모"
                 placeholderTextColor={colors.text.disabled}
                 value={field.value}
                 onChangeText={field.onChange}

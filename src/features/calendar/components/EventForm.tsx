@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 
-import { getCategories } from "@/features/category/api/categories";
+import { getCategoriesByScope } from "@/features/category/api/categories";
 import type { Category } from "@/features/category/types";
 import { useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
@@ -81,7 +81,7 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onCa
   const isAllDay = watch("isAllDay");
 
   useEffect(() => {
-    getCategories().then(setCategories);
+    getCategoriesByScope("event").then(setCategories);
   }, []);
 
   // 생성 모드: 카테고리 로드 후 첫 번째를 기본값으로 설정

@@ -6,7 +6,7 @@ import type { Todo } from "../../types";
 
 function makeCat(id: string, name: string, sortOrder = 0): Category {
   const now = new Date();
-  return { id, name, color: "#2E5AAC", sortOrder, createdAt: now, updatedAt: now };
+  return { id, name, color: "#2E5AAC", scope: "todo", sortOrder, createdAt: now, updatedAt: now };
 }
 
 function makeTodo(id: string, categoryId: string | null = null): Todo {

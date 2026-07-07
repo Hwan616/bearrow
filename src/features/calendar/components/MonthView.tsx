@@ -28,12 +28,12 @@ const EVENT_AREA_HEIGHT = MAX_TRACKS * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN;
 
 // ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
 // iOS 시스템 폰트 lineHeight 계수 ≈ 1.32
-// monthLabelOnFirst: fontSize:22 lineHeight≈29 + paddingVertical:8 = 37
-const MONTH_LABEL_HEIGHT = 37;     // monthLabelAboveRow 높이
-const WEEK_ROW_HEIGHT = 90;        // dayCells:44 + eventBars:34 + holidays:12
+// monthLabelOnFirst: fontSize:17 lineHeight≈23 + paddingVertical:8 = 31
+const MONTH_LABEL_HEIGHT = 31;     // monthLabelAboveRow 높이
+const WEEK_ROW_HEIGHT = 105;       // dayCells:59 + eventBars:34 + holidays:12
 const FIXED_WEEKS = 6;
 const MONTH_ITEM_HEIGHT = MONTH_LABEL_HEIGHT + FIXED_WEEKS * WEEK_ROW_HEIGHT;
-// 37 + 6×90 = 577
+// 31 + 6×105 = 661
 
 const MONTH_WINDOW = 49; // ±24 months
 
@@ -321,7 +321,8 @@ const MonthItem = React.memo(function MonthItem({
                   {Array.from({ length: firstDayCol }, (_, i) => (
                     <View key={`sp-${i}`} style={s.monthLabelSpacer} />
                   ))}
-                  <Text style={[s.monthLabelOnFirst, isThisMonth && s.monthLabelCurrent]}>
+                  {/* 헤더 서브타이틀에 이미 표시되는 당월은 숨김 (레이아웃 높이 유지) */}
+                  <Text style={[s.monthLabelOnFirst, isThisMonth && s.monthLabelCurrent, isThisMonth && { opacity: 0 }]}>
                     {month + 1}월
                   </Text>
                 </View>
@@ -458,7 +459,7 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     monthLabelOnFirst: {
       width: `${100 / 7}%` as `${number}%`,
-      fontSize: 22,
+      fontSize: 17,
       fontWeight: "700",
       color: colors.text.secondary,
       textAlign: "center",
@@ -481,7 +482,7 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     dayCell: {
       width: `${100 / 7}%` as `${number}%`,
-      minHeight: 44,
+      minHeight: 59,
       alignItems: "center",
       justifyContent: "center",
       position: "relative",

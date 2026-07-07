@@ -9,26 +9,6 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-
-// ── 아이콘 컴포넌트 ────────────────────────────────────────────────────────────
-
-function GearIcon({ size = 20, color }: { size?: number; color: string }) {
-  return (
-    <Text style={{ fontSize: size, color, lineHeight: size + 2, includeFontPadding: false }}>
-      {'⚙︎'}
-    </Text>
-  );
-}
-
-function PlusIcon({ size = 18, color }: { size?: number; color: string }) {
-  const bar = Math.max(2, Math.round(size * 0.13));
-  return (
-    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
-      <View style={{ position: "absolute", width: Math.round(size * 0.75), height: bar, backgroundColor: color, borderRadius: bar / 2 }} />
-      <View style={{ position: "absolute", height: Math.round(size * 0.75), width: bar, backgroundColor: color, borderRadius: bar / 2 }} />
-    </View>
-  );
-}
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { sqliteDb } from "@/db/client";
@@ -46,7 +26,7 @@ import type { MonthViewHandle } from "@/features/calendar/components/MonthView";
 import { YearView } from "@/features/calendar/components/YearView";
 import { YearMonthPicker } from "@/features/calendar/components/YearMonthPicker";
 import type { Event } from "@/features/calendar/types";
-import { ensureDefaultCategory } from "@/features/category/api/categories";
+import { ensureDefaultCategoriesExist } from "@/features/category/api/categories";
 import { AppSettingsProvider } from "@/features/settings/AppSettingsContext";
 import { SettingsSheet } from "@/features/settings/components/SettingsSheet";
 import { TodoForm } from "@/features/todo/components/TodoForm";
@@ -56,6 +36,94 @@ import type { Todo } from "@/features/todo/types";
 import { Sentry } from "@/lib/sentry";
 import { ThemeProvider, useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
+
+// ── 아이콘 컴포넌트 ────────────────────────────────────────────────────────────
+
+function GearIcon({ size = 18, color }: { size?: number; color: string }) {
+  const r = size / 2;
+  const bodyR = r * 0.62;
+  const toothW = r * 0.38;
+  const toothH = r * 0.50;
+  // 치아 중심까지의 거리 (body 반경 + 치아 높이의 일부)
+  const offset = bodyR + toothH * 0.28;
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      {Array.from({ length: 8 }, (_, i) => (
+        <View
+          key={i}
+          style={{
+            position: "absolute",
+            width: toothW,
+            height: toothH,
+            left: (size - toothW) / 2,
+            top: (size - toothH) / 2,
+            backgroundColor: color,
+            borderRadius: toothW / 2,
+            transform: [
+              { translateY: -offset },
+              { rotate: `${i * 45}deg` },
+            ],
+          }}
+        />
+      ))}
+      {/* 중앙 원형 몸체 */}
+      <View style={{
+        position: "absolute",
+        width: bodyR * 2,
+        height: bodyR * 2,
+        borderRadius: bodyR,
+        backgroundColor: color,
+      }} />
+    </View>
+  );
+}
+
+function PlusIcon({ size = 18, color }: { size?: number; color: string }) {
+  const bar = Math.max(2, Math.round(size * 0.13));
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ position: "absolute", width: Math.round(size * 0.75), height: bar, backgroundColor: color, borderRadius: bar / 2 }} />
+      <View style={{ position: "absolute", height: Math.round(size * 0.75), width: bar, backgroundColor: color, borderRadius: bar / 2 }} />
+    </View>
+  );
+}
+
+function ChevronLeft({ size = 12, color }: { size?: number; color: string }) {
+  const stroke = Math.max(1.5, size * 0.14);
+  const halfH = size / 2;
+  // 팁 각도 ≈ 95°: 각 팔이 수평에서 47.5° 기울어짐
+  const angleDeg = 47.5;
+  const armW = halfH / Math.tan((angleDeg * Math.PI) / 180);
+  const armLen = Math.sqrt(armW * armW + halfH * halfH);
+  const pad = Math.ceil(Math.max(0, armLen / 2 - armW / 2));
+  const containerW = Math.ceil(armW + pad);
+  const armLeft = pad + armW / 2 - armLen / 2;
+
+  return (
+    <View style={{ width: containerW, height: size }}>
+      <View style={{
+        position: "absolute",
+        left: armLeft,
+        top: size / 4 - stroke / 2,
+        width: armLen,
+        height: stroke,
+        backgroundColor: color,
+        borderRadius: stroke / 2,
+        transform: [{ rotate: `${angleDeg}deg` }],
+      }} />
+      <View style={{
+        position: "absolute",
+        left: armLeft,
+        top: 3 * size / 4 - stroke / 2,
+        width: armLen,
+        height: stroke,
+        backgroundColor: color,
+        borderRadius: stroke / 2,
+        transform: [{ rotate: `-${angleDeg}deg` }],
+      }} />
+    </View>
+  );
+}
 
 const DAYS_OF_WEEK = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
@@ -112,7 +180,7 @@ function AppContent() {
   useEffect(() => {
     setupNotificationHandler();
     runMigrations(sqliteDb).then(async () => {
-      await ensureDefaultCategory();
+      await ensureDefaultCategoriesExist();
       await requestNotificationPermission();
       setReady(true);
     });
@@ -148,8 +216,8 @@ function AppContent() {
   }
 
   function getBackLabel(): string | null {
-    if (activeView === "day") return `< ${visibleDayDate.getMonth() + 1}월`;
-    if (activeView === "month") return `< ${visibleMonthYear}년`;
+    if (activeView === "day") return `${visibleDayDate.getMonth() + 1}월`;
+    if (activeView === "month") return `${visibleMonthYear}년`;
     return null;
   }
 
@@ -195,7 +263,10 @@ function AppContent() {
             accessibilityLabel="뒤로가기"
             accessibilityRole="button"
           >
-            <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>{backLabel}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+              <ChevronLeft size={13} color={colors.accent.primary} />
+              <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>{backLabel}</Text>
+            </View>
           </Pressable>
         ) : (
           <Text style={[s.appTitle, { color: colors.text.primary }]}>BeArrow</Text>
@@ -252,7 +323,7 @@ function AppContent() {
             accessibilityLabel="추가"
             accessibilityRole="button"
           >
-            <PlusIcon size={18} color={colors.accent.primary} />
+            <PlusIcon size={18} color={colors.text.primary} />
           </Pressable>
         </>
       )}

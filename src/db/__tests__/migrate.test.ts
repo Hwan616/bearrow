@@ -21,8 +21,8 @@ describe("runMigrations", () => {
 
     await runMigrations(db as never);
 
-    // _migrations 테이블 생성 1회 + MIGRATIONS 배열 항목 수(현재 8건)만큼 SQL 실행
-    expect(db.execAsync).toHaveBeenCalledTimes(9); // 1(tracker) + 8(migrations)
+    // _migrations 테이블 생성 1회 + MIGRATIONS 배열 항목 수(현재 9건)만큼 SQL 실행
+    expect(db.execAsync).toHaveBeenCalledTimes(10); // 1(tracker) + 9(migrations)
     expect(db.runAsync).toHaveBeenCalledWith(
       "INSERT INTO _migrations (name) VALUES (?)",
       ["0001_create_events"],

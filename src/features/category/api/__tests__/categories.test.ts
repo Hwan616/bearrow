@@ -1,8 +1,9 @@
 import {
   createCategory,
   deleteCategory,
-  ensureDefaultCategory,
+  ensureDefaultCategoriesExist,
   getCategories,
+  getCategoriesByScope,
   reorderCategories,
   updateCategory,
 } from "../categories";
@@ -12,9 +13,9 @@ import {
 const mockCatReturning = jest.fn();
 const mockCatValues = jest.fn();
 const mockCatFrom = jest.fn();
+const mockCatWhere = jest.fn();
 const mockCatOrderBy = jest.fn();
 const mockCatSet = jest.fn();
-// update().set().where() — thenable(Promise<void>) 이면서 .returning() 체이닝 가능
 const mockCatUpdateWhere = jest.fn();
 const mockCatDeleteWhere = jest.fn();
 
@@ -38,6 +39,7 @@ const mockCategory = {
   id: "cat-1",
   name: "업무",
   color: "#2E5AAC",
+  scope: "event" as const,
   sortOrder: 0,
   createdAt: new Date("2026-06-27T00:00:00Z"),
   updatedAt: new Date("2026-06-27T00:00:00Z"),
@@ -46,7 +48,9 @@ const mockCategory = {
 beforeEach(() => {
   jest.clearAllMocks();
   mockCatValues.mockReturnValue({ returning: mockCatReturning });
-  mockCatFrom.mockReturnValue({ orderBy: mockCatOrderBy });
+  // from() returns object with both .orderBy and .where
+  mockCatFrom.mockReturnValue({ orderBy: mockCatOrderBy, where: mockCatWhere });
+  mockCatWhere.mockReturnValue({ orderBy: mockCatOrderBy });
   mockCatOrderBy.mockResolvedValue([mockCategory]);
   mockCatSet.mockReturnValue({ where: mockCatUpdateWhere });
   mockCatDeleteWhere.mockResolvedValue(undefined);
@@ -85,11 +89,29 @@ describe("getCategories", () => {
   });
 });
 
+// ── getCategoriesByScope ────────────────────────────────────────────────────
+
+describe("getCategoriesByScope", () => {
+  it("scope=event 카테고리를 필터링해 반환한다", async () => {
+    mockCatOrderBy.mockResolvedValue([mockCategory]);
+    const result = await getCategoriesByScope("event");
+    expect(mockCatWhere).toHaveBeenCalled();
+    expect(mockCatOrderBy).toHaveBeenCalled();
+    expect(result).toEqual([mockCategory]);
+  });
+
+  it("scope=todo 카테고리를 필터링해 반환한다", async () => {
+    const todoCat = { ...mockCategory, id: "cat-t", scope: "todo" as const };
+    mockCatOrderBy.mockResolvedValue([todoCat]);
+    const result = await getCategoriesByScope("todo");
+    expect(result).toEqual([todoCat]);
+  });
+});
+
 // ── updateCategory ──────────────────────────────────────────────────────────
 
 describe("updateCategory", () => {
   beforeEach(() => {
-    // update 체인: set().where().returning()
     mockCatUpdateWhere.mockReturnValue({ returning: mockCatReturning });
   });
 
@@ -131,30 +153,46 @@ describe("deleteCategory", () => {
     id: "cat-2",
     name: "개인",
     color: "#E74C3C",
+    scope: "event" as const,
     sortOrder: 1,
     createdAt: new Date("2026-06-27T00:00:00Z"),
     updatedAt: new Date("2026-06-27T00:00:00Z"),
   };
 
   beforeEach(() => {
-    // 카테고리 2개: 삭제 성공 케이스 기본값
     mockCatOrderBy.mockResolvedValue([mockCategory, mockCategory2]);
-    // update().set().where() — Promise<void>
     mockCatUpdateWhere.mockResolvedValue(undefined);
   });
 
-  it("카테고리가 1개뿐이면 에러를 던진다", async () => {
+  it("해당 카테고리가 없으면 에러를 던진다", async () => {
+    mockCatOrderBy.mockResolvedValue([]);
+    await expect(deleteCategory("cat-없음")).rejects.toThrow("카테고리를 찾을 수 없습니다");
+  });
+
+  it("같은 scope의 마지막 카테고리이면 에러를 던진다", async () => {
     mockCatOrderBy.mockResolvedValue([mockCategory]);
     await expect(deleteCategory("cat-1")).rejects.toThrow("마지막 카테고리는 삭제할 수 없습니다");
   });
 
-  it("연결된 이벤트와 할일의 categoryId를 fallback 카테고리로 재배정한다", async () => {
+  it("event scope 삭제 시 이벤트만 재배정한다", async () => {
     const { db } = jest.requireMock("@/db/client") as {
       db: { update: jest.Mock; delete: jest.Mock };
     };
     await deleteCategory("cat-1");
-    expect(db.update).toHaveBeenCalledTimes(2);
+    expect(db.update).toHaveBeenCalledTimes(1);
     expect(mockCatSet).toHaveBeenCalledWith({ categoryId: "cat-2" });
+  });
+
+  it("todo scope 삭제 시 할일만 재배정한다", async () => {
+    const todoCat1 = { ...mockCategory, id: "cat-t1", scope: "todo" as const };
+    const todoCat2 = { ...mockCategory2, id: "cat-t2", scope: "todo" as const };
+    mockCatOrderBy.mockResolvedValue([todoCat1, todoCat2]);
+    const { db } = jest.requireMock("@/db/client") as {
+      db: { update: jest.Mock; delete: jest.Mock };
+    };
+    await deleteCategory("cat-t1");
+    expect(db.update).toHaveBeenCalledTimes(1);
+    expect(mockCatSet).toHaveBeenCalledWith({ categoryId: "cat-t2" });
   });
 
   it("카테고리를 삭제한다", async () => {
@@ -162,7 +200,7 @@ describe("deleteCategory", () => {
     expect(mockCatDeleteWhere).toHaveBeenCalled();
   });
 
-  it("update(events) → update(todos) → delete 순서로 실행된다", async () => {
+  it("재배정 후 delete 순서로 실행된다", async () => {
     const calls: string[] = [];
     mockCatUpdateWhere.mockImplementation(() => {
       calls.push("update");
@@ -173,7 +211,7 @@ describe("deleteCategory", () => {
       return Promise.resolve(undefined);
     });
     await deleteCategory("cat-1");
-    expect(calls).toEqual(["update", "update", "delete"]);
+    expect(calls).toEqual(["update", "delete"]);
   });
 });
 
@@ -203,21 +241,50 @@ describe("reorderCategories", () => {
   });
 });
 
-// ── ensureDefaultCategory ───────────────────────────────────────────────────
+// ── ensureDefaultCategoriesExist ────────────────────────────────────────────
 
-describe("ensureDefaultCategory", () => {
-  it("카테고리가 없으면 기본 카테고리를 생성한다", async () => {
+describe("ensureDefaultCategoriesExist", () => {
+  it("카테고리가 없으면 일정·ToDo 기본 카테고리를 모두 생성한다", async () => {
     mockCatOrderBy.mockResolvedValue([]);
     mockCatReturning.mockResolvedValue([mockCategory]);
-    await ensureDefaultCategory();
-    expect(mockCatValues).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "일상", color: "#2E5AAC" }),
+    await ensureDefaultCategoriesExist();
+    expect(mockCatValues).toHaveBeenCalledTimes(2);
+    expect(mockCatValues).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ name: "일상", color: "#2E5AAC", scope: "event" }),
+    );
+    expect(mockCatValues).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ name: "할일", color: "#4CAF50", scope: "todo" }),
     );
   });
 
-  it("카테고리가 있으면 생성하지 않는다", async () => {
-    mockCatOrderBy.mockResolvedValue([mockCategory]);
-    await ensureDefaultCategory();
+  it("일정 카테고리가 없으면 일정 기본값만 생성한다", async () => {
+    mockCatOrderBy.mockResolvedValue([{ ...mockCategory, scope: "todo" as const }]);
+    mockCatReturning.mockResolvedValue([mockCategory]);
+    await ensureDefaultCategoriesExist();
+    expect(mockCatValues).toHaveBeenCalledTimes(1);
+    expect(mockCatValues).toHaveBeenCalledWith(
+      expect.objectContaining({ scope: "event" }),
+    );
+  });
+
+  it("ToDo 카테고리가 없으면 ToDo 기본값만 생성한다", async () => {
+    mockCatOrderBy.mockResolvedValue([{ ...mockCategory, scope: "event" as const }]);
+    mockCatReturning.mockResolvedValue([mockCategory]);
+    await ensureDefaultCategoriesExist();
+    expect(mockCatValues).toHaveBeenCalledTimes(1);
+    expect(mockCatValues).toHaveBeenCalledWith(
+      expect.objectContaining({ scope: "todo" }),
+    );
+  });
+
+  it("양쪽 카테고리가 있으면 아무것도 생성하지 않는다", async () => {
+    mockCatOrderBy.mockResolvedValue([
+      { ...mockCategory, scope: "event" as const },
+      { ...mockCategory, id: "cat-2", scope: "todo" as const },
+    ]);
+    await ensureDefaultCategoriesExist();
     expect(mockCatValues).not.toHaveBeenCalled();
   });
 });

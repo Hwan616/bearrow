@@ -21,14 +21,14 @@ const MONTH_NAMES = [
 // ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
 // iOS 시스템 폰트 lineHeight 계수 ≈ 1.32
 const MINI_CELL_HEIGHT = 18;       // paddingVertical:1×2 + circle:16
-const MINI_TITLE_HEIGHT = 57;      // fontSize:40 lineHeight≈53 + marginBottom:4
+const MINI_TITLE_HEIGHT = 29;      // fontSize:19 lineHeight≈25 + marginBottom:4
 const FIXED_MINI_ROWS = 6;
 const MINI_MONTH_HEIGHT =
   16 + MINI_TITLE_HEIGHT + FIXED_MINI_ROWS * MINI_CELL_HEIGHT;
-// paddingVertical:8×2=16 + 57 + 108 = 181
-const YEAR_HEADER_HEIGHT = 88;     // paddingVertical:16×2 + fontSize:38 lineHeight≈50 + divider-margin:6
+// paddingVertical:8×2=16 + 29 + 108 = 153
+const YEAR_HEADER_HEIGHT = 76;     // paddingVertical:16×2 + fontSize:29 lineHeight≈38 + divider-margin:6
 const YEAR_ITEM_HEIGHT = YEAR_HEADER_HEIGHT + 4 * MINI_MONTH_HEIGHT;
-// 88 + 4×181 = 812
+// 76 + 4×153 = 688
 
 const YEAR_WINDOW = 21; // ±10 years
 
@@ -224,7 +224,7 @@ function makeStyles(colors: ColorTokens) {
       paddingHorizontal: 16,
     },
     yearTitle: {
-      fontSize: 38,
+      fontSize: 29,
       fontWeight: "700",
       letterSpacing: -0.5,
       color: colors.text.primary,
@@ -248,7 +248,7 @@ function makeStyles(colors: ColorTokens) {
       paddingVertical: 8,
     },
     miniMonthTitle: {
-      fontSize: 40,
+      fontSize: 19,
       fontWeight: "700",
       textAlign: "left",
       marginBottom: 4,

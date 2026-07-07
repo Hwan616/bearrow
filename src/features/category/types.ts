@@ -2,6 +2,7 @@ import type { categories } from "@/db/schema";
 
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
+export type CategoryScope = "event" | "todo";
 
 export const CATEGORY_COLORS = [
   "#2E5AAC", // 기본 파랑
