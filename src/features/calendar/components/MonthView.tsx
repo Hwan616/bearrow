@@ -478,9 +478,9 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     monthLabelOnFirst: {
       width: `${100 / 7}%` as `${number}%`,
-      fontSize: 17,
+      fontSize: 19,
       fontWeight: "700",
-      color: colors.text.secondary,
+      color: colors.text.primary,
       textAlign: "center",
     },
     monthLabelCurrent: {

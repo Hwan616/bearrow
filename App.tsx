@@ -576,7 +576,7 @@ function makeStyles(colors: ColorTokens) {
     // 헤더 네비게이션 바
     header: {
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "flex-start",
       justifyContent: "space-between",
       paddingHorizontal: 16,
       borderBottomWidth: StyleSheet.hairlineWidth,
@@ -588,17 +588,18 @@ function makeStyles(colors: ColorTokens) {
     },
     headerRight: {
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "flex-start",
       gap: 4,
     },
     headerBtn: {
       paddingHorizontal: 8,
-      paddingVertical: 6,
+      paddingTop: 6,
+      paddingBottom: 0,
       minHeight: 44,
-      justifyContent: "center",
+      justifyContent: "flex-start",
     },
     headerBtnText: {
-      fontSize: 22,
+      fontSize: 20,
       fontWeight: "500",
     },
     headerIcon: {
@@ -608,6 +609,7 @@ function makeStyles(colors: ColorTokens) {
       fontSize: 18,
       fontWeight: "700",
       letterSpacing: -0.3,
+      paddingTop: 6,
     },
 
     // Month View: 서브타이틀 + 요일 바
