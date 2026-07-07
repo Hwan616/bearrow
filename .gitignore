@@ -53,9 +53,6 @@ CLAUDE.md
 .idea/
 .vscode/
 
-# progress (로컬 진행 기록 — git 비추적)
-progress/
-
 # misc
 npm-debug.log*
 *.log
