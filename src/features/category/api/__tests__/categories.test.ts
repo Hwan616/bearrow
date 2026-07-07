@@ -251,11 +251,11 @@ describe("ensureDefaultCategoriesExist", () => {
     expect(mockCatValues).toHaveBeenCalledTimes(2);
     expect(mockCatValues).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({ name: "일상", color: "#2E5AAC", scope: "event" }),
+      expect.objectContaining({ name: "일상", color: "#2F80FF", scope: "event" }),
     );
     expect(mockCatValues).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ name: "할일", color: "#4CAF50", scope: "todo" }),
+      expect.objectContaining({ name: "할일", color: "#2DE84D", scope: "todo" }),
     );
   });
 

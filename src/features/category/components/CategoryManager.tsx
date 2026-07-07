@@ -114,8 +114,8 @@ export function CategoryManager({ onClose }: Props) {
           <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>닫기</Text>
         </Pressable>
         <Text style={[s.headerTitle, { color: colors.text.primary }]}>카테고리 관리</Text>
-        <Pressable onPress={openCreate} style={s.headerBtn} accessibilityLabel="카테고리 추가">
-          <PlusIcon size={20} color={colors.text.primary} />
+        <Pressable onPress={openCreate} style={[s.headerBtn, { alignItems: "flex-end" }]} accessibilityLabel="카테고리 추가">
+          <PlusIcon size={18} color={colors.text.primary} />
         </Pressable>
       </View>
 

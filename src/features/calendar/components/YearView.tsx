@@ -267,7 +267,9 @@ function makeStyles(colors: ColorTokens) {
       alignItems: "stretch",
       justifyContent: "center",
       paddingVertical: 16,
-      paddingHorizontal: 16,
+      // 미니 달력 콘텐츠(monthsGrid outerPaddingH + miniMonthWrapper monthPaddingH)와
+      // 동일한 베젤 여백으로 맞춰 연도 제목·구분선을 정렬
+      paddingHorizontal: YEAR_VIEW.outerPaddingH + YEAR_VIEW.monthPaddingH,
     },
     yearTitle: {
       fontSize: 29,

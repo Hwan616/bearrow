@@ -191,7 +191,7 @@ const DayTimelineItem = React.memo(function DayTimelineItem({
   return (
     <View style={[s.dayItem, { borderBottomColor: colors.border.default }]} testID={`day-item-${date.toDateString()}`}>
       {/* 날짜 레이블 */}
-      <View style={[s.dateHeader, { borderBottomColor: colors.border.default }]}>
+      <View style={s.dateHeader}>
         <Text style={s.dateHeaderText}>{formatDayDateLabel(date)}</Text>
       </View>
 
@@ -369,7 +369,6 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       height: DATE_HEADER_HEIGHT,
       justifyContent: "center",
       paddingHorizontal: 12,
-      borderBottomWidth: StyleSheet.hairlineWidth,
     },
     dateHeaderText: {
       fontSize: 15,

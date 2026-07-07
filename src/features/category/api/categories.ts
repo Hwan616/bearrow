@@ -76,7 +76,7 @@ export async function ensureDefaultCategoriesExist(): Promise<void> {
     await createCategory({
       id: Crypto.randomUUID(),
       name: "일상",
-      color: "#2E5AAC",
+      color: "#2F80FF",
       scope: "event",
       sortOrder: 0,
       createdAt: now,
@@ -87,7 +87,7 @@ export async function ensureDefaultCategoriesExist(): Promise<void> {
     await createCategory({
       id: Crypto.randomUUID(),
       name: "할일",
-      color: "#4CAF50",
+      color: "#2DE84D",
       scope: "todo",
       sortOrder: 0,
       createdAt: now,

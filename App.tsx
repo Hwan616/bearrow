@@ -91,42 +91,36 @@ function GearIcon({ size = 18, color, bgColor }: { size?: number; color: string;
 
 function ChevronLeft({ size = 12, color }: { size?: number; color: string }) {
   const stroke = Math.max(1.5, size * 0.14);
-  const halfH = size / 2;
-  // 팁 각도 ≈ 95°: 각 팔이 수평에서 47.5° 기울어짐
-  const angleDeg = 47.5;
-  const armW = halfH / Math.tan((angleDeg * Math.PI) / 180);
-  const armLen = Math.sqrt(armW * armW + halfH * halfH);
-  const pad = Math.ceil(Math.max(0, armLen / 2 - armW / 2));
-  const containerW = Math.ceil(armW + pad);
-  const armLeft = pad + armW / 2 - armLen / 2;
-
+  // 정사각형의 좌·하 두 변에 테두리를 그린 뒤 45° 회전 → 하나의 완전한 꺾쇠(<)
+  // 두 팔이 한 꼭짓점에서 miter join으로 만나 갈라짐 없이 이어진다.
+  const d = size / Math.SQRT2;
+  const inset = (size - d) / 2;
+  const containerW = Math.ceil(size / 2 + stroke);
   return (
     <View style={{ width: containerW, height: size }}>
-      <View style={{
-        position: "absolute",
-        left: armLeft,
-        top: size / 4 - stroke / 2,
-        width: armLen,
-        height: stroke,
-        backgroundColor: color,
-        borderRadius: stroke / 2,
-        transform: [{ rotate: `${angleDeg}deg` }],
-      }} />
-      <View style={{
-        position: "absolute",
-        left: armLeft,
-        top: 3 * size / 4 - stroke / 2,
-        width: armLen,
-        height: stroke,
-        backgroundColor: color,
-        borderRadius: stroke / 2,
-        transform: [{ rotate: `-${angleDeg}deg` }],
-      }} />
+      <View
+        style={{
+          position: "absolute",
+          left: inset,
+          top: inset,
+          width: d,
+          height: d,
+          borderLeftWidth: stroke,
+          borderBottomWidth: stroke,
+          borderColor: color,
+          transform: [{ rotate: "45deg" }],
+        }}
+      />
     </View>
   );
 }
 
 const DAYS_OF_WEEK = ["일", "월", "화", "수", "목", "금", "토"] as const;
+
+// 하단 바 스크림(그라데이션) 설정
+const FOOTER_SCRIM_BANDS = 16;
+const FOOTER_SCRIM_MAX_OPACITY = 0.9;
+const FOOTER_SCRIM_HEIGHT = 130;
 
 /** Year / Month / Day 계층 뷰 */
 type CalendarView = "year" | "month" | "day";
@@ -329,6 +323,20 @@ function AppContent() {
   // box-none: 버튼 바깥 투명 영역은 터치를 아래 컨텐츠로 통과시킴
   const appFooter = (
     <View style={s.footer} pointerEvents="box-none">
+      {/* 하단 바 배경 스크림 — 위→아래로 배경색 불투명도가 강해지는 그라데이션
+          (버튼 가독성 확보; 실제 블러는 네이티브 모듈 필요) */}
+      <View style={s.footerScrim} pointerEvents="none">
+        {Array.from({ length: FOOTER_SCRIM_BANDS }, (_, i) => (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              backgroundColor: colors.background.primary,
+              opacity: (i / (FOOTER_SCRIM_BANDS - 1)) ** 1.4 * FOOTER_SCRIM_MAX_OPACITY,
+            }}
+          />
+        ))}
+      </View>
       <Pressable
         testID="btn-today"
         style={s.pillBtn}
@@ -666,7 +674,7 @@ function makeStyles(colors: ColorTokens) {
       fontWeight: "500",
     },
 
-    // Day View: 날짜 헤더 타이틀
+    // Day View: 날짜 헤더 타이틀 (라이트·다크 모두 회색 배경)
     dayHeaderTitle: {
       fontSize: 18,
       fontWeight: "600",
@@ -675,7 +683,7 @@ function makeStyles(colors: ColorTokens) {
       paddingHorizontal: 16,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border.default,
-      backgroundColor: colors.surface.default,
+      backgroundColor: colors.background.tertiary,
     },
 
     // 캘린더 위에 떠 있는 투명 오버레이 푸터
@@ -689,6 +697,15 @@ function makeStyles(colors: ColorTokens) {
       paddingHorizontal: FOOTER.paddingH,
       paddingVertical: 10,
       backgroundColor: "transparent",
+    },
+    // 하단 바 그라데이션 스크림 — 화면 하단까지 덮고 위로 갈수록 투명
+    footerScrim: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: -FOOTER.bottom,
+      height: FOOTER_SCRIM_HEIGHT,
+      flexDirection: "column",
     },
     // 모든 pill 버튼은 동일 크기 (minWidth) + 텍스트 중앙 정렬
     pillBtn: {

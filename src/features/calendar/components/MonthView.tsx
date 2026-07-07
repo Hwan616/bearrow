@@ -662,8 +662,11 @@ const MonthItem = React.memo(function MonthItem({
                           ]}
                         />
                       ) : (
-                        /* bars: 배경(불투명도) + 텍스트 */
+                        /* bars: 글씨(검정/흰색) 위에 카테고리 색 박스를 덧입힘 */
                         <>
+                          <Text style={s.eventBarText} numberOfLines={1}>
+                            {bar.title}
+                          </Text>
                           <View
                             testID={`event-bar-bg-${bar.eventId}`}
                             style={[
@@ -672,9 +675,6 @@ const MonthItem = React.memo(function MonthItem({
                               { backgroundColor: bar.color },
                             ]}
                           />
-                          <Text style={s.eventBarText} numberOfLines={1}>
-                            {bar.title}
-                          </Text>
                         </>
                       );
 
@@ -838,17 +838,17 @@ const makeStyles = (
       textAlign: "center",
       fontWeight: "500",
     },
-    // 일반 이벤트 박스 (텍스트 + 배경)
+    // 일반 이벤트 박스 (글씨 위에 색 박스를 덧입힘)
     eventBar: {
       position: "absolute",
-      borderRadius: 2,
+      borderRadius: 3,
       paddingHorizontal: 3,
       justifyContent: "center",
       overflow: "hidden",
       marginHorizontal: 1.5,
     },
     eventBarBg: {
-      borderRadius: 2,
+      borderRadius: 3,
       opacity: MONTH_VIEW.eventBarOpacity,
     },
     eventBarText: {
