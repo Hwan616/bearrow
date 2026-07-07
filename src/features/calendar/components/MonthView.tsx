@@ -423,10 +423,17 @@ const MonthItem = React.memo(function MonthItem({
           const holidayBars = computeHolidayBars(weekDays, holidayMap, eventBars, colors.status.error);
           const allBars = [...eventBars, ...holidayBars];
 
-          // overflow: MAX_TRACKS 초과 시 (n-1)개 표시 + indicator
-          const hasOverflow = allBars.length > MAX_TRACKS;
-          const displayBars = hasOverflow ? allBars.slice(0, MAX_TRACKS - 1) : allBars;
-          const overflowCount = hasOverflow ? allBars.length - (MAX_TRACKS - 1) : 0;
+          // 날짜별 커버 바 수 (해당 열을 지나는 allBars 개수)
+          const colBarCounts = Array.from({ length: 7 }, (_, col) =>
+            allBars.filter((b) => b.startCol <= col && b.endCol >= col).length,
+          );
+          // 현재 달 날짜 중 하나라도 MAX_TRACKS 초과면 마지막 슬롯을 indicator 자리로 예약
+          const rowHasOverflow = weekDays.some(
+            (d, col) => d.isCurrentMonth && (colBarCounts[col] ?? 0) > MAX_TRACKS,
+          );
+          const displayBars = allBars.filter(
+            (b) => b.track < (rowHasOverflow ? MAX_TRACKS - 1 : MAX_TRACKS),
+          );
 
           return (
             <React.Fragment key={rowIndex}>
@@ -459,12 +466,19 @@ const MonthItem = React.memo(function MonthItem({
 
                 {/* 날짜 셀 행 */}
                 <View style={s.dayCellsRow}>
-                  {weekDays.map(({ date, isCurrentMonth, isToday }) => {
+                  {weekDays.map(({ date, isCurrentMonth, isToday }, col) => {
                     const dayTodos = getTodosForDay(dueTodos, date);
                     const incompleteCount = dayTodos.filter((t) => !t.isCompleted).length;
                     const isSelected = selectedDate !== null && isSameDay(date, selectedDate);
                     const isSun = date.getDay() === 0;
                     const isSat = date.getDay() === 6;
+
+                    // 이 날짜의 overflow 개수 (현재 달 셀만)
+                    const colBarCount = colBarCounts[col] ?? 0;
+                    const colOverflow =
+                      isCurrentMonth && colBarCount > MAX_TRACKS
+                        ? colBarCount - (MAX_TRACKS - 1)
+                        : 0;
 
                     if (!isCurrentMonth) {
                       return <View key={date.toISOString()} style={s.dayCell} />;
@@ -504,6 +518,10 @@ const MonthItem = React.memo(function MonthItem({
                             {incompleteCount}
                           </Text>
                         )}
+                        {/* 날짜 셀 하단 중앙: 초과 일정 indicator */}
+                        {colOverflow > 0 && (
+                          <Text style={s.colOverflowText}>+{colOverflow}개</Text>
+                        )}
                       </Pressable>
                     );
                   })}
@@ -531,17 +549,6 @@ const MonthItem = React.memo(function MonthItem({
                       </Text>
                     </View>
                   ))}
-                  {/* overflow indicator: "+n개" */}
-                  {hasOverflow && (
-                    <View
-                      style={[
-                        s.overflowIndicator,
-                        { top: (MAX_TRACKS - 1) * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN },
-                      ]}
-                    >
-                      <Text style={s.overflowText}>+{overflowCount}개</Text>
-                    </View>
-                  )}
                 </View>
               </View>
             </React.Fragment>
@@ -636,15 +643,14 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       left: 0,
       right: 0,
     },
-    overflowIndicator: {
+    colOverflowText: {
       position: "absolute",
-      right: 4,
-      height: BAR_HEIGHT,
-      justifyContent: "center",
-    },
-    overflowText: {
-      fontSize: 10,
+      bottom: 2,
+      left: 0,
+      right: 0,
+      fontSize: 9,
       color: colors.text.secondary,
+      textAlign: "center",
       fontWeight: "500",
     },
     eventBar: {
