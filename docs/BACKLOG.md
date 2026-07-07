@@ -255,6 +255,10 @@
   - 완료: App.tsx·CategoryManager.tsx에 중복 정의된 PlusIcon을 `src/ui/Icons.tsx`로 추출. 두 파일 모두 공용 import로 교체.
   - 파일: `src/ui/Icons.tsx`, `App.tsx`, `src/features/category/components/CategoryManager.tsx`
   - 요구사항: `NFR-CON-001`
+- [x] **7.21 YearView 진입 시 당해 글자 최상단 표시**
+  - 완료: YearItem 루트 View에 `height: YEAR_ITEM_HEIGHT` 명시(폰트 메트릭 오차 제거) + onScrollToIndexFailed 대신 useEffect+scrollToOffset 패턴으로 마운트 후 안정적 스크롤.
+  - 파일: `src/features/calendar/components/YearView.tsx`
+  - 요구사항: `UI-007`
 
 ## Phase 8 — 출시
 
