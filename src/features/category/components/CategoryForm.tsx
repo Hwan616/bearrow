@@ -20,9 +20,10 @@ interface Props {
   initial?: Category;
   onSave: (name: string, color: string) => Promise<void>;
   onCancel: () => void;
+  onDelete?: () => void;
 }
 
-export function CategoryForm({ initial, onSave, onCancel }: Props) {
+export function CategoryForm({ initial, onSave, onCancel, onDelete }: Props) {
   const { colors } = useTheme();
   const s = makeStyles(colors);
 
@@ -98,6 +99,17 @@ export function CategoryForm({ initial, onSave, onCancel }: Props) {
             {name.trim() || "카테고리"}
           </Text>
         </View>
+
+        {/* 삭제 */}
+        {initial && onDelete && (
+          <Pressable
+            onPress={onDelete}
+            style={[s.deleteSection, { backgroundColor: colors.surface.default }]}
+          >
+            <Text style={[s.deleteBtnText, { color: colors.status.error }]}>카테고리 삭제</Text>
+          </Pressable>
+        )}
+        <View style={{ height: 32 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -161,5 +173,13 @@ function makeStyles(colors: ColorTokens) {
     },
     previewDot: { width: 12, height: 12, borderRadius: 6 },
     previewText: { fontSize: 16, fontWeight: "600" },
+    deleteSection: {
+      marginHorizontal: 16,
+      marginTop: 32,
+      borderRadius: 12,
+      paddingVertical: 16,
+      alignItems: "center",
+    },
+    deleteBtnText: { fontSize: 17, fontWeight: "500" },
   });
 }
