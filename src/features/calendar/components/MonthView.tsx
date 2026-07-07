@@ -8,6 +8,7 @@ import {
   type ViewToken,
 } from "react-native";
 
+import { MONTH_VIEW } from "@/config/layout";
 import { useAppSettings } from "@/features/settings/AppSettingsContext";
 import { useTheme } from "@/theme";
 
@@ -28,12 +29,11 @@ const EVENT_AREA_HEIGHT = MAX_TRACKS * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN;
 
 // ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
 // iOS 시스템 폰트 lineHeight 계수 ≈ 1.32
-// monthLabelOnFirst: fontSize:17 lineHeight≈23 + paddingVertical:8 = 31
-const MONTH_LABEL_HEIGHT = 31;     // monthLabelAboveRow 높이
-const WEEK_ROW_HEIGHT = 93;        // dayCells:59 + eventBars:34
+// MONTH_LABEL_HEIGHT: labelOnFirstSize × 1.32(lineHeight) + paddingTop(6) + paddingBottom(2)
+const MONTH_LABEL_HEIGHT = Math.round(MONTH_VIEW.labelOnFirstSize * 1.32) + 8;
+const WEEK_ROW_HEIGHT = MONTH_VIEW.weekRowHeight;
 const FIXED_WEEKS = 6;
 const MONTH_ITEM_HEIGHT = MONTH_LABEL_HEIGHT + FIXED_WEEKS * WEEK_ROW_HEIGHT;
-// 31 + 6×93 = 589
 
 const MONTH_WINDOW = 49; // ±24 months
 
@@ -478,7 +478,7 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     monthLabelOnFirst: {
       width: `${100 / 7}%` as `${number}%`,
-      fontSize: 19,
+      fontSize: MONTH_VIEW.labelOnFirstSize,
       fontWeight: "700",
       color: colors.text.primary,
       textAlign: "center",

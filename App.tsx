@@ -34,6 +34,7 @@ import { TodoSheet } from "@/features/todo/components/TodoSheet";
 import { useTodos } from "@/features/todo/hooks/useTodos";
 import type { Todo } from "@/features/todo/types";
 import { Sentry } from "@/lib/sentry";
+import { NAV, FOOTER, MONTH_VIEW } from "@/config/layout";
 import { ThemeProvider, useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
 import { PlusIcon } from "@/ui/Icons";
@@ -264,7 +265,7 @@ function AppContent() {
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
               <View style={{ transform: [{ scaleX: -1 }] }}>
-                <ChevronLeft size={19} color={colors.accent.primary} />
+                <ChevronLeft size={NAV.chevronSize} color={colors.accent.primary} />
               </View>
               <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>{backLabel}</Text>
             </View>
@@ -281,7 +282,7 @@ function AppContent() {
           accessibilityLabel="설정"
           accessibilityRole="button"
         >
-          <GearIcon size={22} color={colors.text.secondary} bgColor={colors.background.primary} />
+          <GearIcon size={NAV.gearSize} color={colors.text.secondary} bgColor={colors.background.primary} />
         </Pressable>
       </View>
     </View>
@@ -319,7 +320,7 @@ function AppContent() {
           </Pressable>
           <Pressable
             testID="btn-add"
-            style={[s.pillBtn, { marginLeft: 8 }]}
+            style={[s.pillBtn, { marginLeft: FOOTER.btnGap }]}
             onPress={() => { setAddSheetSegment("event"); setAddSheetVisible(true); }}
             accessibilityLabel="추가"
             accessibilityRole="button"
@@ -569,9 +570,9 @@ function makeStyles(colors: ColorTokens) {
       flexDirection: "row",
       alignItems: "flex-start",
       justifyContent: "space-between",
-      paddingHorizontal: 16,
+      paddingHorizontal: NAV.headerPaddingH,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      minHeight: 44,
+      minHeight: NAV.headerHeight,
     },
     headerLeft: {
       flex: 1,
@@ -584,23 +585,23 @@ function makeStyles(colors: ColorTokens) {
     },
     headerBtn: {
       paddingHorizontal: 8,
-      paddingTop: 6,
+      paddingTop: NAV.btnPaddingTop,
       paddingBottom: 0,
-      minHeight: 44,
+      minHeight: NAV.headerHeight,
       justifyContent: "flex-start",
     },
     headerBtnText: {
-      fontSize: 20,
+      fontSize: NAV.btnTextSize,
       fontWeight: "500",
     },
     headerIcon: {
-      fontSize: 22,
+      fontSize: NAV.gearSize,
     },
     appTitle: {
-      fontSize: 18,
+      fontSize: NAV.appTitleSize,
       fontWeight: "700",
       letterSpacing: -0.3,
-      paddingTop: 6,
+      paddingTop: NAV.btnPaddingTop,
     },
 
     // Month View: 서브타이틀 + 요일 바
@@ -610,7 +611,7 @@ function makeStyles(colors: ColorTokens) {
       paddingBottom: 4,
     },
     monthSubtitle: {
-      fontSize: 26,
+      fontSize: MONTH_VIEW.subtitleSize,
       fontWeight: "700",
       letterSpacing: -0.5,
     },
@@ -624,7 +625,7 @@ function makeStyles(colors: ColorTokens) {
     weekdayLabel: {
       flex: 1,
       textAlign: "center",
-      fontSize: 11,
+      fontSize: MONTH_VIEW.weekdayLabelSize,
       fontWeight: "500",
     },
 
@@ -643,27 +644,27 @@ function makeStyles(colors: ColorTokens) {
     // 캘린더 위에 떠 있는 투명 오버레이 푸터
     footer: {
       position: "absolute",
-      bottom: 20,
+      bottom: FOOTER.bottom,
       left: 0,
       right: 0,
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 20,
+      paddingHorizontal: FOOTER.paddingH,
       paddingVertical: 10,
       backgroundColor: "transparent",
     },
     // 모든 pill 버튼은 동일 크기 (minWidth) + 텍스트 중앙 정렬
     pillBtn: {
       backgroundColor: colors.background.tertiary,
-      borderRadius: 18,
-      minWidth: 72,
-      height: 38,
-      paddingHorizontal: 16,
+      borderRadius: FOOTER.btnRadius,
+      minWidth: FOOTER.btnMinWidth,
+      height: FOOTER.btnHeight,
+      paddingHorizontal: FOOTER.btnPaddingH,
       alignItems: "center",
       justifyContent: "center",
     },
     pillBtnText: {
-      fontSize: 15,
+      fontSize: FOOTER.btnTextSize,
       fontWeight: "500",
       color: colors.text.primary,
       textAlign: "center",

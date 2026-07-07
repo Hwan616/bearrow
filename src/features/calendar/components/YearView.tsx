@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 
+import { YEAR_VIEW } from "@/config/layout";
 import { useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
 
@@ -20,15 +21,14 @@ const MONTH_NAMES = [
 
 // ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
 // iOS 시스템 폰트 lineHeight 계수 ≈ 1.32
-const MINI_CELL_HEIGHT = 18;       // paddingVertical:1×2 + circle:16
-const MINI_TITLE_HEIGHT = 29;      // fontSize:19 lineHeight≈25 + marginBottom:4
+// YEAR_VIEW 상수 변경 시 아래 파생 값들이 자동 재계산됨
+const MINI_CELL_HEIGHT = 2 + YEAR_VIEW.dayCircleSize;      // paddingVertical:1×2 + circle
+const MINI_TITLE_HEIGHT = Math.round(YEAR_VIEW.monthTitleSize * 1.32) + 4; // lineHeight + marginBottom
 const FIXED_MINI_ROWS = 6;
 const MINI_MONTH_HEIGHT =
-  16 + MINI_TITLE_HEIGHT + FIXED_MINI_ROWS * MINI_CELL_HEIGHT;
-// paddingVertical:8×2=16 + 29 + 108 = 153
+  YEAR_VIEW.monthPaddingV * 2 + MINI_TITLE_HEIGHT + FIXED_MINI_ROWS * MINI_CELL_HEIGHT;
 const YEAR_HEADER_HEIGHT = 76;     // paddingVertical:16×2 + fontSize:29 lineHeight≈38 + divider-margin:6
 const YEAR_ITEM_HEIGHT = YEAR_HEADER_HEIGHT + 4 * MINI_MONTH_HEIGHT;
-// 76 + 4×153 = 688
 
 const YEAR_WINDOW = 21; // ±10 years
 
@@ -240,15 +240,15 @@ function makeStyles(colors: ColorTokens) {
     monthsGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      paddingHorizontal: 12,
+      paddingHorizontal: YEAR_VIEW.outerPaddingH,
     },
     miniMonthWrapper: {
       width: "33.33%",
-      paddingHorizontal: 4,
-      paddingVertical: 8,
+      paddingHorizontal: YEAR_VIEW.monthPaddingH,
+      paddingVertical: YEAR_VIEW.monthPaddingV,
     },
     miniMonthTitle: {
-      fontSize: 19,
+      fontSize: YEAR_VIEW.monthTitleSize,
       fontWeight: "700",
       textAlign: "left",
       marginBottom: 4,
@@ -266,9 +266,9 @@ function makeStyles(colors: ColorTokens) {
       paddingVertical: 1,
     },
     miniDayCircle: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
+      width: YEAR_VIEW.dayCircleSize,
+      height: YEAR_VIEW.dayCircleSize,
+      borderRadius: YEAR_VIEW.dayCircleSize / 2,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -276,7 +276,7 @@ function makeStyles(colors: ColorTokens) {
       backgroundColor: colors.status.error,
     },
     miniDayText: {
-      fontSize: 11,
+      fontSize: YEAR_VIEW.dayTextSize,
       color: colors.text.primary,
     },
     miniDayTextOutside: {
