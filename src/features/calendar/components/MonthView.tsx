@@ -71,6 +71,17 @@ function getMonthItemHeight(year: number, month: number, weekRowHeight: number):
   return MONTH_LABEL_HEIGHT + getWeekCount(year, month) * weekRowHeight;
 }
 
+// 주어진 높이에서 가장 가까운 줌 레벨 인덱스 반환
+function findNearestZoomLevel(height: number): number {
+  return ZOOM_LEVELS.reduce(
+    (best, cfg, idx) => {
+      const dist = Math.abs(cfg.weekRowHeight - height);
+      return dist < best.dist ? { idx, dist } : best;
+    },
+    { idx: 0, dist: Infinity },
+  ).idx;
+}
+
 // ── 타입 ──────────────────────────────────────────────────────────────────────
 
 type YearMonth = { year: number; month: number };
@@ -226,9 +237,14 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM_LEVEL);
+  // 핀치 중 실시간으로 변하는 높이 (null = 핀치 비활성)
+  const [pinchHeight, setPinchHeight] = useState<number | null>(null);
 
   const zoomCfg = ZOOM_LEVELS[zoomLevel]!;
-  const weekRowHeight = zoomCfg.weekRowHeight;
+  // FlatList 레이아웃 계산용 안정적 높이 (줌 레벨 스냅 후 값)
+  const stableWeekRowHeight = zoomCfg.weekRowHeight;
+  // 실제 렌더링 높이 (핀치 중엔 연속값, 아닐 땐 스냅값)
+  const renderWeekRowHeight = pinchHeight ?? stableWeekRowHeight;
   const zoomMode = zoomCfg.mode;
   const maxTracks = zoomCfg.maxTracks;
 
@@ -236,30 +252,36 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
   const scrollYRef = useRef(0);
   const viewportHeightRef = useRef(0);
   const activeMonthIdxRef = useRef(initialIndex);
-  // 줌 변경 시 스크롤 복원 대상 인덱스 (null = 복원 불필요)
   const pendingScrollIdxRef = useRef<number | null>(null);
+  // 핀치 시작 시점의 높이를 저장 (클로저 대신 ref 사용)
+  const pinchBaseHeightRef = useRef(stableWeekRowHeight);
+  const renderWeekRowHeightRef = useRef(renderWeekRowHeight);
+  renderWeekRowHeightRef.current = renderWeekRowHeight;
 
-  // 이산 줌 레벨 변경 (+1 확대, -1 축소)
-  const handleZoom = useCallback((delta: 1 | -1) => {
-    setZoomLevel((prev) => {
-      const next = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, prev + delta));
-      if (next !== prev) {
-        pendingScrollIdxRef.current = activeMonthIdxRef.current;
-      }
-      return next;
-    });
-  }, []);
-
-  // 핀치 제스처로 이산 줌 레벨 전환
+  // 핀치 제스처: onUpdate로 부드럽게, onEnd에서 가장 가까운 레벨에 스냅
   const pinchGesture = useMemo(
-    () =>
-      Gesture.Pinch()
+    () => {
+      const MIN_H = ZOOM_LEVELS[0]!.weekRowHeight;
+      const MAX_H = ZOOM_LEVELS[ZOOM_LEVELS.length - 1]!.weekRowHeight;
+      return Gesture.Pinch()
         .runOnJS(true)
-        .onEnd((e) => {
-          if (e.scale > 1.2) handleZoom(1);
-          else if (e.scale < 0.8) handleZoom(-1);
-        }),
-    [handleZoom],
+        .onBegin(() => {
+          pinchBaseHeightRef.current = renderWeekRowHeightRef.current;
+        })
+        .onUpdate((e) => {
+          // 2px 단위로 반올림해 불필요한 리렌더 최소화
+          const raw = pinchBaseHeightRef.current * e.scale;
+          const h = Math.round(Math.max(MIN_H, Math.min(MAX_H, raw)) / 2) * 2;
+          setPinchHeight(h);
+        })
+        .onEnd(() => {
+          const snapped = findNearestZoomLevel(renderWeekRowHeightRef.current);
+          pendingScrollIdxRef.current = activeMonthIdxRef.current;
+          setPinchHeight(null);
+          setZoomLevel(snapped);
+        });
+    },
+    [], // 모든 동적 값은 ref로 참조
   );
 
   useImperativeHandle(ref, () => ({
@@ -268,7 +290,7 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
       if (idx < 0) return;
       let offset = 0;
       for (let i = 0; i < idx; i++) {
-        offset += getMonthItemHeight(months[i]!.year, months[i]!.month, weekRowHeight);
+        offset += getMonthItemHeight(months[i]!.year, months[i]!.month, stableWeekRowHeight);
       }
       listRef.current?.scrollToOffset({ offset: offset + MONTH_LABEL_HEIGHT, animated: true });
     },
@@ -282,32 +304,32 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
       if (monthIdx < 0) return false;
       let monthOffset = 0;
       for (let i = 0; i < monthIdx; i++) {
-        monthOffset += getMonthItemHeight(months[i]!.year, months[i]!.month, weekRowHeight);
+        monthOffset += getMonthItemHeight(months[i]!.year, months[i]!.month, stableWeekRowHeight);
       }
       const firstDay = new Date(year, month, 1).getDay();
       const weekRowIdx = Math.floor((firstDay + date.getDate() - 1) / 7);
-      const weekRowTop = monthOffset + MONTH_LABEL_HEIGHT + weekRowIdx * weekRowHeight;
-      const weekRowBottom = weekRowTop + weekRowHeight;
+      const weekRowTop = monthOffset + MONTH_LABEL_HEIGHT + weekRowIdx * stableWeekRowHeight;
+      const weekRowBottom = weekRowTop + stableWeekRowHeight;
       const viewTop = scrollYRef.current;
       const viewBottom = viewTop + viewportHeightRef.current;
       return weekRowTop < viewBottom && weekRowBottom > viewTop;
     },
-  }), [months, weekRowHeight]);
+  }), [months, stableWeekRowHeight]);
 
   const onVisibleMonthChangeRef = useRef(onVisibleMonthChange);
   onVisibleMonthChangeRef.current = onVisibleMonthChange;
 
-  // 월별 FlatList 아이템 높이·오프셋 (줌 변경 시 자동 재계산)
+  // 월별 FlatList 아이템 높이·오프셋 — 핀치 중에도 안정적으로 유지 (stableWeekRowHeight 사용)
   const itemLayouts = useMemo(() => {
     const result: { height: number; offset: number }[] = [];
     let offset = 0;
     for (const m of months) {
-      const height = getMonthItemHeight(m.year, m.month, weekRowHeight);
+      const height = getMonthItemHeight(m.year, m.month, stableWeekRowHeight);
       result.push({ height, offset });
       offset += height;
     }
     return result;
-  }, [months, weekRowHeight]);
+  }, [months, stableWeekRowHeight]);
 
   // 스크롤 위치 기반 서브타이틀 갱신
   const handleScroll = useCallback(
@@ -318,7 +340,7 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
       for (let i = 0; i < months.length; i++) {
         const weekCount = getWeekCount(months[i]!.year, months[i]!.month);
         const lastRowTopY =
-          itemLayouts[i]!.offset + MONTH_LABEL_HEIGHT + (weekCount - 1) * weekRowHeight;
+          itemLayouts[i]!.offset + MONTH_LABEL_HEIGHT + (weekCount - 1) * stableWeekRowHeight;
         if (scrollY > lastRowTopY) {
           newIdx = i + 1;
         } else {
@@ -331,20 +353,20 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
         onVisibleMonthChangeRef.current?.(months[newIdx]!.year, months[newIdx]!.month);
       }
     },
-    [months, itemLayouts, weekRowHeight],
+    [months, itemLayouts, stableWeekRowHeight],
   );
 
-  // 줌 변경 후 동일 월이 보이도록 스크롤 복원
+  // 스냅 후 동일 월이 보이도록 스크롤 복원
   useEffect(() => {
     const idx = pendingScrollIdxRef.current;
     if (idx === null) return;
     pendingScrollIdxRef.current = null;
     let offset = 0;
     for (let i = 0; i < idx; i++) {
-      offset += getMonthItemHeight(months[i]!.year, months[i]!.month, weekRowHeight);
+      offset += getMonthItemHeight(months[i]!.year, months[i]!.month, stableWeekRowHeight);
     }
     listRef.current?.scrollToOffset({ offset: offset + MONTH_LABEL_HEIGHT, animated: false });
-  }, [zoomLevel, months, weekRowHeight]);
+  }, [zoomLevel, months, stableWeekRowHeight]);
 
   // 초기 진입 시 MM월 레이블을 숨기고 첫 주 구분선이 요일바 하단과 맞닿게 스크롤
   useEffect(() => {
@@ -383,12 +405,12 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
         onDayPress={handleDayPress}
         showHolidays={showHolidays}
         colors={colors}
-        weekRowHeight={weekRowHeight}
+        weekRowHeight={renderWeekRowHeight}
         maxTracks={maxTracks}
         zoomMode={zoomMode}
       />
     ),
-    [selectedDate, handleDayPress, showHolidays, colors, weekRowHeight, maxTracks, zoomMode],
+    [selectedDate, handleDayPress, showHolidays, colors, renderWeekRowHeight, maxTracks, zoomMode],
   );
 
   const keyExtractor = useCallback(
@@ -712,6 +734,7 @@ const makeStyles = (
     weekRow: {
       position: "relative",
       height: weekRowHeight,
+      overflow: "hidden",
     },
     weekTopLine: {
       position: "absolute",
