@@ -54,6 +54,8 @@ function padMiniGridTo6Rows(grid: CalendarDay[]): CalendarDay[] {
 
 export interface YearViewHandle {
   scrollToYear: (year: number, animated: boolean) => void;
+  /** 해당 년·월의 미니 달력이 현재 뷰포트 안에 보이는지 여부 */
+  isMonthVisible: (year: number, month: number) => boolean;
 }
 
 interface Props {
@@ -72,12 +74,24 @@ export const YearView = React.forwardRef<YearViewHandle, Props>(
   const initialIndex = Math.floor(YEAR_WINDOW / 2);
 
   const listRef = useRef<FlatList<number>>(null);
+  const scrollYRef = useRef(0);
+  const viewportHeightRef = useRef(0);
 
   useImperativeHandle(ref, () => ({
     scrollToYear(year: number, animated: boolean) {
       const idx = years.indexOf(year);
       if (idx < 0) return;
       listRef.current?.scrollToOffset({ offset: idx * YEAR_ITEM_HEIGHT, animated });
+    },
+    isMonthVisible(year: number, month: number): boolean {
+      const yearIdx = years.indexOf(year);
+      if (yearIdx < 0) return false;
+      const monthRow = Math.floor(month / 3);
+      const monthTop = yearIdx * YEAR_ITEM_HEIGHT + YEAR_HEADER_HEIGHT + monthRow * MINI_MONTH_HEIGHT;
+      const monthBottom = monthTop + MINI_MONTH_HEIGHT;
+      const viewTop = scrollYRef.current;
+      const viewBottom = viewTop + viewportHeightRef.current;
+      return monthTop < viewBottom && monthBottom > viewTop;
     },
   }), [years]);
 
@@ -134,6 +148,9 @@ export const YearView = React.forwardRef<YearViewHandle, Props>(
       getItemLayout={getItemLayout}
       initialScrollIndex={initialIndex}
       onViewableItemsChanged={onViewableItemsChanged}
+      onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
+      onLayout={(e) => { viewportHeightRef.current = e.nativeEvent.layout.height; }}
+      scrollEventThrottle={16}
       windowSize={3}
       removeClippedSubviews
       showsVerticalScrollIndicator={false}

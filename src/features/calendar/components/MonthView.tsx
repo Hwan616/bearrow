@@ -181,6 +181,8 @@ function computeHolidayBars(
 export interface MonthViewHandle {
   scrollToMonth: (year: number, month: number) => void;
   clearSelection: () => void;
+  /** 해당 날짜가 속한 주(週) 행이 현재 뷰포트 안에 보이는지 여부 */
+  isWeekVisible: (date: Date) => boolean;
 }
 
 interface MonthViewProps {
@@ -202,6 +204,8 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const listRef = useRef<FlatList<YearMonth>>(null);
+  const scrollYRef = useRef(0);
+  const viewportHeightRef = useRef(0);
 
   useImperativeHandle(ref, () => ({
     scrollToMonth(year: number, month: number) {
@@ -216,6 +220,24 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
     },
     clearSelection() {
       setSelectedDate(null);
+    },
+    isWeekVisible(date: Date): boolean {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const monthIdx = months.findIndex((m) => m.year === year && m.month === month);
+      if (monthIdx < 0) return false;
+      let monthOffset = 0;
+      for (let i = 0; i < monthIdx; i++) {
+        monthOffset += getMonthItemHeight(months[i]!.year, months[i]!.month);
+      }
+      // 해당 날짜가 속한 주 행 인덱스 계산
+      const firstDay = new Date(year, month, 1).getDay();
+      const weekRowIdx = Math.floor((firstDay + date.getDate() - 1) / 7);
+      const weekRowTop = monthOffset + MONTH_LABEL_HEIGHT + weekRowIdx * WEEK_ROW_HEIGHT;
+      const weekRowBottom = weekRowTop + WEEK_ROW_HEIGHT;
+      const viewTop = scrollYRef.current;
+      const viewBottom = viewTop + viewportHeightRef.current;
+      return weekRowTop < viewBottom && weekRowBottom > viewTop;
     },
   }), [months]);
 
@@ -240,6 +262,7 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
   const handleScroll = useCallback(
     (e: { nativeEvent: { contentOffset: { y: number } } }) => {
       const scrollY = e.nativeEvent.contentOffset.y;
+      scrollYRef.current = scrollY;
       let newIdx = 0;
       for (let i = 0; i < months.length; i++) {
         const weekCount = getWeekCount(months[i]!.year, months[i]!.month);
@@ -308,7 +331,10 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
+    <View
+      style={{ flex: 1, backgroundColor: colors.background.primary }}
+      onLayout={(e) => { viewportHeightRef.current = e.nativeEvent.layout.height; }}
+    >
       <FlatList<YearMonth>
         ref={listRef}
         data={months}

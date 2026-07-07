@@ -58,16 +58,37 @@ jest.mock("react-native-gesture-handler", () => {
 // ── feature 컴포넌트 모킹 ─────────────────────────────────────────────────────
 // App.tsx가 직접 import하는 컴포넌트만 모킹한다.
 
-jest.mock("@/features/calendar/components/YearView", () => ({
-  YearView: () => null,
-}));
-jest.mock("@/features/calendar/components/MonthView", () => ({
-  MonthView: ({ onDayPress }: { onDayPress?: (date: Date) => void }) =>
-    require("react").createElement(require("react-native").Pressable, {
-      testID: "mock-month-day-cell",
-      onPress: () => onDayPress?.(new Date(2026, 6, 6)),
-    }),
-}));
+jest.mock("@/features/calendar/components/YearView", () => {
+  const React = require("react");
+  const MockYearView = React.forwardRef((_props: unknown, ref: React.Ref<unknown>) => {
+    React.useImperativeHandle(ref, () => ({
+      scrollToYear: jest.fn(),
+      isMonthVisible: () => true,
+    }));
+    return null;
+  });
+  MockYearView.displayName = "MockYearView";
+  return { YearView: MockYearView };
+});
+jest.mock("@/features/calendar/components/MonthView", () => {
+  const React = require("react");
+  const { Pressable } = require("react-native");
+  const MockMonthView = React.forwardRef(
+    ({ onDayPress }: { onDayPress?: (date: Date) => void }, ref: React.Ref<unknown>) => {
+      React.useImperativeHandle(ref, () => ({
+        scrollToMonth: jest.fn(),
+        clearSelection: jest.fn(),
+        isWeekVisible: () => true,
+      }));
+      return React.createElement(Pressable, {
+        testID: "mock-month-day-cell",
+        onPress: () => onDayPress?.(new Date(2026, 6, 6)),
+      });
+    },
+  );
+  MockMonthView.displayName = "MockMonthView";
+  return { MonthView: MockMonthView };
+});
 jest.mock("@/features/calendar/components/DayView", () => ({
   DayView: () => null,
   formatDayHeaderTitle: (date: Date) =>

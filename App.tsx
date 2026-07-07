@@ -208,27 +208,29 @@ function AppContent() {
 
     if (activeView === "year") {
       setSelectedDate(today);
-      if (visibleYear === todayYear) {
-        // 당해 보는 중 → Month View로 이동
+      // 당월 미니 달력이 뷰포트 안에 보이면 → Month View로 이동
+      const monthVisible = yearViewRef.current?.isMonthVisible(todayYear, todayMonth) ?? false;
+      if (monthVisible) {
         setVisibleMonthYear(todayYear);
         setVisibleMonthMonth(todayMonth);
         setActiveView("month");
         setCalendarKey((k) => k + 1);
       } else if (Math.abs(visibleYear - todayYear) <= 5) {
-        // ±5년 이내 → 애니메이션 스크롤로 당해 이동
+        // 보이지 않음, ±5년 이내 → 애니메이션 스크롤로 당해 이동
         yearViewRef.current?.scrollToYear(todayYear, true);
       } else {
-        // ±5년 초과 → 즉시 당해로 이동 (애니메이션 없음)
+        // 보이지 않음, ±5년 초과 → 즉시 당해로 이동
         yearViewRef.current?.scrollToYear(todayYear, false);
       }
     } else if (activeView === "month") {
       setSelectedDate(today);
-      if (visibleMonthYear === todayYear && visibleMonthMonth === todayMonth) {
-        // 당월 보는 중 → Day View로 이동
+      // 당일 포함 주 행이 뷰포트 안에 보이면 → Day View로 이동
+      const weekVisible = monthViewRef.current?.isWeekVisible(today) ?? false;
+      if (weekVisible) {
         setVisibleDayDate(today);
         setActiveView("day");
       } else if (visibleMonthYear === todayYear) {
-        // 당해에 속하는 다른 달 → 스크롤로 당월 이동
+        // 주 행이 보이지 않음, 같은 연도 → 스크롤로 당월 이동
         setVisibleMonthYear(todayYear);
         setVisibleMonthMonth(todayMonth);
         monthViewRef.current?.scrollToMonth(todayYear, todayMonth);
