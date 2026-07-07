@@ -571,12 +571,14 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     dayCellsRow: {
       flexDirection: "row",
+      alignItems: "flex-start",
     },
     dayCell: {
       width: `${100 / 7}%` as `${number}%`,
       height: DAY_CELL_HEIGHT,
       alignItems: "center",
-      justifyContent: "center",
+      justifyContent: "flex-start",
+      paddingTop: 6,
       position: "relative",
     },
     dayCircle: {
