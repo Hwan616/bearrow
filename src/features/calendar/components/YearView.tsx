@@ -194,7 +194,6 @@ function MiniMonthGrid({ grid, s }: MiniMonthGridProps) {
             if (!isCurrentMonth) {
               return <View key={date.toISOString()} style={s.miniCell} />;
             }
-            const isSun = date.getDay() === 0;
             return (
               <View key={date.toISOString()} style={s.miniCell}>
                 <View style={[s.miniDayCircle, isToday && s.miniDayCircleToday]}>
@@ -202,7 +201,6 @@ function MiniMonthGrid({ grid, s }: MiniMonthGridProps) {
                     style={[
                       s.miniDayText,
                       isToday && s.miniDayTextToday,
-                      !isToday && isSun && s.miniDayTextSun,
                     ]}
                   >
                     {date.getDate()}
@@ -289,9 +287,6 @@ function makeStyles(colors: ColorTokens) {
     miniDayTextToday: {
       color: colors.text.inverse,
       fontWeight: "700",
-    },
-    miniDayTextSun: {
-      color: colors.text.secondary,
     },
   });
 }
