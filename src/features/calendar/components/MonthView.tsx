@@ -1,4 +1,4 @@
-import React, { useCallback, useImperativeHandle, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -29,7 +29,7 @@ const EVENT_AREA_HEIGHT = MAX_TRACKS * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN;
 // ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
 const MONTH_LABEL_HEIGHT = Math.round(MONTH_VIEW.labelOnFirstSize * 1.32) + 8;
 const WEEK_ROW_HEIGHT = MONTH_VIEW.weekRowHeight;
-const DAY_CELL_HEIGHT = WEEK_ROW_HEIGHT - EVENT_AREA_HEIGHT; // 59px
+const DAY_CELL_HEIGHT = WEEK_ROW_HEIGHT - EVENT_AREA_HEIGHT;
 
 const MONTH_WINDOW = 49; // ±24 months
 
@@ -206,7 +206,13 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
   useImperativeHandle(ref, () => ({
     scrollToMonth(year: number, month: number) {
       const idx = months.findIndex((m) => m.year === year && m.month === month);
-      if (idx >= 0) listRef.current?.scrollToIndex({ index: idx, animated: true });
+      if (idx < 0) return;
+      let offset = 0;
+      for (let i = 0; i < idx; i++) {
+        offset += getMonthItemHeight(months[i]!.year, months[i]!.month);
+      }
+      // MONTH_LABEL_HEIGHT만큼 더 스크롤해 1일 위 레이블을 숨기고 첫 행 구분선부터 보이게 함
+      listRef.current?.scrollToOffset({ offset: offset + MONTH_LABEL_HEIGHT, animated: true });
     },
     clearSelection() {
       setSelectedDate(null);
@@ -253,6 +259,17 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
     },
     [months, itemLayouts],
   );
+
+  // 초기 진입 시 MM월 레이블을 숨기고 첫 주 구분선이 요일바 하단과 맞닿게 스크롤
+  useEffect(() => {
+    const initialOffset = itemLayouts[initialIndex]!.offset + MONTH_LABEL_HEIGHT;
+    const id = setTimeout(() => {
+      listRef.current?.scrollToOffset({ offset: initialOffset, animated: false });
+    }, 0);
+    return () => clearTimeout(id);
+  // 마운트 시 1회만
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDayPress = useCallback(
     (date: Date) => {
@@ -301,7 +318,7 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
         initialScrollIndex={initialIndex}
         onScrollToIndexFailed={() => {
           listRef.current?.scrollToOffset({
-            offset: itemLayouts[initialIndex]!.offset,
+            offset: itemLayouts[initialIndex]!.offset + MONTH_LABEL_HEIGHT,
             animated: false,
           });
         }}
@@ -468,10 +485,11 @@ const MonthItem = React.memo(function MonthItem({
                           left: `${(bar.startCol / 7) * 100}%` as `${number}%`,
                           right: `${((6 - bar.endCol) / 7) * 100}%` as `${number}%`,
                           top: bar.track * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN,
-                          backgroundColor: bar.color,
                         },
                       ]}
                     >
+                      {/* 배경만 불투명도 적용 — 텍스트에는 영향 없음 */}
+                      <View testID={`event-bar-bg-${bar.eventId}`} style={[StyleSheet.absoluteFillObject, s.eventBarBg, { backgroundColor: bar.color }]} />
                       <Text style={s.eventBarText} numberOfLines={1}>
                         {bar.title}
                       </Text>
@@ -572,11 +590,15 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       paddingHorizontal: 3,
       justifyContent: "center",
       overflow: "hidden",
+      marginHorizontal: 0.5,
+    },
+    eventBarBg: {
+      borderRadius: 2,
       opacity: MONTH_VIEW.eventBarOpacity,
     },
     eventBarText: {
       fontSize: 10,
-      color: colors.text.inverse,
+      color: colors.text.primary,
       fontWeight: "500",
     },
   });

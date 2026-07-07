@@ -55,7 +55,7 @@ export const MONTH_VIEW = {
    * 1주 행 높이 (날짜 셀 + 이벤트 바 포함).
    * 늘리면 각 주 셀이 커지고 한 달이 더 긴 공간을 차지함.
    */
-  weekRowHeight: 93,
+  weekRowHeight: 123,
   /** 캘린더 상단 "MM월" 대형 서브타이틀 크기 */
   subtitleSize: 26,
   /** 요일 바 (일·월·화…토) 글자 크기 */
@@ -73,7 +73,7 @@ export const MONTH_VIEW = {
    * 일정 박스 불투명도 (0=완전투명, 1=완전불투명).
    * 직접 수정 후 저장하면 Fast Refresh로 즉시 반영됨.
    */
-  eventBarOpacity: 0.85,
+  eventBarOpacity: 0.65,
 } as const;
 
 // ── Year View ────────────────────────────────────────────────────────────────

@@ -180,8 +180,9 @@ describe("MonthView", () => {
     });
     const bars = screen.getAllByTestId("event-bar-evt-1");
     expect(bars.length).toBeGreaterThan(0);
-    // bar should have the category color as background
-    expect(bars[0]!.props.style).toEqual(
+    // 배경 레이어에서 카테고리 색상 확인 (텍스트 레이어와 분리된 구조)
+    const bgViews = screen.getAllByTestId("event-bar-bg-evt-1");
+    expect(bgViews[0]!.props.style).toEqual(
       expect.arrayContaining([expect.objectContaining({ backgroundColor: "#E74C3C" })]),
     );
   });
