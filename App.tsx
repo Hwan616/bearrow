@@ -42,16 +42,17 @@ import { PlusIcon } from "@/ui/Icons";
 
 // ── 아이콘 컴포넌트 ────────────────────────────────────────────────────────────
 
-function GearIcon({ size = 18, color, bgColor }: { size?: number; color: string; bgColor: string }) {
+function GearIcon({ size = 18, color }: { size?: number; color: string }) {
   const r = size / 2;
-  const bodyR = r * 0.62;
-  const toothW = r * 0.38;
-  const toothH = r * 0.50;
-  const offset = bodyR + toothH * 0.28;
-  const holeR = bodyR * 0.45;
+  const rOuter = r * 0.56;          // 링 바깥 반지름
+  const ringThickness = r * 0.2;    // 링 두께 (가운데는 비어 있음)
+  const toothW = r * 0.3;
+  const toothH = r * 0.44;
+  const offset = rOuter + toothH * 0.3; // 톱니 중심까지 거리 (링 바깥으로 돌출)
   return (
     <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
-      {Array.from({ length: 8 }, (_, i) => (
+      {/* 톱니 6개 */}
+      {Array.from({ length: 6 }, (_, i) => (
         <View
           key={i}
           style={{
@@ -64,26 +65,20 @@ function GearIcon({ size = 18, color, bgColor }: { size?: number; color: string;
             borderRadius: toothW / 2,
             transform: [
               { translateY: -offset },
-              { rotate: `${i * 45}deg` },
+              { rotate: `${i * 60}deg` },
             ],
           }}
         />
       ))}
-      {/* 중앙 원형 몸체 */}
+      {/* 가운데가 빈 원 (링) */}
       <View style={{
         position: "absolute",
-        width: bodyR * 2,
-        height: bodyR * 2,
-        borderRadius: bodyR,
-        backgroundColor: color,
-      }} />
-      {/* 가운데 구멍 */}
-      <View style={{
-        position: "absolute",
-        width: holeR * 2,
-        height: holeR * 2,
-        borderRadius: holeR,
-        backgroundColor: bgColor,
+        width: rOuter * 2,
+        height: rOuter * 2,
+        borderRadius: rOuter,
+        borderWidth: ringThickness,
+        borderColor: color,
+        backgroundColor: "transparent",
       }} />
     </View>
   );
@@ -91,13 +86,14 @@ function GearIcon({ size = 18, color, bgColor }: { size?: number; color: string;
 
 function ChevronLeft({ size = 12, color }: { size?: number; color: string }) {
   const stroke = Math.max(1.5, size * 0.14);
-  // 정사각형의 좌·하 두 변에 테두리를 그린 뒤 45° 회전 → 하나의 완전한 꺾쇠(<)
+  // 정사각형의 좌·하 두 변에 테두리를 그린 뒤 45° 회전 → 하나의 완전한 꺾쇠.
+  // 컨테이너를 세로축 기준으로 좌우 반전(scaleX:-1)해 꼭짓점이 반대 방향을 향하게 함.
   // 두 팔이 한 꼭짓점에서 miter join으로 만나 갈라짐 없이 이어진다.
   const d = size / Math.SQRT2;
   const inset = (size - d) / 2;
   const containerW = Math.ceil(size / 2 + stroke);
   return (
-    <View style={{ width: containerW, height: size }}>
+    <View style={{ width: containerW, height: size, transform: [{ scaleX: -1 }] }}>
       <View
         style={{
           position: "absolute",
@@ -308,7 +304,7 @@ function AppContent() {
           accessibilityLabel="설정"
           accessibilityRole="button"
         >
-          <GearIcon size={NAV.gearSize} color={colors.text.secondary} bgColor={colors.background.primary} />
+          <GearIcon size={NAV.gearSize} color={colors.text.secondary} />
         </Pressable>
       </View>
     </View>
