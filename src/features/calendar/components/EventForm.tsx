@@ -389,7 +389,7 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onDe
           />
         </View>
 
-        {/* 알림 · 반복 */}
+        {/* 알림 */}
         <View style={styles.section}>
           <Controller
             control={control}
@@ -402,7 +402,10 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onDe
               />
             )}
           />
-          <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
+        </View>
+
+        {/* 반복 */}
+        <View style={styles.section}>
           <Controller
             control={control}
             name="recurrence"

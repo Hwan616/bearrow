@@ -151,7 +151,10 @@ export const YearView = React.forwardRef<YearViewHandle, Props>(
       onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
       onLayout={(e) => { viewportHeightRef.current = e.nativeEvent.layout.height; }}
       scrollEventThrottle={16}
-      windowSize={3}
+      windowSize={5}
+      maxToRenderPerBatch={3}
+      updateCellsBatchingPeriod={40}
+      initialNumToRender={2}
       removeClippedSubviews
       showsVerticalScrollIndicator={false}
       testID="year-list"

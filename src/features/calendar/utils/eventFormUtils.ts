@@ -39,9 +39,11 @@ export function makeDefaultValues(
       categoryId: event.categoryId ?? "",
     };
   }
+  // 시작: 현재 시각을 가장 가까운 5분 단위로 반올림 (57.5분↑ → 다음 정시)
   const start = new Date(base);
-  start.setMinutes(0, 0, 0);
-  start.setHours(start.getHours() + 1);
+  start.setSeconds(0, 0);
+  start.setMinutes(Math.round(start.getMinutes() / 5) * 5, 0, 0);
+  // 종료: 시작 +1시간
   const end = new Date(start);
   end.setHours(end.getHours() + 1);
   return {

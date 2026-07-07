@@ -441,7 +441,10 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
           }}
           onScroll={handleScroll}
           scrollEventThrottle={16}
-          windowSize={5}
+          windowSize={9}
+          maxToRenderPerBatch={5}
+          updateCellsBatchingPeriod={40}
+          initialNumToRender={3}
           removeClippedSubviews
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 72 }}

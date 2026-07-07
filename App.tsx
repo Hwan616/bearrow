@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -23,6 +23,7 @@ import { DayView, formatDayHeaderTitle } from "@/features/calendar/components/Da
 import { EventForm } from "@/features/calendar/components/EventForm";
 import { MonthView } from "@/features/calendar/components/MonthView";
 import type { MonthViewHandle } from "@/features/calendar/components/MonthView";
+import { invalidateMonthItemsCache } from "@/features/calendar/hooks/useMonthItems";
 import { YearView } from "@/features/calendar/components/YearView";
 import type { YearViewHandle } from "@/features/calendar/components/YearView";
 import { YearMonthPicker } from "@/features/calendar/components/YearMonthPicker";
@@ -147,6 +148,12 @@ function AppContent() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calendarKey, setCalendarKey] = useState(0);
 
+  // 캘린더 새로고침: 월별 캐시를 비우고 뷰를 리마운트 (데이터 변경·특정 뷰 전환 시)
+  const bumpCalendar = useCallback(() => {
+    invalidateMonthItemsCache();
+    setCalendarKey((k) => k + 1);
+  }, []);
+
   // Year View: 스크롤 중인 연도 추적
   const [visibleYear, setVisibleYear] = useState(new Date().getFullYear());
   const yearViewRef = useRef<YearViewHandle>(null);
@@ -204,7 +211,7 @@ function AppContent() {
         setVisibleMonthYear(todayYear);
         setVisibleMonthMonth(todayMonth);
         setActiveView("month");
-        setCalendarKey((k) => k + 1);
+        bumpCalendar();
       } else if (Math.abs(visibleYear - todayYear) <= 5) {
         // 보이지 않음, ±5년 이내 → 애니메이션 스크롤로 당해 이동
         yearViewRef.current?.scrollToYear(todayYear, true);
@@ -228,7 +235,7 @@ function AppContent() {
         // 다른 연도 → 즉시 당월로 화면 전환
         setVisibleMonthYear(todayYear);
         setVisibleMonthMonth(todayMonth);
-        setCalendarKey((k) => k + 1);
+        bumpCalendar();
       }
     } else {
       // Day View: 기존 동작 유지
@@ -247,7 +254,7 @@ function AppContent() {
 
   function handleEventSave() {
     setAddSheetVisible(false);
-    setCalendarKey((k) => k + 1);
+    bumpCalendar();
   }
 
   async function handleTodoCreate(title: string, categoryId: string, note?: string) {
@@ -479,11 +486,11 @@ function AppContent() {
             initialEvent={selectedEvent}
             onSave={() => {
               setSelectedEvent(null);
-              setCalendarKey((k) => k + 1);
+              bumpCalendar();
             }}
             onDelete={() => {
               setSelectedEvent(null);
-              setCalendarKey((k) => k + 1);
+              bumpCalendar();
             }}
             onCancel={() => setSelectedEvent(null)}
           />

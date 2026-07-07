@@ -17,22 +17,37 @@ const makeDate = (h: number, m = 0) => {
 // ── makeDefaultValues ──────────────────────────────────────────────────────
 
 describe("makeDefaultValues", () => {
-  it("신규 이벤트: 다음 정시에서 시작해 1시간 후 종료", () => {
-    const base = makeDate(14, 35); // 14:35
+  it("신규 이벤트: 시작은 가장 가까운 5분 단위, 종료는 +1시간", () => {
+    const base = makeDate(14, 35); // 14:35 (이미 5분 단위)
     const vals = makeDefaultValues(undefined, base);
     expect(vals.title).toBe("");
     expect(vals.isAllDay).toBe(false);
     expect(vals.note).toBe("");
-    expect(vals.startsAt.getHours()).toBe(15); // 다음 정시
-    expect(vals.startsAt.getMinutes()).toBe(0);
-    expect(vals.endsAt.getHours()).toBe(16); // +1시간
+    expect(vals.startsAt.getHours()).toBe(14);
+    expect(vals.startsAt.getMinutes()).toBe(35);
+    expect(vals.endsAt.getHours()).toBe(15); // +1시간
+    expect(vals.endsAt.getMinutes()).toBe(35);
   });
 
-  it("신규 이벤트: 정시(00분)일 때 그 다음 정시", () => {
-    const base = makeDate(10, 0);
-    const vals = makeDefaultValues(undefined, base);
-    expect(vals.startsAt.getHours()).toBe(11);
-    expect(vals.endsAt.getHours()).toBe(12);
+  it("신규 이벤트: 5분 단위로 반올림 (내림·올림)", () => {
+    // 14:32 → 14:30
+    let vals = makeDefaultValues(undefined, makeDate(14, 32));
+    expect(vals.startsAt.getMinutes()).toBe(30);
+    // 14:33 → 14:35
+    vals = makeDefaultValues(undefined, makeDate(14, 33));
+    expect(vals.startsAt.getMinutes()).toBe(35);
+    // 14:58 → 15:00 (다음 정시로 올림)
+    vals = makeDefaultValues(undefined, makeDate(14, 58));
+    expect(vals.startsAt.getHours()).toBe(15);
+    expect(vals.startsAt.getMinutes()).toBe(0);
+    expect(vals.endsAt.getHours()).toBe(16);
+  });
+
+  it("신규 이벤트: 정시(00분)는 그대로, 종료는 +1시간", () => {
+    const vals = makeDefaultValues(undefined, makeDate(10, 0));
+    expect(vals.startsAt.getHours()).toBe(10);
+    expect(vals.startsAt.getMinutes()).toBe(0);
+    expect(vals.endsAt.getHours()).toBe(11);
   });
 
   it("편집 이벤트: 기존 값을 그대로 반환", () => {
