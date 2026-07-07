@@ -6,6 +6,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 import { MONTH_VIEW } from "@/config/layout";
 import { useAppSettings } from "@/features/settings/AppSettingsContext";
@@ -23,21 +24,39 @@ import { getHolidaysForMonth } from "../utils/koreanHolidays";
 
 const BAR_HEIGHT = 14;
 const BAR_MARGIN = 2;
+const THIN_BAR_HEIGHT = 3;
+const THIN_BAR_SLOT = THIN_BAR_HEIGHT + BAR_MARGIN; // 5px per thin-bar slot
+const DOT_SIZE = 4;
+const DOT_GAP = 2;
 
 // ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
 const MONTH_LABEL_HEIGHT = Math.round(MONTH_VIEW.labelOnFirstSize * 1.32) + 8;
-const WEEK_ROW_HEIGHT = MONTH_VIEW.weekRowHeight;
-
-// 날짜 원형이 차지하는 수직 공간 (paddingTop + circle 뷰 높이)
 const DAY_CELL_PADDING_TOP = 6;
 const DAY_CIRCLE_CONTAINER_H = 36;
-// 이벤트 바 시작 Y (weekRow 기준): 날짜 원형 바로 아래 4px 간격
-const EVENT_BAR_START = DAY_CELL_PADDING_TOP + DAY_CIRCLE_CONTAINER_H + 4;
-// 표시 가능한 최대 트랙 수 (가용 높이 ÷ 바 1개 슬롯)
-const MAX_TRACKS = Math.floor(
-  (WEEK_ROW_HEIGHT - EVENT_BAR_START - BAR_MARGIN) / (BAR_HEIGHT + BAR_MARGIN),
-);
+// 이벤트 바/점 시작 Y (weekRow 기준): 날짜 원형 바로 아래 4px 간격
+const EVENT_BAR_START = DAY_CELL_PADDING_TOP + DAY_CIRCLE_CONTAINER_H + 4; // 46
 
+// ── 줌 레벨 설정 (Level 0 = 최소, Level 5 = 최대·기본) ──────────────────────
+type ZoomMode = "dots" | "thin_bars" | "bars";
+
+interface ZoomConfig {
+  mode: ZoomMode;
+  weekRowHeight: number;
+  maxTracks: number;
+}
+
+// weekRowHeight 계산식 (bars 모드): 52 + maxTracks * 16
+// EVENT_BAR_START(46) + maxTracks*(BAR_HEIGHT+BAR_MARGIN)(16) + BAR_MARGIN(2) + padding(4) = 52 + n*16
+const ZOOM_LEVELS: ZoomConfig[] = [
+  { mode: "dots", weekRowHeight: 60, maxTracks: 5 },               // Level 0: 점
+  { mode: "thin_bars", weekRowHeight: 77, maxTracks: 5 },          // Level 1: 얇은 막대
+  { mode: "bars", weekRowHeight: 84, maxTracks: 2 },               // Level 2: 박스 2개
+  { mode: "bars", weekRowHeight: 100, maxTracks: 3 },              // Level 3: 박스 3개
+  { mode: "bars", weekRowHeight: 116, maxTracks: 4 },              // Level 4: 박스 4개
+  { mode: "bars", weekRowHeight: MONTH_VIEW.weekRowHeight, maxTracks: 5 }, // Level 5: 박스 5개 (기본)
+];
+
+const DEFAULT_ZOOM_LEVEL = 5;
 const MONTH_WINDOW = 49; // ±24 months
 
 // 해당 월에 필요한 주(행) 수
@@ -48,8 +67,8 @@ function getWeekCount(year: number, month: number): number {
 }
 
 // FlatList getItemLayout 용 높이 계산
-function getMonthItemHeight(year: number, month: number): number {
-  return MONTH_LABEL_HEIGHT + getWeekCount(year, month) * WEEK_ROW_HEIGHT;
+function getMonthItemHeight(year: number, month: number, weekRowHeight: number): number {
+  return MONTH_LABEL_HEIGHT + getWeekCount(year, month) * weekRowHeight;
 }
 
 // ── 타입 ──────────────────────────────────────────────────────────────────────
@@ -118,7 +137,7 @@ function computeEventBars(
     .filter((e) => e.startsAt.getTime() <= weekEndMs && e.endsAt.getTime() >= weekStart.getTime())
     .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
 
-  // 트랙 상한 없이 모두 계산 — 렌더링 단계에서 MAX_TRACKS 기준으로 overflow 처리
+  // 트랙 상한 없이 모두 계산 — 렌더링 단계에서 maxTracks 기준으로 overflow 처리
   const trackEndCols: number[] = [];
   const bars: EventBarData[] = [];
 
@@ -126,12 +145,11 @@ function computeEventBars(
     const cols = getEventColumns(weekDays, event);
     if (!cols) continue;
 
-    // 현재 달 셀 범위로 클램핑 — 이전/다음 달 빈 셀 위에 바 표시 방지
+    // 현재 달 셀 범위로 클램핑
     const startCol = Math.max(cols.startCol, firstCurrentCol);
     const endCol = Math.min(cols.endCol, lastCurrentCol);
     if (startCol > endCol) continue;
 
-    // 빈 트랙 탐색 → 없으면 새 트랙 할당
     let track = trackEndCols.findIndex((end) => end < startCol);
     if (track === -1) {
       track = trackEndCols.length;
@@ -207,10 +225,42 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
   const initialIndex = Math.floor(MONTH_WINDOW / 2);
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM_LEVEL);
+
+  const zoomCfg = ZOOM_LEVELS[zoomLevel]!;
+  const weekRowHeight = zoomCfg.weekRowHeight;
+  const zoomMode = zoomCfg.mode;
+  const maxTracks = zoomCfg.maxTracks;
 
   const listRef = useRef<FlatList<YearMonth>>(null);
   const scrollYRef = useRef(0);
   const viewportHeightRef = useRef(0);
+  const activeMonthIdxRef = useRef(initialIndex);
+  // 줌 변경 시 스크롤 복원 대상 인덱스 (null = 복원 불필요)
+  const pendingScrollIdxRef = useRef<number | null>(null);
+
+  // 이산 줌 레벨 변경 (+1 확대, -1 축소)
+  const handleZoom = useCallback((delta: 1 | -1) => {
+    setZoomLevel((prev) => {
+      const next = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, prev + delta));
+      if (next !== prev) {
+        pendingScrollIdxRef.current = activeMonthIdxRef.current;
+      }
+      return next;
+    });
+  }, []);
+
+  // 핀치 제스처로 이산 줌 레벨 전환
+  const pinchGesture = useMemo(
+    () =>
+      Gesture.Pinch()
+        .runOnJS(true)
+        .onEnd((e) => {
+          if (e.scale > 1.2) handleZoom(1);
+          else if (e.scale < 0.8) handleZoom(-1);
+        }),
+    [handleZoom],
+  );
 
   useImperativeHandle(ref, () => ({
     scrollToMonth(year: number, month: number) {
@@ -218,9 +268,8 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
       if (idx < 0) return;
       let offset = 0;
       for (let i = 0; i < idx; i++) {
-        offset += getMonthItemHeight(months[i]!.year, months[i]!.month);
+        offset += getMonthItemHeight(months[i]!.year, months[i]!.month, weekRowHeight);
       }
-      // MONTH_LABEL_HEIGHT만큼 더 스크롤해 1일 위 레이블을 숨기고 첫 행 구분선부터 보이게 함
       listRef.current?.scrollToOffset({ offset: offset + MONTH_LABEL_HEIGHT, animated: true });
     },
     clearSelection() {
@@ -233,37 +282,34 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
       if (monthIdx < 0) return false;
       let monthOffset = 0;
       for (let i = 0; i < monthIdx; i++) {
-        monthOffset += getMonthItemHeight(months[i]!.year, months[i]!.month);
+        monthOffset += getMonthItemHeight(months[i]!.year, months[i]!.month, weekRowHeight);
       }
-      // 해당 날짜가 속한 주 행 인덱스 계산
       const firstDay = new Date(year, month, 1).getDay();
       const weekRowIdx = Math.floor((firstDay + date.getDate() - 1) / 7);
-      const weekRowTop = monthOffset + MONTH_LABEL_HEIGHT + weekRowIdx * WEEK_ROW_HEIGHT;
-      const weekRowBottom = weekRowTop + WEEK_ROW_HEIGHT;
+      const weekRowTop = monthOffset + MONTH_LABEL_HEIGHT + weekRowIdx * weekRowHeight;
+      const weekRowBottom = weekRowTop + weekRowHeight;
       const viewTop = scrollYRef.current;
       const viewBottom = viewTop + viewportHeightRef.current;
       return weekRowTop < viewBottom && weekRowBottom > viewTop;
     },
-  }), [months]);
+  }), [months, weekRowHeight]);
 
   const onVisibleMonthChangeRef = useRef(onVisibleMonthChange);
   onVisibleMonthChangeRef.current = onVisibleMonthChange;
 
-  // 월별 FlatList 아이템 높이·오프셋 (가변 행 수에 맞게 사전 계산)
+  // 월별 FlatList 아이템 높이·오프셋 (줌 변경 시 자동 재계산)
   const itemLayouts = useMemo(() => {
     const result: { height: number; offset: number }[] = [];
     let offset = 0;
     for (const m of months) {
-      const height = getMonthItemHeight(m.year, m.month);
+      const height = getMonthItemHeight(m.year, m.month, weekRowHeight);
       result.push({ height, offset });
       offset += height;
     }
     return result;
-  }, [months]);
+  }, [months, weekRowHeight]);
 
-  // 스크롤 위치 기반 서브타이틀 갱신 (Issue 6):
-  // 요일바 하단이 해당 달 마지막 행의 상단 구분선을 지나면 다음 달로 전환
-  const activeMonthIdxRef = useRef(initialIndex);
+  // 스크롤 위치 기반 서브타이틀 갱신
   const handleScroll = useCallback(
     (e: { nativeEvent: { contentOffset: { y: number } } }) => {
       const scrollY = e.nativeEvent.contentOffset.y;
@@ -272,7 +318,7 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
       for (let i = 0; i < months.length; i++) {
         const weekCount = getWeekCount(months[i]!.year, months[i]!.month);
         const lastRowTopY =
-          itemLayouts[i]!.offset + MONTH_LABEL_HEIGHT + (weekCount - 1) * WEEK_ROW_HEIGHT;
+          itemLayouts[i]!.offset + MONTH_LABEL_HEIGHT + (weekCount - 1) * weekRowHeight;
         if (scrollY > lastRowTopY) {
           newIdx = i + 1;
         } else {
@@ -285,8 +331,20 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
         onVisibleMonthChangeRef.current?.(months[newIdx]!.year, months[newIdx]!.month);
       }
     },
-    [months, itemLayouts],
+    [months, itemLayouts, weekRowHeight],
   );
+
+  // 줌 변경 후 동일 월이 보이도록 스크롤 복원
+  useEffect(() => {
+    const idx = pendingScrollIdxRef.current;
+    if (idx === null) return;
+    pendingScrollIdxRef.current = null;
+    let offset = 0;
+    for (let i = 0; i < idx; i++) {
+      offset += getMonthItemHeight(months[i]!.year, months[i]!.month, weekRowHeight);
+    }
+    listRef.current?.scrollToOffset({ offset: offset + MONTH_LABEL_HEIGHT, animated: false });
+  }, [zoomLevel, months, weekRowHeight]);
 
   // 초기 진입 시 MM월 레이블을 숨기고 첫 주 구분선이 요일바 하단과 맞닿게 스크롤
   useEffect(() => {
@@ -325,9 +383,12 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
         onDayPress={handleDayPress}
         showHolidays={showHolidays}
         colors={colors}
+        weekRowHeight={weekRowHeight}
+        maxTracks={maxTracks}
+        zoomMode={zoomMode}
       />
     ),
-    [selectedDate, handleDayPress, showHolidays, colors],
+    [selectedDate, handleDayPress, showHolidays, colors, weekRowHeight, maxTracks, zoomMode],
   );
 
   const keyExtractor = useCallback(
@@ -336,32 +397,34 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
   );
 
   return (
-    <View
-      style={{ flex: 1, backgroundColor: colors.background.primary }}
-      onLayout={(e) => { viewportHeightRef.current = e.nativeEvent.layout.height; }}
-    >
-      <FlatList<YearMonth>
-        ref={listRef}
-        data={months}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        getItemLayout={getItemLayout}
-        initialScrollIndex={initialIndex}
-        onScrollToIndexFailed={() => {
-          listRef.current?.scrollToOffset({
-            offset: itemLayouts[initialIndex]!.offset + MONTH_LABEL_HEIGHT,
-            animated: false,
-          });
-        }}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        windowSize={5}
-        removeClippedSubviews
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 72 }}
-        testID="month-list"
-      />
-    </View>
+    <GestureDetector gesture={pinchGesture}>
+      <View
+        style={{ flex: 1, backgroundColor: colors.background.primary }}
+        onLayout={(e) => { viewportHeightRef.current = e.nativeEvent.layout.height; }}
+      >
+        <FlatList<YearMonth>
+          ref={listRef}
+          data={months}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
+          initialScrollIndex={initialIndex}
+          onScrollToIndexFailed={() => {
+            listRef.current?.scrollToOffset({
+              offset: itemLayouts[initialIndex]!.offset + MONTH_LABEL_HEIGHT,
+              animated: false,
+            });
+          }}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          windowSize={5}
+          removeClippedSubviews
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 72 }}
+          testID="month-list"
+        />
+      </View>
+    </GestureDetector>
   );
 });
 
@@ -374,6 +437,9 @@ interface MonthItemProps {
   onDayPress: (date: Date) => void;
   showHolidays: boolean;
   colors: ReturnType<typeof useTheme>["colors"];
+  weekRowHeight: number;
+  maxTracks: number;
+  zoomMode: ZoomMode;
 }
 
 const MonthItem = React.memo(function MonthItem({
@@ -383,15 +449,17 @@ const MonthItem = React.memo(function MonthItem({
   onDayPress,
   showHolidays,
   colors,
+  weekRowHeight,
+  maxTracks,
+  zoomMode,
 }: MonthItemProps) {
-  const s = makeStyles(colors);
+  const s = makeStyles(colors, weekRowHeight);
   const { events, dueTodos, categories } = useMonthItems(year, month);
   const today = new Date();
   const isThisMonth = year === today.getFullYear() && month === today.getMonth();
   const rawGrid = buildMonthGrid(year, month, today);
   const rows = chunkBy7(rawGrid);
 
-  // 첫 번째 주에서 현재 달 첫 번째 날의 열(column) 인덱스
   const firstDayCol = rows[0]?.findIndex((d) => d.isCurrentMonth) ?? 0;
 
   const holidayMap = useMemo(
@@ -413,7 +481,6 @@ const MonthItem = React.memo(function MonthItem({
         {rows.map((weekDays, rowIndex) => {
           const eventBars = computeEventBars(weekDays, events, getCategoryColor);
 
-          // 이번 주에서 현재 달에 속하는 첫 번째·마지막 열 인덱스
           const firstActiveCol = weekDays.findIndex((d) => d.isCurrentMonth);
           const lastActiveCol = weekDays.reduce(
             (acc, d, i) => (d.isCurrentMonth ? i : acc),
@@ -423,17 +490,30 @@ const MonthItem = React.memo(function MonthItem({
           const holidayBars = computeHolidayBars(weekDays, holidayMap, eventBars, colors.status.error);
           const allBars = [...eventBars, ...holidayBars];
 
-          // 날짜별 커버 바 수 (해당 열을 지나는 allBars 개수)
+          // 날짜별 커버 바 수
           const colBarCounts = Array.from({ length: 7 }, (_, col) =>
             allBars.filter((b) => b.startCol <= col && b.endCol >= col).length,
           );
-          // 현재 달 날짜 중 하나라도 MAX_TRACKS 초과면 마지막 슬롯을 indicator 자리로 예약
-          const rowHasOverflow = weekDays.some(
-            (d, col) => d.isCurrentMonth && (colBarCounts[col] ?? 0) > MAX_TRACKS,
-          );
+
+          // overflow는 bars 모드에서만 적용 (thin_bars·dots는 그냥 maxTracks까지 표시)
+          const rowHasOverflow =
+            zoomMode === "bars" &&
+            weekDays.some((d, col) => d.isCurrentMonth && (colBarCounts[col] ?? 0) > maxTracks);
+
           const displayBars = allBars.filter(
-            (b) => b.track < (rowHasOverflow ? MAX_TRACKS - 1 : MAX_TRACKS),
+            (b) => b.track < (rowHasOverflow ? maxTracks - 1 : maxTracks),
           );
+
+          // dots 모드: 날짜별 색상 목록 (최대 maxTracks개)
+          const dayColors =
+            zoomMode === "dots"
+              ? Array.from({ length: 7 }, (_, col) =>
+                  allBars
+                    .filter((b) => b.startCol <= col && b.endCol >= col)
+                    .slice(0, maxTracks)
+                    .map((b) => b.color),
+                )
+              : null;
 
           return (
             <React.Fragment key={rowIndex}>
@@ -443,7 +523,6 @@ const MonthItem = React.memo(function MonthItem({
                   {Array.from({ length: firstDayCol }, (_, i) => (
                     <View key={`sp-${i}`} style={s.monthLabelSpacer} />
                   ))}
-                  {/* 헤더 서브타이틀에 이미 표시되는 당월은 숨김 (레이아웃 높이 유지) */}
                   <Text style={[s.monthLabelOnFirst, isThisMonth && s.monthLabelCurrent]}>
                     {month + 1}월
                   </Text>
@@ -473,12 +552,14 @@ const MonthItem = React.memo(function MonthItem({
                     const isSun = date.getDay() === 0;
                     const isSat = date.getDay() === 6;
 
-                    // 이 날짜의 overflow 개수 (현재 달 셀만)
                     const colBarCount = colBarCounts[col] ?? 0;
+                    // bars 모드에서만 overflow indicator 표시
                     const colOverflow =
-                      isCurrentMonth && colBarCount > MAX_TRACKS
-                        ? colBarCount - (MAX_TRACKS - 1)
+                      zoomMode === "bars" && isCurrentMonth && colBarCount > maxTracks
+                        ? colBarCount - (maxTracks - 1)
                         : 0;
+
+                    const cellDotColors = dayColors?.[col] ?? [];
 
                     if (!isCurrentMonth) {
                       return <View key={date.toISOString()} style={s.dayCell} />;
@@ -518,7 +599,15 @@ const MonthItem = React.memo(function MonthItem({
                             {incompleteCount}
                           </Text>
                         )}
-                        {/* 날짜 셀 하단 중앙: 초과 일정 indicator */}
+                        {/* dots 모드: 날짜 원형 아래 중앙 정렬 색상 점 */}
+                        {zoomMode === "dots" && cellDotColors.length > 0 && (
+                          <View style={s.dotsRow}>
+                            {cellDotColors.map((color, i) => (
+                              <View key={i} style={[s.dot, { backgroundColor: color }]} />
+                            ))}
+                          </View>
+                        )}
+                        {/* bars 모드: 날짜 셀 하단 중앙 초과 indicator */}
                         {colOverflow > 0 && (
                           <Text style={s.colOverflowText}>+{colOverflow}개</Text>
                         )}
@@ -527,29 +616,59 @@ const MonthItem = React.memo(function MonthItem({
                   })}
                 </View>
 
-                {/* 이벤트 + 공휴일 바 레이어 (날짜 원형 바로 아래 절대 배치) */}
-                <View style={s.eventBarsRow}>
-                  {displayBars.map((bar) => (
-                    <View
-                      key={`${bar.eventId}-${rowIndex}`}
-                      testID={`event-bar-${bar.eventId}`}
-                      style={[
-                        s.eventBar,
-                        {
-                          left: `${(bar.startCol / 7) * 100}%` as `${number}%`,
-                          right: `${((6 - bar.endCol) / 7) * 100}%` as `${number}%`,
-                          top: bar.track * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN,
-                        },
-                      ]}
-                    >
-                      {/* 배경만 불투명도 적용 — 텍스트에는 영향 없음 */}
-                      <View testID={`event-bar-bg-${bar.eventId}`} style={[StyleSheet.absoluteFillObject, s.eventBarBg, { backgroundColor: bar.color }]} />
-                      <Text style={s.eventBarText} numberOfLines={1}>
-                        {bar.title}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
+                {/* 이벤트 + 공휴일 바 레이어 (dots 모드에서는 숨김) */}
+                {zoomMode !== "dots" && (
+                  <View style={s.eventBarsRow}>
+                    {displayBars.map((bar) => {
+                      const isThin = zoomMode === "thin_bars";
+                      const barTop = isThin
+                        ? bar.track * THIN_BAR_SLOT + BAR_MARGIN
+                        : bar.track * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN;
+                      const barH = isThin ? THIN_BAR_HEIGHT : BAR_HEIGHT;
+
+                      return (
+                        <View
+                          key={`${bar.eventId}-${rowIndex}`}
+                          testID={`event-bar-${bar.eventId}`}
+                          style={[
+                            isThin ? s.thinEventBar : s.eventBar,
+                            {
+                              left: `${(bar.startCol / 7) * 100}%` as `${number}%`,
+                              right: `${((6 - bar.endCol) / 7) * 100}%` as `${number}%`,
+                              top: barTop,
+                              height: barH,
+                            },
+                          ]}
+                        >
+                          {isThin ? (
+                            /* thin_bars: 텍스트 없이 단색 */
+                            <View
+                              style={[
+                                StyleSheet.absoluteFillObject,
+                                { backgroundColor: bar.color, borderRadius: 1 },
+                              ]}
+                            />
+                          ) : (
+                            /* bars: 배경(불투명도) + 텍스트 */
+                            <>
+                              <View
+                                testID={`event-bar-bg-${bar.eventId}`}
+                                style={[
+                                  StyleSheet.absoluteFillObject,
+                                  s.eventBarBg,
+                                  { backgroundColor: bar.color },
+                                ]}
+                              />
+                              <Text style={s.eventBarText} numberOfLines={1}>
+                                {bar.title}
+                              </Text>
+                            </>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
             </React.Fragment>
           );
@@ -561,7 +680,10 @@ const MonthItem = React.memo(function MonthItem({
 
 // ── 스타일 ────────────────────────────────────────────────────────────────────
 
-const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
+const makeStyles = (
+  colors: ReturnType<typeof useTheme>["colors"],
+  weekRowHeight: number,
+) =>
   StyleSheet.create({
     monthItem: {
       backgroundColor: colors.background.primary,
@@ -589,7 +711,7 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     weekRow: {
       position: "relative",
-      height: WEEK_ROW_HEIGHT,
+      height: weekRowHeight,
     },
     weekTopLine: {
       position: "absolute",
@@ -601,11 +723,11 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     dayCellsRow: {
       flexDirection: "row",
       alignItems: "flex-start",
-      height: WEEK_ROW_HEIGHT,
+      height: weekRowHeight,
     },
     dayCell: {
       width: `${100 / 7}%` as `${number}%`,
-      height: WEEK_ROW_HEIGHT,
+      height: weekRowHeight,
       alignItems: "center",
       justifyContent: "flex-start",
       paddingTop: DAY_CELL_PADDING_TOP,
@@ -637,6 +759,21 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       color: colors.text.secondary,
       fontWeight: "500",
     },
+    // dots 모드: 날짜 원형 아래 중앙 정렬 점 행
+    dotsRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: DOT_GAP,
+      paddingTop: 4,
+      paddingHorizontal: 3,
+    },
+    dot: {
+      width: DOT_SIZE,
+      height: DOT_SIZE,
+      borderRadius: DOT_SIZE / 2,
+    },
     eventBarsRow: {
       position: "absolute",
       top: EVENT_BAR_START,
@@ -653,9 +790,9 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       textAlign: "center",
       fontWeight: "500",
     },
+    // 일반 이벤트 박스 (텍스트 + 배경)
     eventBar: {
       position: "absolute",
-      height: BAR_HEIGHT,
       borderRadius: 2,
       paddingHorizontal: 3,
       justifyContent: "center",
@@ -670,5 +807,12 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       fontSize: 10,
       color: colors.text.primary,
       fontWeight: "500",
+    },
+    // 얇은 막대 (텍스트 없이 단색)
+    thinEventBar: {
+      position: "absolute",
+      borderRadius: 1,
+      overflow: "hidden",
+      marginHorizontal: 0.5,
     },
   });

@@ -32,13 +32,13 @@ export const NAV = {
 // ── 공통 푸터 pill 버튼 바 ────────────────────────────────────────────────────
 export const FOOTER = {
   /** 화면 하단에서 버튼까지 거리 (홈 인디케이터 위 여백) */
-  bottom: 20,
+  bottom: 17,
   /** 버튼 바 좌우 여백 */
-  paddingH: 20,
+  paddingH: 22,
   /** 버튼 높이 */
-  btnHeight: 38,
+  btnHeight: 37,
   /** 버튼 최소 너비 */
-  btnMinWidth: 72,
+  btnMinWidth: 69,
   /** 버튼 내부 좌우 패딩 */
   btnPaddingH: 16,
   /** 버튼 모서리 반지름 (btnHeight/2 이상이면 완전 원형) */
@@ -55,25 +55,25 @@ export const MONTH_VIEW = {
    * 1주 행 높이 (날짜 셀 + 이벤트 바 포함).
    * 늘리면 각 주 셀이 커지고 한 달이 더 긴 공간을 차지함.
    */
-  weekRowHeight: 123,
+  weekRowHeight: 132,
   /** 캘린더 상단 "MM월" 대형 서브타이틀 크기 */
   subtitleSize: 26,
   /** 요일 바 (일·월·화…토) 글자 크기 */
-  weekdayLabelSize: 11,
+  weekdayLabelSize: 12,
   /**
    * 각 달 1일 위에 표시되는 "MM월" 레이블 크기.
    * 변경하면 FlatList 행 높이(MONTH_LABEL_HEIGHT)가 자동 재계산됨.
    */
-  labelOnFirstSize: 19,
+  labelOnFirstSize: 21,
   /** 날짜 숫자 크기 */
-  dayNumSize: 13,
+  dayNumSize: 14,
   /** 오늘 날짜 원형 배경 지름 */
   dayCircleSize: 26,
   /**
    * 일정 박스 불투명도 (0=완전투명, 1=완전불투명).
    * 직접 수정 후 저장하면 Fast Refresh로 즉시 반영됨.
    */
-  eventBarOpacity: 0.65,
+  eventBarOpacity: 0.4,
 } as const;
 
 // ── Year View ────────────────────────────────────────────────────────────────
@@ -91,9 +91,9 @@ export const YEAR_VIEW = {
    */
   monthTitleSize: 21,
   /** 화면 베젤 ↔ 달력 수평 여백 (클수록 베젤에 더 붙음) */
-  outerPaddingH: 24,
+  outerPaddingH: 22,
   /** 달력 ↔ 달력 사이 수평 여백 한쪽 (작을수록 달력끼리 더 가까움) */
   monthPaddingH: 4,
   /** 달력 상하 여백 */
-  monthPaddingV: 18,
+  monthPaddingV: 17,
 } as const;

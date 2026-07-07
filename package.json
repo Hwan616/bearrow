@@ -56,7 +56,8 @@
   "jest": {
     "preset": "jest-expo",
     "setupFiles": [
-      "react-native-reanimated/mock"
+      "react-native-reanimated/mock",
+      "react-native-gesture-handler/jestSetup"
     ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1",
