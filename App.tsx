@@ -259,16 +259,12 @@ function AppContent() {
       if (weekVisible) {
         setVisibleDayDate(today);
         setActiveView("day");
-      } else if (visibleMonthYear === todayYear) {
-        // 주 행이 보이지 않음, 같은 연도 → 스크롤로 당월 이동
-        setVisibleMonthYear(todayYear);
-        setVisibleMonthMonth(todayMonth);
-        monthViewRef.current?.scrollToMonth(todayYear, todayMonth);
       } else {
-        // 다른 연도 → 즉시 당월로 화면 전환
+        // 당월로 이동: 범위 안이면 정렬 스크롤(줌 유지), 범위 밖이면 리마운트로 재중심화
         setVisibleMonthYear(todayYear);
         setVisibleMonthMonth(todayMonth);
-        bumpCalendar();
+        const scrolled = monthViewRef.current?.scrollToMonth(todayYear, todayMonth) ?? false;
+        if (!scrolled) bumpCalendar();
       }
     } else {
       // Day View: 기존 동작 유지
