@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   FlatList,
   Pressable,
@@ -89,6 +89,16 @@ export function YearView({ initialYear, onMonthPress }: Props) {
 
   const keyExtractor = useCallback((year: number) => String(year), []);
 
+  useEffect(() => {
+    const id = setTimeout(() => {
+      listRef.current?.scrollToOffset({
+        offset: initialIndex * YEAR_ITEM_HEIGHT,
+        animated: false,
+      });
+    }, 0);
+    return () => clearTimeout(id);
+  }, [initialIndex]);
+
   return (
     <FlatList<number>
       ref={listRef}
@@ -97,12 +107,6 @@ export function YearView({ initialYear, onMonthPress }: Props) {
       keyExtractor={keyExtractor}
       getItemLayout={getItemLayout}
       initialScrollIndex={initialIndex}
-      onScrollToIndexFailed={() => {
-        listRef.current?.scrollToOffset({
-          offset: initialIndex * YEAR_ITEM_HEIGHT,
-          animated: false,
-        });
-      }}
       windowSize={3}
       removeClippedSubviews
       showsVerticalScrollIndicator={false}
@@ -130,7 +134,7 @@ const YearItem = React.memo(function YearItem({
   const s = makeStyles(colors);
 
   return (
-    <View testID={`year-item-${year}`}>
+    <View testID={`year-item-${year}`} style={{ height: YEAR_ITEM_HEIGHT }}>
       <View style={s.yearHeader}>
         <Text style={[s.yearTitle, year === today.getFullYear() && s.yearTitleCurrent]}>
           {year}년
