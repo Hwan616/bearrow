@@ -23,13 +23,20 @@ import { getHolidaysForMonth } from "../utils/koreanHolidays";
 
 const BAR_HEIGHT = 14;
 const BAR_MARGIN = 2;
-const MAX_TRACKS = 2;
-const EVENT_AREA_HEIGHT = MAX_TRACKS * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN;
 
 // ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
 const MONTH_LABEL_HEIGHT = Math.round(MONTH_VIEW.labelOnFirstSize * 1.32) + 8;
 const WEEK_ROW_HEIGHT = MONTH_VIEW.weekRowHeight;
-const DAY_CELL_HEIGHT = WEEK_ROW_HEIGHT - EVENT_AREA_HEIGHT;
+
+// 날짜 원형이 차지하는 수직 공간 (paddingTop + circle 뷰 높이)
+const DAY_CELL_PADDING_TOP = 6;
+const DAY_CIRCLE_CONTAINER_H = 36;
+// 이벤트 바 시작 Y (weekRow 기준): 날짜 원형 바로 아래 4px 간격
+const EVENT_BAR_START = DAY_CELL_PADDING_TOP + DAY_CIRCLE_CONTAINER_H + 4;
+// 표시 가능한 최대 트랙 수 (가용 높이 ÷ 바 1개 슬롯)
+const MAX_TRACKS = Math.floor(
+  (WEEK_ROW_HEIGHT - EVENT_BAR_START - BAR_MARGIN) / (BAR_HEIGHT + BAR_MARGIN),
+);
 
 const MONTH_WINDOW = 49; // ±24 months
 
@@ -111,7 +118,8 @@ function computeEventBars(
     .filter((e) => e.startsAt.getTime() <= weekEndMs && e.endsAt.getTime() >= weekStart.getTime())
     .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
 
-  const trackEndCols: number[] = [-1, -1];
+  // 트랙 상한 없이 모두 계산 — 렌더링 단계에서 MAX_TRACKS 기준으로 overflow 처리
+  const trackEndCols: number[] = [];
   const bars: EventBarData[] = [];
 
   for (const event of weekEvents) {
@@ -123,15 +131,14 @@ function computeEventBars(
     const endCol = Math.min(cols.endCol, lastCurrentCol);
     if (startCol > endCol) continue;
 
-    let track = -1;
-    for (let t = 0; t < MAX_TRACKS; t++) {
-      if ((trackEndCols[t] ?? -1) < startCol) {
-        track = t;
-        trackEndCols[t] = endCol;
-        break;
-      }
+    // 빈 트랙 탐색 → 없으면 새 트랙 할당
+    let track = trackEndCols.findIndex((end) => end < startCol);
+    if (track === -1) {
+      track = trackEndCols.length;
+      trackEndCols.push(endCol);
+    } else {
+      trackEndCols[track] = endCol;
     }
-    if (track === -1) continue;
 
     bars.push({
       eventId: event.id,
@@ -161,17 +168,15 @@ function computeHolidayBars(
       .filter((b) => b.startCol <= col && b.endCol >= col)
       .map((b) => b.track);
     let track = 0;
-    while (usedTracks.includes(track) && track < MAX_TRACKS) track++;
-    if (track < MAX_TRACKS) {
-      result.push({
-        eventId: `holiday-${date.toISOString()}`,
-        title: name,
-        color: holidayColor,
-        startCol: col,
-        endCol: col,
-        track,
-      });
-    }
+    while (usedTracks.includes(track)) track++;
+    result.push({
+      eventId: `holiday-${date.toISOString()}`,
+      title: name,
+      color: holidayColor,
+      startCol: col,
+      endCol: col,
+      track,
+    });
   });
   return result;
 }
@@ -418,6 +423,11 @@ const MonthItem = React.memo(function MonthItem({
           const holidayBars = computeHolidayBars(weekDays, holidayMap, eventBars, colors.status.error);
           const allBars = [...eventBars, ...holidayBars];
 
+          // overflow: MAX_TRACKS 초과 시 (n-1)개 표시 + indicator
+          const hasOverflow = allBars.length > MAX_TRACKS;
+          const displayBars = hasOverflow ? allBars.slice(0, MAX_TRACKS - 1) : allBars;
+          const overflowCount = hasOverflow ? allBars.length - (MAX_TRACKS - 1) : 0;
+
           return (
             <React.Fragment key={rowIndex}>
               {/* MM월 레이블 — 1일 위 열에 정렬 */}
@@ -499,9 +509,9 @@ const MonthItem = React.memo(function MonthItem({
                   })}
                 </View>
 
-                {/* 이벤트 + 공휴일 바 레이어 */}
+                {/* 이벤트 + 공휴일 바 레이어 (날짜 원형 바로 아래 절대 배치) */}
                 <View style={s.eventBarsRow}>
-                  {allBars.map((bar) => (
+                  {displayBars.map((bar) => (
                     <View
                       key={`${bar.eventId}-${rowIndex}`}
                       testID={`event-bar-${bar.eventId}`}
@@ -521,6 +531,17 @@ const MonthItem = React.memo(function MonthItem({
                       </Text>
                     </View>
                   ))}
+                  {/* overflow indicator: "+n개" */}
+                  {hasOverflow && (
+                    <View
+                      style={[
+                        s.overflowIndicator,
+                        { top: (MAX_TRACKS - 1) * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN },
+                      ]}
+                    >
+                      <Text style={s.overflowText}>+{overflowCount}개</Text>
+                    </View>
+                  )}
                 </View>
               </View>
             </React.Fragment>
@@ -561,6 +582,7 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     weekRow: {
       position: "relative",
+      height: WEEK_ROW_HEIGHT,
     },
     weekTopLine: {
       position: "absolute",
@@ -572,13 +594,14 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     dayCellsRow: {
       flexDirection: "row",
       alignItems: "flex-start",
+      height: WEEK_ROW_HEIGHT,
     },
     dayCell: {
       width: `${100 / 7}%` as `${number}%`,
-      height: DAY_CELL_HEIGHT,
+      height: WEEK_ROW_HEIGHT,
       alignItems: "center",
       justifyContent: "flex-start",
-      paddingTop: 6,
+      paddingTop: DAY_CELL_PADDING_TOP,
       position: "relative",
     },
     dayCircle: {
@@ -608,8 +631,21 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       fontWeight: "500",
     },
     eventBarsRow: {
-      height: EVENT_AREA_HEIGHT,
-      position: "relative",
+      position: "absolute",
+      top: EVENT_BAR_START,
+      left: 0,
+      right: 0,
+    },
+    overflowIndicator: {
+      position: "absolute",
+      right: 4,
+      height: BAR_HEIGHT,
+      justifyContent: "center",
+    },
+    overflowText: {
+      fontSize: 10,
+      color: colors.text.secondary,
+      fontWeight: "500",
     },
     eventBar: {
       position: "absolute",
