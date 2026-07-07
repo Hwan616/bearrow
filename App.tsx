@@ -668,7 +668,7 @@ function makeStyles(colors: ColorTokens) {
 
     // Day View: 날짜 헤더 타이틀
     dayHeaderTitle: {
-      fontSize: 15,
+      fontSize: 18,
       fontWeight: "600",
       textAlign: "center",
       paddingVertical: 10,

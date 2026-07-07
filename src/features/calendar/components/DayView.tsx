@@ -8,24 +8,40 @@ import {
   type ViewToken,
 } from "react-native";
 
+import { MONTH_VIEW } from "@/config/layout";
 import { useTheme } from "@/theme";
 
 import { useDayItems } from "../hooks/useDayItems";
 import { useDayScroll } from "../hooks/useDayScroll";
 import type { Event } from "../types";
+import { layoutTimedEvents } from "../utils/dayLayoutUtils";
 
 // ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
 const HOUR_HEIGHT = 64;
+const DATE_HEADER_HEIGHT = 28;
 const ALL_DAY_SECTION_HEIGHT = 40;
 const TIME_LABEL_WIDTH = 48;
-const DAY_ITEM_HEIGHT = ALL_DAY_SECTION_HEIGHT + HOUR_HEIGHT * 24;
+const DAY_ITEM_HEIGHT = DATE_HEADER_HEIGHT + ALL_DAY_SECTION_HEIGHT + HOUR_HEIGHT * 24;
 const MIN_EVENT_HEIGHT = 28;
+const EVENT_AREA_LEFT = TIME_LABEL_WIDTH + 4;
+const EVENT_AREA_RIGHT = 8;
+const COLUMN_GAP = 3; // 겹친 이벤트 컬럼 사이 간격
+const EVENT_OPACITY = MONTH_VIEW.eventBarOpacity;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 const FULL_DAYS = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"] as const;
+const SHORT_DAYS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
 export function formatDayHeaderTitle(date: Date): string {
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 ${FULL_DAYS[date.getDay()]}`;
+}
+
+// 타임라인 상단 날짜 레이블: "YYYY.MM.DD.(W)"
+export function formatDayDateLabel(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}.${m}.${d}.(${SHORT_DAYS[date.getDay()]})`;
 }
 
 function formatTime(date: Date): string {
@@ -79,7 +95,10 @@ export function DayView({ initialDate, onEventPress, onDateChange }: DayViewProp
     const isToday = now.toDateString() === initialDate.toDateString();
     const startHour = isToday ? Math.max(0, now.getHours() - 1) : 7;
     const offset =
-      initialIndex * DAY_ITEM_HEIGHT + ALL_DAY_SECTION_HEIGHT + startHour * HOUR_HEIGHT;
+      initialIndex * DAY_ITEM_HEIGHT +
+      DATE_HEADER_HEIGHT +
+      ALL_DAY_SECTION_HEIGHT +
+      startHour * HOUR_HEIGHT;
 
     const id = setTimeout(() => {
       listRef.current?.scrollToOffset({ offset: Math.max(0, offset), animated: false });
@@ -139,15 +158,23 @@ const DayTimelineItem = React.memo(function DayTimelineItem({
   onEventPress,
   colors,
 }: DayTimelineItemProps) {
-  const { events, isLoading } = useDayItems(date);
+  const { events, categories, isLoading } = useDayItems(date);
   const s = makeStyles(colors);
 
+  // 카테고리 색상 조회 (없으면 accent.primary)
+  const categoryColorMap = useMemo(
+    () => new Map((categories ?? []).map((c) => [c.id, c.color])),
+    [categories],
+  );
+  const getCategoryColor = useCallback(
+    (categoryId: string | null | undefined): string =>
+      (categoryId ? categoryColorMap.get(categoryId) : undefined) ?? colors.accent.primary,
+    [categoryColorMap, colors.accent.primary],
+  );
+
   const allDayEvents = useMemo(() => events.filter((e) => e.isAllDay), [events]);
-  const timedEvents = useMemo(
-    () =>
-      events
-        .filter((e) => !e.isAllDay)
-        .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
+  const timedLayout = useMemo(
+    () => layoutTimedEvents(events.filter((e) => !e.isAllDay)),
     [events],
   );
 
@@ -163,12 +190,23 @@ const DayTimelineItem = React.memo(function DayTimelineItem({
 
   return (
     <View style={[s.dayItem, { borderBottomColor: colors.border.default }]} testID={`day-item-${date.toDateString()}`}>
+      {/* 날짜 레이블 */}
+      <View style={[s.dateHeader, { borderBottomColor: colors.border.default }]}>
+        <Text style={s.dateHeaderText}>{formatDayDateLabel(date)}</Text>
+      </View>
+
       {/* 종일 이벤트 */}
       <View style={[s.allDaySection, { borderBottomColor: colors.border.default }]}>
         <Text style={s.allDayLabel}>종일</Text>
         <View style={s.allDayEvents}>
           {allDayEvents.map((e) => (
-            <AllDayEventBar key={e.id} event={e} colors={colors} onPress={onEventPress} />
+            <AllDayEventBar
+              key={e.id}
+              event={e}
+              color={getCategoryColor(e.categoryId)}
+              colors={colors}
+              onPress={onEventPress}
+            />
           ))}
         </View>
       </View>
@@ -190,16 +228,22 @@ const DayTimelineItem = React.memo(function DayTimelineItem({
           </View>
         )}
 
-        {/* 시간 이벤트 블록 */}
-        {!isLoading &&
-          timedEvents.map((e) => (
-            <EventBlock
-              key={e.id}
-              event={e}
-              colors={colors}
-              onPress={onEventPress}
-            />
-          ))}
+        {/* 시간 이벤트 블록 (겹침 컬럼 배치) */}
+        {!isLoading && (
+          <View style={s.eventArea}>
+            {timedLayout.map(({ event, colIndex, colCount }) => (
+              <EventBlock
+                key={event.id}
+                event={event}
+                colIndex={colIndex}
+                colCount={colCount}
+                color={getCategoryColor(event.categoryId)}
+                colors={colors}
+                onPress={onEventPress}
+              />
+            ))}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -209,10 +253,12 @@ const DayTimelineItem = React.memo(function DayTimelineItem({
 
 function AllDayEventBar({
   event,
+  color,
   colors,
   onPress,
 }: {
   event: Event;
+  color: string;
   colors: ReturnType<typeof useTheme>["colors"];
   onPress?: (event: Event) => void;
 }) {
@@ -220,18 +266,24 @@ function AllDayEventBar({
     <Pressable
       onPress={() => onPress?.(event)}
       style={{
-        backgroundColor: colors.accent.primaryLight,
         borderRadius: 3,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
+        overflow: "hidden",
         marginRight: 4,
         marginBottom: 2,
       }}
       accessibilityLabel={event.title}
       accessibilityRole="button"
     >
+      {/* 배경(불투명도) — 글씨는 불투명 유지 */}
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: color, opacity: EVENT_OPACITY }]} />
       <Text
-        style={{ fontSize: 11, color: colors.accent.primary, fontWeight: "600" }}
+        style={{
+          fontSize: 11,
+          color: colors.text.primary,
+          fontWeight: "600",
+          paddingHorizontal: 6,
+          paddingVertical: 2,
+        }}
         numberOfLines={1}
       >
         {event.title}
@@ -244,10 +296,16 @@ function AllDayEventBar({
 
 function EventBlock({
   event,
+  colIndex,
+  colCount,
+  color,
   colors,
   onPress,
 }: {
   event: Event;
+  colIndex: number;
+  colCount: number;
+  color: string;
   colors: ReturnType<typeof useTheme>["colors"];
   onPress?: (event: Event) => void;
 }) {
@@ -258,32 +316,39 @@ function EventBlock({
   const top = (startMinutes / 60) * HOUR_HEIGHT;
   const height = Math.max((durationMinutes / 60) * HOUR_HEIGHT, MIN_EVENT_HEIGHT);
 
+  const leftPct = (colIndex / colCount) * 100;
+  const widthPct = (1 / colCount) * 100;
+
   return (
     <Pressable
       onPress={() => onPress?.(event)}
       style={{
         position: "absolute",
-        left: TIME_LABEL_WIDTH + 4,
-        right: 8,
+        left: `${leftPct}%`,
+        width: `${widthPct}%`,
         top,
         height,
-        backgroundColor: colors.accent.primary,
-        borderRadius: 4,
-        padding: 4,
-        overflow: "hidden",
       }}
       accessibilityLabel={event.title}
       accessibilityRole="button"
     >
-      <Text
-        style={{ fontSize: 11, fontWeight: "600", color: colors.text.inverse }}
-        numberOfLines={1}
-      >
-        {event.title}
-      </Text>
-      <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.8)" }}>
-        {formatTime(event.startsAt)}–{formatTime(event.endsAt)}
-      </Text>
+      <View style={{ flex: 1, marginRight: COLUMN_GAP, borderRadius: 4, overflow: "hidden" }}>
+        {/* 배경(불투명도) — 글씨는 불투명 유지 */}
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: color, opacity: EVENT_OPACITY }]} />
+        <View style={{ padding: 4 }}>
+          <Text
+            style={{ fontSize: 11, fontWeight: "600", color: colors.text.primary }}
+            numberOfLines={1}
+          >
+            {event.title}
+          </Text>
+          {height >= 34 && (
+            <Text style={{ fontSize: 10, color: colors.text.secondary }} numberOfLines={1}>
+              {formatTime(event.startsAt)}–{formatTime(event.endsAt)}
+            </Text>
+          )}
+        </View>
+      </View>
     </Pressable>
   );
 }
@@ -299,6 +364,17 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     dayItem: {
       height: DAY_ITEM_HEIGHT,
       borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    dateHeader: {
+      height: DATE_HEADER_HEIGHT,
+      justifyContent: "center",
+      paddingHorizontal: 12,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    dateHeaderText: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.text.primary,
     },
     allDaySection: {
       height: ALL_DAY_SECTION_HEIGHT,
@@ -322,6 +398,13 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     hourGrid: {
       height: HOUR_HEIGHT * 24,
       position: "relative",
+    },
+    eventArea: {
+      position: "absolute",
+      left: EVENT_AREA_LEFT,
+      right: EVENT_AREA_RIGHT,
+      top: 0,
+      bottom: 0,
     },
     hourRow: {
       position: "absolute",

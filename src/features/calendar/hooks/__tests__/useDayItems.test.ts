@@ -9,6 +9,7 @@ import { useDayItems } from "../useDayItems";
 
 const mockGetEvents = jest.fn();
 const mockGetTodos = jest.fn();
+const mockGetCategories = jest.fn();
 
 jest.mock("@/features/calendar/api/events", () => ({
   getEventsByDateRange: (...args: unknown[]) => mockGetEvents(...args),
@@ -16,6 +17,10 @@ jest.mock("@/features/calendar/api/events", () => ({
 
 jest.mock("@/features/todo/api/todos", () => ({
   getTodosByDueDateRange: (...args: unknown[]) => mockGetTodos(...args),
+}));
+
+jest.mock("@/features/category/api/categories", () => ({
+  getCategories: (...args: unknown[]) => mockGetCategories(...args),
 }));
 
 // ── 픽스처 ───────────────────────────────────────────────────────────────────
@@ -60,6 +65,7 @@ describe("useDayItems", () => {
     jest.clearAllMocks();
     mockGetEvents.mockResolvedValue(MOCK_EVENTS);
     mockGetTodos.mockResolvedValue(MOCK_TODOS);
+    mockGetCategories.mockResolvedValue([]);
   });
 
   it("초기 상태는 isLoading=true이고 빈 배열이다", async () => {

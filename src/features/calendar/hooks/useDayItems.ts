@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { getCategories } from "@/features/category/api/categories";
+import type { Category } from "@/features/category/types";
 import { getTodosByDueDateRange } from "@/features/todo/api/todos";
 import type { Todo } from "@/features/todo/types";
 
@@ -9,6 +11,7 @@ import type { Event } from "../types";
 export interface UseDayItemsResult {
   events: Event[];
   todos: Todo[];
+  categories: Category[];
   isLoading: boolean;
   refresh: () => void;
 }
@@ -16,6 +19,7 @@ export interface UseDayItemsResult {
 export function useDayItems(date: Date): UseDayItemsResult {
   const [events, setEvents] = useState<Event[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [version, setVersion] = useState(0);
 
@@ -30,11 +34,16 @@ export function useDayItems(date: Date): UseDayItemsResult {
     const to = new Date(date);
     to.setHours(23, 59, 59, 999);
 
-    Promise.all([getEventsByDateRange(from, to), getTodosByDueDateRange(from, to)])
-      .then(([evts, tdos]) => {
+    Promise.all([
+      getEventsByDateRange(from, to),
+      getTodosByDueDateRange(from, to),
+      getCategories(),
+    ])
+      .then(([evts, tdos, cats]) => {
         if (!cancelled) {
           setEvents(evts);
           setTodos(tdos);
+          setCategories(cats);
           setIsLoading(false);
         }
       })
@@ -48,5 +57,5 @@ export function useDayItems(date: Date): UseDayItemsResult {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateKey, version]);
 
-  return { events, todos, isLoading, refresh: () => setVersion((v) => v + 1) };
+  return { events, todos, categories, isLoading, refresh: () => setVersion((v) => v + 1) };
 }

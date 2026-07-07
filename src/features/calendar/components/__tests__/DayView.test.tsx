@@ -46,6 +46,7 @@ const INITIAL_DATE = new Date("2026-07-06T09:00:00");
 const defaultDayItems = {
   events: [],
   todos: [],
+  categories: [],
   isLoading: false,
   refresh: jest.fn(),
 };
