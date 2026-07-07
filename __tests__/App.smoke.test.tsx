@@ -94,8 +94,8 @@ jest.mock("@/features/calendar/components/DayView", () => ({
   formatDayHeaderTitle: (date: Date) =>
     `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`,
 }));
-jest.mock("@/features/calendar/components/EventDetailSheet", () => ({
-  EventDetailSheet: () => null,
+jest.mock("@/features/calendar/components/EventForm", () => ({
+  EventForm: () => null,
 }));
 jest.mock("@/features/todo/components/TodoForm", () => ({
   TodoForm: () => null,

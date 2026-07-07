@@ -20,7 +20,7 @@ import {
 import { AddSheet } from "@/features/calendar/components/AddSheet";
 import type { AddSheetSegment } from "@/features/calendar/components/AddSheet";
 import { DayView, formatDayHeaderTitle } from "@/features/calendar/components/DayView";
-import { EventDetailSheet } from "@/features/calendar/components/EventDetailSheet";
+import { EventForm } from "@/features/calendar/components/EventForm";
 import { MonthView } from "@/features/calendar/components/MonthView";
 import type { MonthViewHandle } from "@/features/calendar/components/MonthView";
 import { YearView } from "@/features/calendar/components/YearView";
@@ -425,6 +425,7 @@ function AppContent() {
               setVisibleMonthYear(yr);
               setVisibleMonthMonth(mo);
             }}
+            onEventPress={(event) => setSelectedEvent(event)}
           />
           <YearMonthPicker
             year={visibleMonthYear}
@@ -470,15 +471,13 @@ function AppContent() {
         onRequestClose={() => setSelectedEvent(null)}
       >
         {selectedEvent && (
-          <EventDetailSheet
-            event={selectedEvent}
-            onClose={() => setSelectedEvent(null)}
-            onSaved={() => setCalendarKey((k) => k + 1)}
-            onDeleted={() => setCalendarKey((k) => k + 1)}
-            onTodoCreated={() => {
+          <EventForm
+            initialEvent={selectedEvent}
+            onSave={() => {
               setSelectedEvent(null);
               setCalendarKey((k) => k + 1);
             }}
+            onCancel={() => setSelectedEvent(null)}
           />
         )}
       </Modal>

@@ -192,7 +192,7 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onCa
           </View>
         )}
 
-        {/* 종일 */}
+        {/* 종일 · 시작 · 종료 */}
         <View style={styles.section}>
           <View style={styles.row}>
             <Text style={styles.label}>종일</Text>
@@ -208,10 +208,7 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onCa
               )}
             />
           </View>
-        </View>
-
-        {/* 시작·종료 */}
-        <View style={styles.section}>
+          <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
           <Controller
             control={control}
             name="startsAt"
@@ -241,7 +238,7 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onCa
           />
         </View>
 
-        {/* 알림 */}
+        {/* 알림 · 반복 */}
         <View style={styles.section}>
           <Controller
             control={control}
@@ -254,10 +251,7 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onCa
               />
             )}
           />
-        </View>
-
-        {/* 반복 */}
-        <View style={styles.section}>
+          <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
           <Controller
             control={control}
             name="recurrence"
@@ -548,7 +542,7 @@ function makeStyles(colors: ColorTokens) {
     section: {
       marginTop: 16,
       marginHorizontal: 16,
-      backgroundColor: colors.surface.default,
+      backgroundColor: colors.background.tertiary,
       borderRadius: 12,
       paddingHorizontal: 16,
       paddingVertical: 4,

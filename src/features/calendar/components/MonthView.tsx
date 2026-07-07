@@ -223,10 +223,11 @@ interface MonthViewProps {
   initialDate?: Date;
   onDayPress?: (date: Date) => void;
   onVisibleMonthChange?: (year: number, month: number) => void;
+  onEventPress?: (event: Event) => void;
 }
 
 export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
-  function MonthView({ initialDate, onDayPress, onVisibleMonthChange }, ref) {
+  function MonthView({ initialDate, onDayPress, onVisibleMonthChange, onEventPress }, ref) {
   const { colors } = useTheme();
   const { showHolidays } = useAppSettings();
 
@@ -403,6 +404,7 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
         month={item.month}
         selectedDate={selectedDate}
         onDayPress={handleDayPress}
+        onEventPress={onEventPress}
         showHolidays={showHolidays}
         colors={colors}
         weekRowHeight={renderWeekRowHeight}
@@ -410,7 +412,7 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
         zoomMode={zoomMode}
       />
     ),
-    [selectedDate, handleDayPress, showHolidays, colors, renderWeekRowHeight, maxTracks, zoomMode],
+    [selectedDate, handleDayPress, onEventPress, showHolidays, colors, renderWeekRowHeight, maxTracks, zoomMode],
   );
 
   const keyExtractor = useCallback(
@@ -457,6 +459,7 @@ interface MonthItemProps {
   month: number;
   selectedDate: Date | null;
   onDayPress: (date: Date) => void;
+  onEventPress?: (event: Event) => void;
   showHolidays: boolean;
   colors: ReturnType<typeof useTheme>["colors"];
   weekRowHeight: number;
@@ -469,13 +472,14 @@ const MonthItem = React.memo(function MonthItem({
   month,
   selectedDate,
   onDayPress,
+  onEventPress,
   showHolidays,
   colors,
   weekRowHeight,
   maxTracks,
   zoomMode,
 }: MonthItemProps) {
-  const s = makeStyles(colors, weekRowHeight);
+  const s = makeStyles(colors, weekRowHeight, maxTracks);
   const { events, dueTodos, categories } = useMonthItems(year, month);
   const today = new Date();
   const isThisMonth = year === today.getFullYear() && month === today.getMonth();
@@ -647,45 +651,64 @@ const MonthItem = React.memo(function MonthItem({
                         ? bar.track * THIN_BAR_SLOT + BAR_MARGIN
                         : bar.track * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN;
                       const barH = isThin ? THIN_BAR_HEIGHT : BAR_HEIGHT;
+                      const isHoliday = bar.eventId.startsWith("holiday-");
+
+                      const barContent = isThin ? (
+                        /* thin_bars: 텍스트 없이 단색 */
+                        <View
+                          style={[
+                            StyleSheet.absoluteFillObject,
+                            { backgroundColor: bar.color, borderRadius: 1 },
+                          ]}
+                        />
+                      ) : (
+                        /* bars: 배경(불투명도) + 텍스트 */
+                        <>
+                          <View
+                            testID={`event-bar-bg-${bar.eventId}`}
+                            style={[
+                              StyleSheet.absoluteFillObject,
+                              s.eventBarBg,
+                              { backgroundColor: bar.color },
+                            ]}
+                          />
+                          <Text style={s.eventBarText} numberOfLines={1}>
+                            {bar.title}
+                          </Text>
+                        </>
+                      );
+
+                      const barStyle = [
+                        isThin ? s.thinEventBar : s.eventBar,
+                        {
+                          left: `${(bar.startCol / 7) * 100}%` as `${number}%`,
+                          right: `${((6 - bar.endCol) / 7) * 100}%` as `${number}%`,
+                          top: barTop,
+                          height: barH,
+                        },
+                      ];
+
+                      if (!isHoliday && onEventPress) {
+                        const ev = events.find((e) => e.id === bar.eventId);
+                        return (
+                          <Pressable
+                            key={`${bar.eventId}-${rowIndex}`}
+                            testID={`event-bar-${bar.eventId}`}
+                            style={barStyle}
+                            onPress={() => ev && onEventPress(ev)}
+                          >
+                            {barContent}
+                          </Pressable>
+                        );
+                      }
 
                       return (
                         <View
                           key={`${bar.eventId}-${rowIndex}`}
                           testID={`event-bar-${bar.eventId}`}
-                          style={[
-                            isThin ? s.thinEventBar : s.eventBar,
-                            {
-                              left: `${(bar.startCol / 7) * 100}%` as `${number}%`,
-                              right: `${((6 - bar.endCol) / 7) * 100}%` as `${number}%`,
-                              top: barTop,
-                              height: barH,
-                            },
-                          ]}
+                          style={barStyle}
                         >
-                          {isThin ? (
-                            /* thin_bars: 텍스트 없이 단색 */
-                            <View
-                              style={[
-                                StyleSheet.absoluteFillObject,
-                                { backgroundColor: bar.color, borderRadius: 1 },
-                              ]}
-                            />
-                          ) : (
-                            /* bars: 배경(불투명도) + 텍스트 */
-                            <>
-                              <View
-                                testID={`event-bar-bg-${bar.eventId}`}
-                                style={[
-                                  StyleSheet.absoluteFillObject,
-                                  s.eventBarBg,
-                                  { backgroundColor: bar.color },
-                                ]}
-                              />
-                              <Text style={s.eventBarText} numberOfLines={1}>
-                                {bar.title}
-                              </Text>
-                            </>
-                          )}
+                          {barContent}
                         </View>
                       );
                     })}
@@ -705,6 +728,7 @@ const MonthItem = React.memo(function MonthItem({
 const makeStyles = (
   colors: ReturnType<typeof useTheme>["colors"],
   weekRowHeight: number,
+  maxTracks: number,
 ) =>
   StyleSheet.create({
     monthItem: {
@@ -805,7 +829,8 @@ const makeStyles = (
     },
     colOverflowText: {
       position: "absolute",
-      bottom: 2,
+      // overflow 표시 위치: 마지막 visible 바(maxTracks-1번째) 바로 아래
+      top: EVENT_BAR_START + (maxTracks - 1) * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN,
       left: 0,
       right: 0,
       fontSize: 9,
