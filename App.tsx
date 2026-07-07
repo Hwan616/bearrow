@@ -36,6 +36,7 @@ import type { Todo } from "@/features/todo/types";
 import { Sentry } from "@/lib/sentry";
 import { ThemeProvider, useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
+import { PlusIcon } from "@/ui/Icons";
 
 // ── 아이콘 컴포넌트 ────────────────────────────────────────────────────────────
 
@@ -82,16 +83,6 @@ function GearIcon({ size = 18, color, bgColor }: { size?: number; color: string;
         borderRadius: holeR,
         backgroundColor: bgColor,
       }} />
-    </View>
-  );
-}
-
-function PlusIcon({ size = 18, color }: { size?: number; color: string }) {
-  const bar = Math.max(2, Math.round(size * 0.13));
-  return (
-    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
-      <View style={{ position: "absolute", width: Math.round(size * 0.75), height: bar, backgroundColor: color, borderRadius: bar / 2 }} />
-      <View style={{ position: "absolute", height: Math.round(size * 0.75), width: bar, backgroundColor: color, borderRadius: bar / 2 }} />
     </View>
   );
 }

@@ -211,6 +211,51 @@
   - 파일: `__tests__/App.smoke.test.tsx`, 관련 테스트 파일 정비
   - 요구사항: 전체
 
+- [x] **7.12 YearView·MonthView 무한 세로 스크롤 + 버그 수정**
+  - 완료: 좌우 이동 버튼 제거 → 세로 FlatList 무한 스크롤로 교체. YearView 스크롤 버그 수정. MonthView 구분선 수정. AddSheet 풀스크린 모달 전환.
+  - 파일: `src/features/calendar/components/YearView.tsx`, `src/features/calendar/components/MonthView.tsx`, `src/features/calendar/components/AddSheet.tsx`
+  - 요구사항: `FR-CAL-002`, `UI-001`
+
+- [x] **7.13 YearView·MonthView 시각 개편 + 이벤트 카테고리 필수화**
+  - 완료: YearView·MonthView 색상·레이아웃 시각 개편. 이벤트 카테고리 필수 지정. 강조색 제거.
+  - 파일: `src/features/calendar/components/YearView.tsx`, `src/features/calendar/components/MonthView.tsx`, `App.tsx`
+  - 요구사항: `UI-001`, `FR-CAL-001`
+
+- [x] **7.14 Year/Month/Day 뷰 상하 레이아웃 전면 재구성**
+  - 완료: 설정 버튼 헤더 이동. 추가 버튼 푸터 이동. pill 버튼 스타일. 투명 오버레이 푸터. 하단바 bottom 오프셋·크기 정비.
+  - 파일: `App.tsx`
+  - 요구사항: `UI-001`
+
+- [x] **7.15 카테고리 관리 UI 개편 (스와이프 삭제·행 탭 편집)**
+  - 완료: 헤더 '추가' 텍스트 → PlusIcon 아이콘. 편집·삭제 텍스트 버튼 제거. 행 탭 → 편집 폼. 좌→우 스와이프 → 삭제 버튼 노출(Swipeable). CategoryForm 최하단 삭제 버튼 추가.
+  - 파일: `src/features/category/components/CategoryManager.tsx`, `src/features/category/components/CategoryForm.tsx`
+  - 요구사항: `FR-CAT-002`, `FR-CAT-003`
+
+- [x] **7.16 네비게이션·테마·공휴일 시각 개선**
+  - 완료: 뒤로가기 텍스트 크기 1.5배(22px), ChevronLeft 크기 증가. 헤더 높이 44px로 축소. GearIcon 가운데 구멍 + 8이 추가. 구분선 색상(border.default) 통일 및 명도 조정(라이트 더 어둡게, 다크 더 밝게). 시스템 빨간색 #E84040으로 교체. 공휴일 텍스트 레이블 → 빨간 배경 이벤트 바로 변경.
+  - 파일: `src/theme/tokens.ts`, `App.tsx`, `src/features/calendar/components/MonthView.tsx`, `src/features/calendar/components/DayView.tsx`, `src/features/calendar/components/YearView.tsx`, `src/features/calendar/components/WeekDayView.tsx`, `src/features/calendar/components/DayDetailPanel.tsx`, `src/features/todo/components/TodoMiniCalendar.tsx`
+  - 요구사항: `UI-001`, `UI-002`
+
+- [x] **7.17 주말·공휴일 날짜 색상 단순화**
+  - 완료: 토요일 파란색·일요일 빨간색 제거. 공휴일은 날짜 텍스트 색 변경 없음. 주말은 `colors.text.secondary`(짙은 회색)로 통일.
+  - 파일: `src/features/calendar/components/MonthView.tsx`, `src/features/calendar/components/YearView.tsx`, `src/features/calendar/components/WeekDayView.tsx`, `src/features/todo/components/TodoMiniCalendar.tsx`
+  - 요구사항: `UI-001`
+
+- [x] **7.18 네비게이션 바 세부 튜닝**
+  - 완료: 달 1일 위 MM월 레이블 색상 text.primary·크기 19px. 뒤로가기 텍스트 20px(90%). 헤더 버튼 alignItems: flex-start로 상단 정렬.
+  - 파일: `App.tsx`, `src/features/calendar/components/MonthView.tsx`
+  - 요구사항: `UI-001`
+
+- [x] **7.19 YearView 미니 날짜 폰트·간격 조정**
+  - 완료: miniDayText fontSize 9→11(1.2배). 베젤↔달력 공백 증가(paddingHorizontal 8→12), 달력 사이 공백 감소(miniMonthWrapper paddingHorizontal 6→4).
+  - 파일: `src/features/calendar/components/YearView.tsx`
+  - 요구사항: `UI-001`
+
+- [x] **7.20 중간 정리 — PlusIcon 공용 추출**
+  - 완료: App.tsx·CategoryManager.tsx에 중복 정의된 PlusIcon을 `src/ui/Icons.tsx`로 추출. 두 파일 모두 공용 import로 교체.
+  - 파일: `src/ui/Icons.tsx`, `App.tsx`, `src/features/category/components/CategoryManager.tsx`
+  - 요구사항: `NFR-CON-001`
+
 ## Phase 8 — 출시
 
 - [ ] **8.1 스토어 메타데이터·스크린샷**

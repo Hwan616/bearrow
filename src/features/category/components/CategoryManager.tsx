@@ -13,6 +13,7 @@ import Swipeable from "react-native-gesture-handler/Swipeable";
 
 import { useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
+import { PlusIcon } from "@/ui/Icons";
 
 import { useCategories } from "../hooks/useCategories";
 import type { Category, CategoryScope } from "../types";
@@ -20,32 +21,6 @@ import { CategoryForm } from "./CategoryForm";
 
 interface Props {
   onClose: () => void;
-}
-
-function PlusIcon({ size = 20, color }: { size?: number; color: string }) {
-  const bar = Math.max(2, Math.round(size * 0.13));
-  return (
-    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
-      <View
-        style={{
-          position: "absolute",
-          width: Math.round(size * 0.75),
-          height: bar,
-          backgroundColor: color,
-          borderRadius: bar / 2,
-        }}
-      />
-      <View
-        style={{
-          position: "absolute",
-          height: Math.round(size * 0.75),
-          width: bar,
-          backgroundColor: color,
-          borderRadius: bar / 2,
-        }}
-      />
-    </View>
-  );
 }
 
 export function CategoryManager({ onClose }: Props) {
