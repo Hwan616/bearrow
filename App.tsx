@@ -39,13 +39,13 @@ import type { ColorTokens } from "@/theme/tokens";
 
 // ── 아이콘 컴포넌트 ────────────────────────────────────────────────────────────
 
-function GearIcon({ size = 18, color }: { size?: number; color: string }) {
+function GearIcon({ size = 18, color, bgColor }: { size?: number; color: string; bgColor: string }) {
   const r = size / 2;
   const bodyR = r * 0.62;
   const toothW = r * 0.38;
   const toothH = r * 0.50;
-  // 치아 중심까지의 거리 (body 반경 + 치아 높이의 일부)
   const offset = bodyR + toothH * 0.28;
+  const holeR = bodyR * 0.45;
   return (
     <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
       {Array.from({ length: 8 }, (_, i) => (
@@ -73,6 +73,14 @@ function GearIcon({ size = 18, color }: { size?: number; color: string }) {
         height: bodyR * 2,
         borderRadius: bodyR,
         backgroundColor: color,
+      }} />
+      {/* 가운데 구멍 */}
+      <View style={{
+        position: "absolute",
+        width: holeR * 2,
+        height: holeR * 2,
+        borderRadius: holeR,
+        backgroundColor: bgColor,
       }} />
     </View>
   );
@@ -263,9 +271,9 @@ function AppContent() {
             accessibilityLabel="뒤로가기"
             accessibilityRole="button"
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
               <View style={{ transform: [{ scaleX: -1 }] }}>
-                <ChevronLeft size={13} color={colors.accent.primary} />
+                <ChevronLeft size={19} color={colors.accent.primary} />
               </View>
               <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>{backLabel}</Text>
             </View>
@@ -282,7 +290,7 @@ function AppContent() {
           accessibilityLabel="설정"
           accessibilityRole="button"
         >
-          <GearIcon size={22} color={colors.text.secondary} />
+          <GearIcon size={22} color={colors.text.secondary} bgColor={colors.background.primary} />
         </Pressable>
       </View>
     </View>
@@ -370,7 +378,7 @@ function AppContent() {
                 style={[
                   s.weekdayLabel,
                   { color: colors.text.secondary },
-                  d === "일" && { color: "#D93535" },
+                  d === "일" && { color: colors.status.error },
                   d === "토" && { color: "#2E5AAC" },
                 ]}
               >
@@ -572,7 +580,7 @@ function makeStyles(colors: ColorTokens) {
       justifyContent: "space-between",
       paddingHorizontal: 16,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      minHeight: 52,
+      minHeight: 44,
     },
     headerLeft: {
       flex: 1,
@@ -590,7 +598,7 @@ function makeStyles(colors: ColorTokens) {
       justifyContent: "center",
     },
     headerBtnText: {
-      fontSize: 15,
+      fontSize: 22,
       fontWeight: "500",
     },
     headerIcon: {

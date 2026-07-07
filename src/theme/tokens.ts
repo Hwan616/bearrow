@@ -19,6 +19,7 @@ export const palette = {
   black: "#000000",
 
   red400: "#F06565",
+  red500: "#E84040",
   red600: "#D93535",
   green400: "#4CAF50",
   orange400: "#FF9800",
@@ -75,7 +76,7 @@ export const lightTokens: ColorTokens = {
     inverse: palette.white,
   },
   border: {
-    default: palette.grey200,
+    default: palette.grey300,
     strong: palette.grey400,
   },
   accent: {
@@ -84,7 +85,7 @@ export const lightTokens: ColorTokens = {
     primaryDark: palette.blue700,
   },
   status: {
-    error: palette.red600,
+    error: palette.red500,
     success: palette.green400,
     warning: palette.orange400,
   },
@@ -108,8 +109,8 @@ export const darkTokens: ColorTokens = {
     inverse: palette.grey900,
   },
   border: {
-    default: palette.grey700,
-    strong: palette.grey500,
+    default: palette.grey500,
+    strong: palette.grey400,
   },
   accent: {
     primary: palette.blue300,

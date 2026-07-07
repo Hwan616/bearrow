@@ -225,7 +225,7 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     holidayBadgeText: {
       fontSize: 11,
       fontWeight: "600",
-      color: "#D93535",
+      color: colors.status.error,
     },
     center: {
       flex: 1,

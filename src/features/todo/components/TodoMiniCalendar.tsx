@@ -244,7 +244,7 @@ function makeStyles(colors: ColorTokens) {
       color: colors.text.secondary,
       paddingVertical: 2,
     },
-    sunColor: { color: "#D93535" },
+    sunColor: { color: colors.status.error },
     satColor: { color: "#2E5AAC" },
     grid: {
       flexDirection: "row",

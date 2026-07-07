@@ -280,7 +280,7 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     dayHeaderCell: { flex: 1, alignItems: "center", minHeight: 44, justifyContent: "center" },
     dayShort: { fontSize: 11, color: colors.text.secondary },
-    sunday: { color: "#D93535" },
+    sunday: { color: colors.status.error },
     saturday: { color: "#2E5AAC" },
     dayCircle: {
       width: 28,
@@ -355,7 +355,7 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       width: 8,
       height: 8,
       borderRadius: 4,
-      backgroundColor: "#D93535",
+      backgroundColor: colors.status.error,
     },
-    nowLineBar: { flex: 1, height: 1.5, backgroundColor: "#D93535" },
+    nowLineBar: { flex: 1, height: 1.5, backgroundColor: colors.status.error },
   });

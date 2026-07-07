@@ -230,7 +230,7 @@ function makeStyles(colors: ColorTokens) {
       color: colors.text.primary,
     },
     yearTitleCurrent: {
-      color: "#D93535",
+      color: colors.status.error,
     },
     yearDivider: {
       height: StyleSheet.hairlineWidth,
@@ -255,7 +255,7 @@ function makeStyles(colors: ColorTokens) {
       color: colors.text.primary,
     },
     miniMonthTitleCurrent: {
-      color: "#D93535",
+      color: colors.status.error,
     },
     miniRow: {
       flexDirection: "row",
@@ -273,7 +273,7 @@ function makeStyles(colors: ColorTokens) {
       justifyContent: "center",
     },
     miniDayCircleToday: {
-      backgroundColor: "#D93535",
+      backgroundColor: colors.status.error,
     },
     miniDayText: {
       fontSize: 9,
@@ -287,7 +287,7 @@ function makeStyles(colors: ColorTokens) {
       fontWeight: "700",
     },
     miniDayTextSun: {
-      color: "#D93535",
+      color: colors.status.error,
     },
   });
 }

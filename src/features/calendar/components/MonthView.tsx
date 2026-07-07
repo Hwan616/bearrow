@@ -30,10 +30,10 @@ const EVENT_AREA_HEIGHT = MAX_TRACKS * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN;
 // iOS 시스템 폰트 lineHeight 계수 ≈ 1.32
 // monthLabelOnFirst: fontSize:17 lineHeight≈23 + paddingVertical:8 = 31
 const MONTH_LABEL_HEIGHT = 31;     // monthLabelAboveRow 높이
-const WEEK_ROW_HEIGHT = 105;       // dayCells:59 + eventBars:34 + holidays:12
+const WEEK_ROW_HEIGHT = 93;        // dayCells:59 + eventBars:34
 const FIXED_WEEKS = 6;
 const MONTH_ITEM_HEIGHT = MONTH_LABEL_HEIGHT + FIXED_WEEKS * WEEK_ROW_HEIGHT;
-// 31 + 6×105 = 661
+// 31 + 6×93 = 589
 
 const MONTH_WINDOW = 49; // ±24 months
 
@@ -140,6 +140,36 @@ function computeEventBars(
   }
 
   return bars;
+}
+
+function computeHolidayBars(
+  weekDays: CalendarDay[],
+  holidayMap: Map<number, string>,
+  existingBars: EventBarData[],
+  holidayColor: string,
+): EventBarData[] {
+  const result: EventBarData[] = [];
+  weekDays.forEach(({ date, isCurrentMonth }, col) => {
+    if (!isCurrentMonth) return;
+    const name = holidayMap.get(date.getDate());
+    if (!name) return;
+    const usedTracks = existingBars
+      .filter((b) => b.startCol <= col && b.endCol >= col)
+      .map((b) => b.track);
+    let track = 0;
+    while (usedTracks.includes(track) && track < MAX_TRACKS) track++;
+    if (track < MAX_TRACKS) {
+      result.push({
+        eventId: `holiday-${date.toISOString()}`,
+        title: name,
+        color: holidayColor,
+        startCol: col,
+        endCol: col,
+        track,
+      });
+    }
+  });
+  return result;
 }
 
 // ── MonthView ─────────────────────────────────────────────────────────────────
@@ -313,6 +343,9 @@ const MonthItem = React.memo(function MonthItem({
             -1,
           );
 
+          const holidayBars = computeHolidayBars(weekDays, holidayMap, eventBars, colors.status.error);
+          const allBars = [...eventBars, ...holidayBars];
+
           return (
             <React.Fragment key={rowIndex}>
               {/* MM월 레이블 — 1일 위 열에 정렬 */}
@@ -350,8 +383,7 @@ const MonthItem = React.memo(function MonthItem({
                     const isSelected = selectedDate !== null && isSameDay(date, selectedDate);
                     const isSun = date.getDay() === 0;
                     const isSat = date.getDay() === 6;
-                    const holidayName = isCurrentMonth ? (holidayMap.get(date.getDate()) ?? null) : null;
-                    const isHoliday = holidayName !== null;
+                    const isHoliday = isCurrentMonth && holidayMap.has(date.getDate());
 
                     if (!isCurrentMonth) {
                       return <View key={date.toISOString()} style={s.dayCell} />;
@@ -396,9 +428,9 @@ const MonthItem = React.memo(function MonthItem({
                   })}
                 </View>
 
-                {/* 이벤트 바 레이어 */}
+                {/* 이벤트 + 공휴일 바 레이어 */}
                 <View style={s.eventBarsRow}>
-                  {eventBars.map((bar) => (
+                  {allBars.map((bar) => (
                     <View
                       key={`${bar.eventId}-${rowIndex}`}
                       testID={`event-bar-${bar.eventId}`}
@@ -418,18 +450,6 @@ const MonthItem = React.memo(function MonthItem({
                     </View>
                   ))}
                 </View>
-
-                {/* 공휴일 레이블 행 */}
-                <View style={s.holidayLabelsRow}>
-                  {weekDays.map(({ date, isCurrentMonth }) => {
-                    const name = isCurrentMonth ? (holidayMap.get(date.getDate()) ?? null) : null;
-                    return (
-                      <Text key={date.toISOString()} style={s.holidayLabel} numberOfLines={1}>
-                        {name ?? ""}
-                      </Text>
-                    );
-                  })}
-                </View>
               </View>
             </React.Fragment>
           );
@@ -447,7 +467,7 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       backgroundColor: colors.background.primary,
       paddingHorizontal: 4,
     },
-    sunday: { color: "#D93535" },
+    sunday: { color: colors.status.error },
     saturday: { color: "#2E5AAC" },
     monthLabelAboveRow: {
       flexDirection: "row",
@@ -465,7 +485,7 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       textAlign: "center",
     },
     monthLabelCurrent: {
-      color: "#D93535",
+      color: colors.status.error,
     },
     weekRow: {
       position: "relative",
@@ -474,7 +494,7 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       position: "absolute",
       top: 0,
       height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.border.strong,
+      backgroundColor: colors.border.default,
       zIndex: 1,
     },
     dayCellsRow: {
@@ -529,18 +549,5 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       fontSize: 10,
       color: colors.text.inverse,
       fontWeight: "500",
-    },
-    holidayLabelsRow: {
-      flexDirection: "row",
-      marginBottom: 2,
-    },
-    holidayLabel: {
-      flex: 1,
-      fontSize: 8,
-      color: "#D93535",
-      height: 10,
-      lineHeight: 10,
-      textAlign: "center",
-      letterSpacing: -0.3,
     },
   });

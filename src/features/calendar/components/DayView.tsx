@@ -162,7 +162,7 @@ const DayTimelineItem = React.memo(function DayTimelineItem({
     : null;
 
   return (
-    <View style={[s.dayItem, { borderBottomColor: colors.border.strong }]} testID={`day-item-${date.toDateString()}`}>
+    <View style={[s.dayItem, { borderBottomColor: colors.border.default }]} testID={`day-item-${date.toDateString()}`}>
       {/* 종일 이벤트 */}
       <View style={[s.allDaySection, { borderBottomColor: colors.border.default }]}>
         <Text style={s.allDayLabel}>종일</Text>
