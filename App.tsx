@@ -264,7 +264,9 @@ function AppContent() {
             accessibilityRole="button"
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
-              <ChevronLeft size={13} color={colors.accent.primary} />
+              <View style={{ transform: [{ scaleX: -1 }] }}>
+                <ChevronLeft size={13} color={colors.accent.primary} />
+              </View>
               <Text style={[s.headerBtnText, { color: colors.accent.primary }]}>{backLabel}</Text>
             </View>
           </Pressable>
@@ -589,7 +591,7 @@ function makeStyles(colors: ColorTokens) {
     },
     headerBtnText: {
       fontSize: 15,
-      fontWeight: "600",
+      fontWeight: "500",
     },
     headerIcon: {
       fontSize: 22,
@@ -645,7 +647,7 @@ function makeStyles(colors: ColorTokens) {
       right: 0,
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 12,
+      paddingHorizontal: 20,
       paddingVertical: 10,
       backgroundColor: "transparent",
     },

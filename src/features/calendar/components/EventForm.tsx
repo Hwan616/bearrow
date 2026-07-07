@@ -84,9 +84,12 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onCa
     getCategoriesByScope("event").then(setCategories);
   }, []);
 
-  // 생성 모드: 카테고리 로드 후 첫 번째를 기본값으로 설정
+  // 카테고리 로드 후 기본값 설정: 신규이거나 기존 categoryId가 이 scope에 없으면 첫 번째로
   useEffect(() => {
-    if (!initialEvent && categories.length > 0 && categories[0]) {
+    if (categories.length === 0 || !categories[0]) return;
+    const currentId = initialEvent?.categoryId ?? "";
+    const isValid = categories.some((c) => c.id === currentId);
+    if (!initialEvent || !isValid) {
       setValue("categoryId", categories[0].id);
     }
   }, [categories, initialEvent, setValue]);
