@@ -10,6 +10,11 @@ import {
   View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import { sqliteDb } from "@/db/client";
 import { runMigrations } from "@/db/migrate";
@@ -122,6 +127,10 @@ const FOOTER_SCRIM_HEIGHT = 130;
 /** Year / Month / Day 계층 뷰 */
 type CalendarView = "year" | "month" | "day";
 
+// 뷰 계층 깊이 (연<월<일). 깊어지면 확대 진입, 얕아지면 축소 진입.
+const VIEW_DEPTH: Record<CalendarView, number> = { year: 0, month: 1, day: 2 };
+const VIEW_ANIM_DURATION = 240;
+
 /** 768pt 이상: 컨텍스트 사이드바를 보여주는 와이드 레이아웃 (iPad · Mac) */
 const WIDE_BREAKPOINT = 768;
 
@@ -153,6 +162,30 @@ function AppContent() {
     invalidateMonthItemsCache();
     setCalendarKey((k) => k + 1);
   }, []);
+
+  // 뷰 전환 확대/축소 모션 ('오늘' 버튼 전환 포함 — activeView 변화에 반응)
+  const viewScale = useSharedValue(1);
+  const viewOpacity = useSharedValue(1);
+  const prevDepthRef = useRef(VIEW_DEPTH[activeView]);
+  const didMountRef = useRef(false);
+  useEffect(() => {
+    const depth = VIEW_DEPTH[activeView];
+    const prev = prevDepthRef.current;
+    prevDepthRef.current = depth;
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return; // 최초 마운트에는 모션 없음
+    }
+    // 깊어지면(연→월→일) 큰 상태에서, 얕아지면(일→월→연) 작은 상태에서 1로 수렴
+    viewScale.value = depth > prev ? 1.06 : 0.94;
+    viewOpacity.value = 0.35;
+    viewScale.value = withTiming(1, { duration: VIEW_ANIM_DURATION });
+    viewOpacity.value = withTiming(1, { duration: VIEW_ANIM_DURATION });
+  }, [activeView, viewScale, viewOpacity]);
+  const viewAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: viewScale.value }],
+    opacity: viewOpacity.value,
+  }));
 
   // Year View: 스크롤 중인 연도 추적
   const [visibleYear, setVisibleYear] = useState(new Date().getFullYear());
@@ -597,9 +630,9 @@ function AppContent() {
       <SafeAreaView style={[s.container, { backgroundColor: colors.background.primary }]}>
         <StatusBar style="auto" />
         {appHeader}
-        <View style={{ flex: 1 }}>
+        <Animated.View style={[{ flex: 1 }, viewAnimStyle]}>
           {calendarView}
-        </View>
+        </Animated.View>
         {appFooter}
         {modals}
       </SafeAreaView>
