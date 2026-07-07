@@ -2,6 +2,7 @@ import * as Crypto from "expo-crypto";
 import React, { useEffect, useImperativeHandle, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -19,15 +20,27 @@ import type { Category } from "@/features/category/types";
 import { useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
 
-import { createEvent, updateEvent } from "../api/events";
+import {
+  createEvent,
+  createExceptionEvent,
+  deleteAllRecurring,
+  deleteEvent,
+  deleteExceptionInstance,
+  deleteThisAndFollowing,
+  editAllRecurring,
+  splitAndEditThisAndFollowing,
+  updateEvent,
+} from "../api/events";
 import type { Event } from "../types";
 import { cancelEventNotification, scheduleEventNotification } from "../api/notifications";
 import {
   type EventFormValues,
+  type RecurrenceEnd,
   type RecurrenceOption,
   buildNewEvent,
   formatDateTimeLabel,
   makeDefaultValues,
+  normalizeAllDayTimes,
   validateEventTimes,
 } from "../utils/eventFormUtils";
 import {
@@ -35,12 +48,6 @@ import {
   getReminderLabel,
   shouldScheduleNotification,
 } from "../utils/notificationUtils";
-const RECURRENCE_OPTIONS: { value: RecurrenceOption; label: string }[] = [
-  { value: "none", label: "반복 없음" },
-  { value: "daily", label: "매일" },
-  { value: "weekly", label: "매주" },
-  { value: "monthly", label: "매월" },
-];
 
 // DateTimePicker는 웹에서 사용 불가 — 플랫폼별 조건부 require
 const DateTimePicker =
@@ -57,15 +64,37 @@ interface Props {
   initialDate?: Date;
   hideHeader?: boolean;
   onSave: () => void;
+  onDelete?: () => void;
   onCancel: () => void;
 }
 
 export const EventForm = React.forwardRef<EventFormHandle, Props>(
-function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onCancel }, ref) {
+function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onDelete, onCancel }, ref) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
   const [categories, setCategories] = useState<Category[]>([]);
+
+  // 반복 인스턴스 감지
+  // - 가상 인스턴스: id = "masterId:utcMs" (DB에 없는 전개 결과)
+  // - 실제 예외: recurringEventId가 있는 DB row
+  const isVirtualInstance = (initialEvent?.id ?? "").includes(":");
+  const isRealException = !isVirtualInstance && (initialEvent?.recurringEventId ?? null) !== null;
+  const isRecurring = isVirtualInstance || isRealException;
+
+  const masterId = isVirtualInstance
+    ? (initialEvent!.id.split(":")[0] ?? null)
+    : (initialEvent?.recurringEventId ?? null);
+
+  const instanceDate: Date | null = (() => {
+    if (isVirtualInstance && initialEvent) {
+      const utcMs = parseInt(initialEvent.id.split(":")[1] ?? "0", 10);
+      const utcDate = new Date(utcMs);
+      return new Date(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
+    }
+    if (isRealException) return initialEvent?.exceptionDate ?? null;
+    return null;
+  })();
 
   const {
     control,
@@ -79,6 +108,7 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onCa
 
   const [saveError, setSaveError] = useState<string | null>(null);
   const isAllDay = watch("isAllDay");
+  const recurrenceEnd = watch("recurrenceEnd");
 
   useEffect(() => {
     getCategoriesByScope("event").then(setCategories);
@@ -94,6 +124,60 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onCa
     }
   }, [categories, initialEvent, setValue]);
 
+  async function handleNotification(data: {
+    id: string;
+    title: string;
+    startsAt: Date;
+    reminderMinutes?: number | null;
+  }) {
+    const reminderMinutes = data.reminderMinutes ?? null;
+    await cancelEventNotification(data.id);
+    if (shouldScheduleNotification(data.startsAt, reminderMinutes)) {
+      await scheduleEventNotification({
+        id: data.id,
+        title: data.title,
+        startsAt: data.startsAt,
+        reminderMinutes,
+      });
+    }
+  }
+
+  type SaveScope = "create" | "update" | "thisOnly" | "thisAndFollowing" | "all";
+
+  async function performSave(values: EventFormValues, scope: SaveScope) {
+    const { startsAt, endsAt } = values.isAllDay
+      ? normalizeAllDayTimes(values.startsAt, values.endsAt)
+      : { startsAt: values.startsAt, endsAt: values.endsAt };
+    const finalValues = { ...values, startsAt, endsAt };
+
+    try {
+      if (scope === "create") {
+        const data = buildNewEvent(Crypto.randomUUID(), finalValues);
+        await createEvent(data);
+        await handleNotification(data);
+      } else if (scope === "update") {
+        const data = buildNewEvent(initialEvent!.id, finalValues);
+        await updateEvent(initialEvent!.id, data);
+        await handleNotification(data);
+      } else if (scope === "thisOnly") {
+        const data = buildNewEvent(Crypto.randomUUID(), finalValues);
+        await createExceptionEvent(masterId!, instanceDate!, data);
+        await handleNotification(data);
+      } else if (scope === "thisAndFollowing") {
+        const data = buildNewEvent(Crypto.randomUUID(), finalValues);
+        await splitAndEditThisAndFollowing(masterId!, instanceDate!, data);
+        await handleNotification(data);
+      } else if (scope === "all") {
+        const data = buildNewEvent(masterId!, finalValues);
+        await editAllRecurring(masterId!, data);
+        await handleNotification(data);
+      }
+      onSave();
+    } catch {
+      setSaveError("저장 중 오류가 발생했습니다.");
+    }
+  }
+
   async function onSubmit(values: EventFormValues) {
     const timeError = validateEventTimes(values.startsAt, values.endsAt);
     if (timeError) {
@@ -101,26 +185,91 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onCa
       return;
     }
     setSaveError(null);
-    try {
-      const id = initialEvent?.id ?? Crypto.randomUUID();
-      const data = buildNewEvent(id, values);
-      if (initialEvent) {
-        await updateEvent(id, data);
-      } else {
-        await createEvent(data);
-      }
-      await cancelEventNotification(id);
-      if (shouldScheduleNotification(data.startsAt, data.reminderMinutes ?? null)) {
-        await scheduleEventNotification({
-          id: data.id,
-          title: data.title,
-          startsAt: data.startsAt,
-          reminderMinutes: data.reminderMinutes ?? null,
-        });
-      }
-      onSave();
-    } catch {
-      setSaveError("저장 중 오류가 발생했습니다.");
+
+    if (!initialEvent) {
+      await performSave(values, "create");
+      return;
+    }
+
+    if (isRecurring) {
+      Alert.alert("반복 일정 편집", "변경 범위를 선택하세요.", [
+        { text: "이 이벤트만", onPress: () => { void performSave(values, "thisOnly"); } },
+        { text: "이 이벤트 및 이후 이벤트", onPress: () => { void performSave(values, "thisAndFollowing"); } },
+        { text: "모든 이벤트", onPress: () => { void performSave(values, "all"); } },
+        { text: "취소", style: "cancel" },
+      ]);
+    } else {
+      await performSave(values, "update");
+    }
+  }
+
+  function handleDelete() {
+    if (!initialEvent) return;
+
+    if (isRecurring) {
+      Alert.alert("반복 일정 삭제", "삭제 범위를 선택하세요.", [
+        {
+          text: "이 이벤트만",
+          style: "destructive",
+          onPress: () => {
+            void (async () => {
+              try {
+                await deleteExceptionInstance(masterId!, instanceDate!);
+                onDelete?.();
+              } catch {
+                Alert.alert("오류", "삭제에 실패했습니다.");
+              }
+            })();
+          },
+        },
+        {
+          text: "이 이벤트 및 이후 이벤트",
+          style: "destructive",
+          onPress: () => {
+            void (async () => {
+              try {
+                await deleteThisAndFollowing(masterId!, instanceDate!);
+                onDelete?.();
+              } catch {
+                Alert.alert("오류", "삭제에 실패했습니다.");
+              }
+            })();
+          },
+        },
+        {
+          text: "모든 이벤트",
+          style: "destructive",
+          onPress: () => {
+            void (async () => {
+              try {
+                await deleteAllRecurring(masterId!);
+                onDelete?.();
+              } catch {
+                Alert.alert("오류", "삭제에 실패했습니다.");
+              }
+            })();
+          },
+        },
+        { text: "취소", style: "cancel" },
+      ]);
+    } else {
+      Alert.alert("일정 삭제", `"${initialEvent.title}" 일정을 삭제할까요?`, [
+        { text: "취소", style: "cancel" },
+        {
+          text: "삭제",
+          style: "destructive",
+          onPress: () => {
+            void (async () => {
+              try {
+                await deleteEvent(initialEvent.id);
+                onDelete?.();
+              } catch {
+                Alert.alert("오류", "삭제에 실패했습니다.");
+              }
+            })();
+          },
+        },
+      ]);
     }
   }
 
@@ -259,6 +408,8 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onCa
               <RecurrencePicker
                 value={field.value}
                 onChange={field.onChange}
+                end={recurrenceEnd}
+                onEndChange={(e) => setValue("recurrenceEnd", e)}
                 colors={colors}
               />
             )}
@@ -287,6 +438,13 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onCa
 
         {saveError && (
           <Text style={styles.errorText}>{saveError}</Text>
+        )}
+
+        {/* 삭제 버튼 (편집 시에만) */}
+        {initialEvent && (
+          <Pressable style={styles.deleteBtn} onPress={handleDelete}>
+            <Text style={styles.deleteBtnText}>일정 삭제</Text>
+          </Pressable>
         )}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -394,34 +552,151 @@ function DateTimeField({ label, value, onChange, isAllDay, colors }: DateTimeFie
 
 // ── RecurrencePicker ───────────────────────────────────────────────────────
 
+const RECURRENCE_OPTIONS: { value: RecurrenceOption; label: string }[] = [
+  { value: "none", label: "반복 없음" },
+  { value: "daily", label: "매일" },
+  { value: "weekly", label: "매주" },
+  { value: "biweekly", label: "2주마다" },
+  { value: "monthly", label: "매월" },
+  { value: "yearly", label: "매년" },
+];
+
 interface RecurrencePickerProps {
   value: RecurrenceOption;
   onChange: (v: RecurrenceOption) => void;
+  end: RecurrenceEnd;
+  onEndChange: (e: RecurrenceEnd) => void;
   colors: ColorTokens;
 }
 
-function RecurrencePicker({ value, onChange, colors }: RecurrencePickerProps) {
+function RecurrencePicker({ value, onChange, end, onEndChange, colors }: RecurrencePickerProps) {
   const styles = makeStyles(colors);
+  const [expanded, setExpanded] = useState(false);
+  const selectedLabel = RECURRENCE_OPTIONS.find((o) => o.value === value)?.label ?? "반복 없음";
+
   return (
     <View>
-      {RECURRENCE_OPTIONS.map((opt, idx) => (
-        <View key={opt.value}>
+      <Pressable style={styles.row} onPress={() => setExpanded((v) => !v)}>
+        <Text style={styles.label}>반복</Text>
+        <Text style={[styles.dateLabel, { color: colors.accent.primary }]}>{selectedLabel}</Text>
+      </Pressable>
+
+      {expanded &&
+        RECURRENCE_OPTIONS.map((opt) => (
+          <View key={opt.value}>
+            <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
+            <Pressable
+              style={styles.row}
+              onPress={() => { onChange(opt.value); setExpanded(false); }}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: value === opt.value }}
+            >
+              <Text style={[styles.label, { fontSize: 15 }]}>{opt.label}</Text>
+              {value === opt.value && (
+                <Text style={{ color: colors.accent.primary, fontSize: 18 }}>✓</Text>
+              )}
+            </Pressable>
+          </View>
+        ))}
+
+      {value !== "none" && (
+        <>
+          <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
+          <RecurrenceEndPicker value={end} onChange={onEndChange} colors={colors} />
+        </>
+      )}
+    </View>
+  );
+}
+
+// ── RecurrenceEndPicker ────────────────────────────────────────────────────
+
+interface RecurrenceEndPickerProps {
+  value: RecurrenceEnd;
+  onChange: (e: RecurrenceEnd) => void;
+  colors: ColorTokens;
+}
+
+function RecurrenceEndPicker({ value, onChange, colors }: RecurrenceEndPickerProps) {
+  const styles = makeStyles(colors);
+  const [expanded, setExpanded] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const endLabel =
+    value.type === "never"
+      ? "종료 안 함"
+      : value.type === "count"
+        ? `${value.count}회 후 종료`
+        : `${value.date.getFullYear()}년 ${value.date.getMonth() + 1}월 ${value.date.getDate()}일`;
+
+  return (
+    <View>
+      <Pressable style={styles.row} onPress={() => setExpanded((v) => !v)}>
+        <Text style={styles.label}>종료</Text>
+        <Text style={[styles.dateLabel, { color: colors.accent.primary }]}>{endLabel}</Text>
+      </Pressable>
+
+      {expanded && (
+        <>
+          <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
           <Pressable
             style={styles.row}
-            onPress={() => onChange(opt.value)}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: value === opt.value }}
+            onPress={() => { onChange({ type: "never" }); setExpanded(false); }}
           >
-            <Text style={styles.label}>{opt.label}</Text>
-            {value === opt.value && (
+            <Text style={[styles.label, { fontSize: 15 }]}>종료 안 함</Text>
+            {value.type === "never" && (
               <Text style={{ color: colors.accent.primary, fontSize: 18 }}>✓</Text>
             )}
           </Pressable>
-          {idx < RECURRENCE_OPTIONS.length - 1 && (
-            <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
+
+          <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
+          <View style={styles.row}>
+            <Text style={[styles.label, { fontSize: 15 }]}>횟수 후 종료</Text>
+            <TextInput
+              style={[styles.dateLabel, { color: colors.accent.primary, minWidth: 40, textAlign: "right" }]}
+              keyboardType="number-pad"
+              value={value.type === "count" ? String(value.count) : ""}
+              placeholder="N"
+              placeholderTextColor={colors.text.disabled}
+              onFocus={() => {
+                if (value.type !== "count") onChange({ type: "count", count: 10 });
+              }}
+              onChangeText={(t) => {
+                const n = parseInt(t, 10);
+                if (!isNaN(n) && n > 0) onChange({ type: "count", count: n });
+              }}
+            />
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
+          <Pressable
+            style={styles.row}
+            onPress={() => {
+              if (value.type !== "until") onChange({ type: "until", date: new Date() });
+              setShowDatePicker(true);
+            }}
+          >
+            <Text style={[styles.label, { fontSize: 15 }]}>날짜 지정</Text>
+            {value.type === "until" && (
+              <Text style={[styles.dateLabel, { color: colors.accent.primary }]}>
+                {value.date.getFullYear()}년 {value.date.getMonth() + 1}월 {value.date.getDate()}일
+              </Text>
+            )}
+          </Pressable>
+
+          {showDatePicker && DateTimePicker && (
+            <DateTimePicker
+              value={value.type === "until" ? value.date : new Date()}
+              mode="date"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              onChange={(_: unknown, selected?: Date) => {
+                if (selected) onChange({ type: "until", date: selected });
+                if (Platform.OS !== "ios") setShowDatePicker(false);
+              }}
+            />
           )}
-        </View>
-      ))}
+        </>
+      )}
     </View>
   );
 }
@@ -581,6 +856,20 @@ function makeStyles(colors: ColorTokens) {
       fontSize: 13,
       color: colors.status.error,
       paddingVertical: 4,
+    },
+    deleteBtn: {
+      marginTop: 16,
+      marginHorizontal: 16,
+      marginBottom: 8,
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: "center",
+      backgroundColor: colors.background.tertiary,
+    },
+    deleteBtnText: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: colors.status.error,
     },
     categoryRow: {
       paddingVertical: 4,

@@ -477,6 +477,10 @@ function AppContent() {
               setSelectedEvent(null);
               setCalendarKey((k) => k + 1);
             }}
+            onDelete={() => {
+              setSelectedEvent(null);
+              setCalendarKey((k) => k + 1);
+            }}
             onCancel={() => setSelectedEvent(null)}
           />
         )}

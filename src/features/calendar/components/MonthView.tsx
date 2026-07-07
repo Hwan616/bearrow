@@ -845,7 +845,7 @@ const makeStyles = (
       paddingHorizontal: 3,
       justifyContent: "center",
       overflow: "hidden",
-      marginHorizontal: 0.5,
+      marginHorizontal: 1.5,
     },
     eventBarBg: {
       borderRadius: 2,
@@ -861,6 +861,6 @@ const makeStyles = (
       position: "absolute",
       borderRadius: 1,
       overflow: "hidden",
-      marginHorizontal: 0.5,
+      marginHorizontal: 1.5,
     },
   });

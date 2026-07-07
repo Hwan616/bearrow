@@ -3,6 +3,9 @@ import {
   expandRecurringEvent,
   isSameDateKey,
   parseRRuleDescription,
+  parseRRuleEnd,
+  parseRRuleToOption,
+  stripRRuleEnd,
 } from "../rruleUtils";
 import type { Event } from "../../types";
 
@@ -53,6 +56,89 @@ describe("buildRRuleString", () => {
     expect(buildRRuleString("monthly", new Date(2026, 5, 15))).toBe(
       "FREQ=MONTHLY;BYMONTHDAY=15",
     );
+  });
+
+  it("biweekly 월요일 → FREQ=WEEKLY;INTERVAL=2;BYDAY=MO", () => {
+    const monday = new Date(2026, 5, 1);
+    expect(buildRRuleString("biweekly", monday)).toBe("FREQ=WEEKLY;INTERVAL=2;BYDAY=MO");
+  });
+
+  it("yearly → FREQ=YEARLY", () => {
+    expect(buildRRuleString("yearly", new Date(2026, 5, 1))).toBe("FREQ=YEARLY");
+  });
+
+  it("count 종료 조건 → ;COUNT=N 추가", () => {
+    expect(buildRRuleString("daily", new Date(2026, 5, 1), { type: "count", count: 10 })).toBe(
+      "FREQ=DAILY;COUNT=10",
+    );
+  });
+
+  it("until 종료 조건 → ;UNTIL=YYYYMMDDT235959Z 추가", () => {
+    expect(
+      buildRRuleString("daily", new Date(2026, 5, 1), { type: "until", date: new Date(2026, 11, 31) }),
+    ).toBe("FREQ=DAILY;UNTIL=20261231T235959Z");
+  });
+});
+
+// ── parseRRuleToOption ────────────────────────────────────────────────────
+
+describe("parseRRuleToOption", () => {
+  it("null → none", () => {
+    expect(parseRRuleToOption(null)).toBe("none");
+  });
+  it("FREQ=DAILY → daily", () => {
+    expect(parseRRuleToOption("FREQ=DAILY")).toBe("daily");
+  });
+  it("FREQ=WEEKLY → weekly", () => {
+    expect(parseRRuleToOption("FREQ=WEEKLY;BYDAY=MO")).toBe("weekly");
+  });
+  it("FREQ=WEEKLY;INTERVAL=2 → biweekly", () => {
+    expect(parseRRuleToOption("FREQ=WEEKLY;INTERVAL=2;BYDAY=MO")).toBe("biweekly");
+  });
+  it("FREQ=MONTHLY → monthly", () => {
+    expect(parseRRuleToOption("FREQ=MONTHLY;BYMONTHDAY=15")).toBe("monthly");
+  });
+  it("FREQ=YEARLY → yearly", () => {
+    expect(parseRRuleToOption("FREQ=YEARLY")).toBe("yearly");
+  });
+});
+
+// ── parseRRuleEnd ─────────────────────────────────────────────────────────
+
+describe("parseRRuleEnd", () => {
+  it("null → never", () => {
+    expect(parseRRuleEnd(null)).toEqual({ type: "never" });
+  });
+  it("COUNT 없음 → never", () => {
+    expect(parseRRuleEnd("FREQ=DAILY")).toEqual({ type: "never" });
+  });
+  it("COUNT=5 → count 5", () => {
+    expect(parseRRuleEnd("FREQ=DAILY;COUNT=5")).toEqual({ type: "count", count: 5 });
+  });
+  it("UNTIL=20261231T235959Z → until 날짜", () => {
+    const result = parseRRuleEnd("FREQ=DAILY;UNTIL=20261231T235959Z");
+    expect(result.type).toBe("until");
+    if (result.type === "until") {
+      expect(result.date.getFullYear()).toBe(2026);
+      expect(result.date.getMonth()).toBe(11);
+      expect(result.date.getDate()).toBe(31);
+    }
+  });
+});
+
+// ── stripRRuleEnd ─────────────────────────────────────────────────────────
+
+describe("stripRRuleEnd", () => {
+  it("COUNT 제거", () => {
+    expect(stripRRuleEnd("FREQ=DAILY;COUNT=10")).toBe("FREQ=DAILY");
+  });
+  it("UNTIL 제거", () => {
+    expect(stripRRuleEnd("FREQ=WEEKLY;BYDAY=MO;UNTIL=20261231T235959Z")).toBe(
+      "FREQ=WEEKLY;BYDAY=MO",
+    );
+  });
+  it("종료 조건 없으면 그대로", () => {
+    expect(stripRRuleEnd("FREQ=DAILY")).toBe("FREQ=DAILY");
   });
 });
 

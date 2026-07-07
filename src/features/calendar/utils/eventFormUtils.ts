@@ -1,7 +1,13 @@
 import type { Event, NewEvent } from "../types";
-import { type RecurrenceOption, buildRRuleString } from "./rruleUtils";
+import {
+  type RecurrenceEnd,
+  type RecurrenceOption,
+  buildRRuleString,
+  parseRRuleEnd,
+  parseRRuleToOption,
+} from "./rruleUtils";
 
-export type { RecurrenceOption };
+export type { RecurrenceEnd, RecurrenceOption };
 
 export type EventFormValues = {
   title: string;
@@ -10,6 +16,7 @@ export type EventFormValues = {
   endsAt: Date;
   note: string;
   recurrence: RecurrenceOption;
+  recurrenceEnd: RecurrenceEnd;
   reminderMinutes: number | null;
   categoryId: string;
 };
@@ -26,8 +33,9 @@ export function makeDefaultValues(
       startsAt: event.startsAt,
       endsAt: event.endsAt,
       note: event.note ?? "",
-      recurrence: "none",
-      reminderMinutes: null,
+      recurrence: parseRRuleToOption(event.rrule),
+      recurrenceEnd: parseRRuleEnd(event.rrule),
+      reminderMinutes: event.reminderMinutes ?? null,
       categoryId: event.categoryId ?? "",
     };
   }
@@ -36,7 +44,17 @@ export function makeDefaultValues(
   start.setHours(start.getHours() + 1);
   const end = new Date(start);
   end.setHours(end.getHours() + 1);
-  return { title: "", isAllDay: false, startsAt: start, endsAt: end, note: "", recurrence: "none", reminderMinutes: null, categoryId: "" };
+  return {
+    title: "",
+    isAllDay: false,
+    startsAt: start,
+    endsAt: end,
+    note: "",
+    recurrence: "none",
+    recurrenceEnd: { type: "never" },
+    reminderMinutes: null,
+    categoryId: "",
+  };
 }
 
 // 시간 유효성 검사 — 오류 메시지 또는 null
@@ -77,7 +95,10 @@ export function buildNewEvent(
     categoryId: values.categoryId || null,
     source: "local",
     externalId: null,
-    rrule: values.recurrence !== "none" ? buildRRuleString(values.recurrence, startsAt) : null,
+    rrule:
+      values.recurrence !== "none"
+        ? buildRRuleString(values.recurrence, startsAt, values.recurrenceEnd)
+        : null,
     recurringEventId: null,
     exceptionDate: null,
     isDeleted: false,

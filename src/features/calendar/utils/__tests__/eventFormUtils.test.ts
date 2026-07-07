@@ -84,6 +84,53 @@ describe("makeDefaultValues", () => {
     } satisfies Event;
     expect(makeDefaultValues(event).note).toBe("");
   });
+
+  it("편집 이벤트: rrule이 있으면 recurrence·recurrenceEnd를 복원한다", () => {
+    const event = {
+      id: "evt-3",
+      title: "주간 회의",
+      isAllDay: false,
+      startsAt: makeDate(9),
+      endsAt: makeDate(10),
+      note: null,
+      categoryId: null,
+      source: "local" as const,
+      externalId: null,
+      reminderMinutes: 30,
+      rrule: "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO;COUNT=5",
+      recurringEventId: null,
+      exceptionDate: null,
+      isDeleted: false,
+      updatedAt: new Date(),
+    } satisfies Event;
+    const vals = makeDefaultValues(event);
+    expect(vals.recurrence).toBe("biweekly");
+    expect(vals.recurrenceEnd).toEqual({ type: "count", count: 5 });
+    expect(vals.reminderMinutes).toBe(30);
+  });
+
+  it("편집 이벤트: rrule이 없으면 recurrence는 none", () => {
+    const event = {
+      id: "evt-4",
+      title: "일반 일정",
+      isAllDay: false,
+      startsAt: makeDate(9),
+      endsAt: makeDate(10),
+      note: null,
+      categoryId: null,
+      source: "local" as const,
+      externalId: null,
+      reminderMinutes: null,
+      rrule: null,
+      recurringEventId: null,
+      exceptionDate: null,
+      isDeleted: false,
+      updatedAt: new Date(),
+    } satisfies Event;
+    const vals = makeDefaultValues(event);
+    expect(vals.recurrence).toBe("none");
+    expect(vals.recurrenceEnd).toEqual({ type: "never" });
+  });
 });
 
 // ── validateEventTimes ────────────────────────────────────────────────────
@@ -130,7 +177,7 @@ describe("buildNewEvent", () => {
   it("일반 이벤트 빌드", () => {
     const result = buildNewEvent(
       "uuid-1",
-      { title: "  팀 회의  ", isAllDay: false, startsAt: makeDate(9), endsAt: makeDate(10), note: "  메모  ", recurrence: "none" as const, reminderMinutes: null, categoryId: "" },
+      { title: "  팀 회의  ", isAllDay: false, startsAt: makeDate(9), endsAt: makeDate(10), note: "  메모  ", recurrence: "none" as const, recurrenceEnd: { type: "never" as const }, reminderMinutes: null, categoryId: "" },
       now,
     );
     expect(result.id).toBe("uuid-1");
@@ -146,7 +193,7 @@ describe("buildNewEvent", () => {
   it("note가 공백만이면 null로 저장", () => {
     const result = buildNewEvent(
       "uuid-2",
-      { title: "점심", isAllDay: false, startsAt: makeDate(12), endsAt: makeDate(13), note: "   ", recurrence: "none" as const, reminderMinutes: null, categoryId: "" },
+      { title: "점심", isAllDay: false, startsAt: makeDate(12), endsAt: makeDate(13), note: "   ", recurrence: "none" as const, recurrenceEnd: { type: "never" as const }, reminderMinutes: null, categoryId: "" },
       now,
     );
     expect(result.note).toBeNull();
@@ -155,7 +202,7 @@ describe("buildNewEvent", () => {
   it("종일 이벤트는 시각이 자정/23:59로 정규화된다", () => {
     const result = buildNewEvent(
       "uuid-3",
-      { title: "출장", isAllDay: true, startsAt: makeDate(9), endsAt: makeDate(10), note: "", recurrence: "none" as const, reminderMinutes: null, categoryId: "" },
+      { title: "출장", isAllDay: true, startsAt: makeDate(9), endsAt: makeDate(10), note: "", recurrence: "none" as const, recurrenceEnd: { type: "never" as const }, reminderMinutes: null, categoryId: "" },
       now,
     );
     expect(result.isAllDay).toBe(true);

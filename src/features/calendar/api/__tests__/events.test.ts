@@ -1,8 +1,14 @@
 import {
   createEvent,
+  createExceptionEvent,
+  deleteAllRecurring,
   deleteEvent,
+  deleteExceptionInstance,
+  deleteThisAndFollowing,
+  editAllRecurring,
   getEventById,
   getEventsByDateRange,
+  splitAndEditThisAndFollowing,
   updateEvent,
 } from "../events";
 
@@ -34,6 +40,10 @@ jest.mock("drizzle-orm", () => ({
   isNull: jest.fn((col) => ({ op: "isNull", col })),
   isNotNull: jest.fn((col) => ({ op: "isNotNull", col })),
   inArray: jest.fn((col, vals) => ({ op: "inArray", col, vals })),
+}));
+
+jest.mock("expo-crypto", () => ({
+  randomUUID: jest.fn(() => "generated-uuid"),
 }));
 
 // ── fixtures ─────────────────────────────────────────────────────────────────
@@ -160,5 +170,91 @@ describe("deleteEvent", () => {
   it("에러 없이 삭제를 완료한다", async () => {
     await expect(deleteEvent("evt-1")).resolves.toBeUndefined();
     expect(mockWhereForDelete).toHaveBeenCalled();
+  });
+});
+
+// ── 반복 일정 CRUD ─────────────────────────────────────────────────────────
+
+describe("createExceptionEvent", () => {
+  it("예외 이벤트를 삽입한다 (recurringEventId·exceptionDate 설정)", async () => {
+    const instanceDate = new Date("2026-06-15T00:00:00Z");
+    await createExceptionEvent("master-1", instanceDate, mockEvent as never);
+    expect(mockValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recurringEventId: "master-1",
+        exceptionDate: instanceDate,
+        rrule: null,
+        isDeleted: false,
+      }),
+    );
+  });
+});
+
+describe("deleteExceptionInstance", () => {
+  it("삭제 예외 이벤트를 삽입한다 (isDeleted=true)", async () => {
+    const instanceDate = new Date("2026-06-15T00:00:00Z");
+    await deleteExceptionInstance("master-1", instanceDate);
+    expect(mockValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recurringEventId: "master-1",
+        exceptionDate: instanceDate,
+        isDeleted: true,
+      }),
+    );
+  });
+});
+
+describe("editAllRecurring", () => {
+  it("마스터를 업데이트하고 기존 예외를 삭제한다", async () => {
+    await editAllRecurring("master-1", { title: "수정" });
+    expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({ title: "수정" }));
+    expect(mockWhereForDelete).toHaveBeenCalled();
+  });
+});
+
+describe("splitAndEditThisAndFollowing", () => {
+  it("마스터에 UNTIL 설정 후 새 마스터를 생성한다", async () => {
+    mockWhereForSelect.mockResolvedValue([{ ...mockEvent, rrule: "FREQ=DAILY" }]);
+    const instanceDate = new Date("2026-06-15T00:00:00Z");
+    await splitAndEditThisAndFollowing("master-1", instanceDate, mockEvent as never);
+    // 마스터 rrule에 UNTIL 추가
+    expect(mockSet).toHaveBeenCalledWith(
+      expect.objectContaining({ rrule: expect.stringContaining("UNTIL=") }),
+    );
+    // 새 마스터 삽입
+    expect(mockValues).toHaveBeenCalledWith(
+      expect.objectContaining({ recurringEventId: null, exceptionDate: null }),
+    );
+  });
+
+  it("마스터가 없으면 에러를 던진다", async () => {
+    mockWhereForSelect.mockResolvedValue([]);
+    await expect(
+      splitAndEditThisAndFollowing("no-such", new Date(), mockEvent as never),
+    ).rejects.toThrow();
+  });
+});
+
+describe("deleteThisAndFollowing", () => {
+  it("마스터에 UNTIL을 설정한다", async () => {
+    mockWhereForSelect.mockResolvedValue([{ ...mockEvent, rrule: "FREQ=DAILY" }]);
+    await deleteThisAndFollowing("master-1", new Date("2026-06-15T00:00:00Z"));
+    expect(mockSet).toHaveBeenCalledWith(
+      expect.objectContaining({ rrule: expect.stringContaining("UNTIL=") }),
+    );
+  });
+
+  it("마스터가 없으면 아무 작업도 하지 않는다", async () => {
+    mockWhereForSelect.mockResolvedValue([]);
+    await expect(
+      deleteThisAndFollowing("no-such", new Date()),
+    ).resolves.toBeUndefined();
+  });
+});
+
+describe("deleteAllRecurring", () => {
+  it("마스터와 예외를 모두 삭제한다 (delete 2회)", async () => {
+    await deleteAllRecurring("master-1");
+    expect(mockWhereForDelete).toHaveBeenCalledTimes(2);
   });
 });

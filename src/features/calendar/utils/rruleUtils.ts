@@ -2,24 +2,89 @@ import { RRule } from "rrule";
 
 import type { Event } from "../types";
 
-export type RecurrenceOption = "none" | "daily" | "weekly" | "monthly";
+export type RecurrenceOption = "none" | "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
+
+export type RecurrenceEnd =
+  | { type: "never" }
+  | { type: "count"; count: number }
+  | { type: "until"; date: Date };
 
 // ── RRULE 문자열 생성 ──────────────────────────────────────────────────────
 
 export function buildRRuleString(
   recurrence: Exclude<RecurrenceOption, "none">,
   startsAt: Date,
+  end: RecurrenceEnd = { type: "never" },
 ): string {
+  const BYDAY = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][startsAt.getDay()]!;
+  let base: string;
   switch (recurrence) {
     case "daily":
-      return "FREQ=DAILY";
-    case "weekly": {
-      const BYDAY = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][startsAt.getDay()]!;
-      return `FREQ=WEEKLY;BYDAY=${BYDAY}`;
-    }
+      base = "FREQ=DAILY";
+      break;
+    case "weekly":
+      base = `FREQ=WEEKLY;BYDAY=${BYDAY}`;
+      break;
+    case "biweekly":
+      base = `FREQ=WEEKLY;INTERVAL=2;BYDAY=${BYDAY}`;
+      break;
     case "monthly":
-      return `FREQ=MONTHLY;BYMONTHDAY=${startsAt.getDate()}`;
+      base = `FREQ=MONTHLY;BYMONTHDAY=${startsAt.getDate()}`;
+      break;
+    case "yearly":
+      base = "FREQ=YEARLY";
+      break;
   }
+
+  if (end.type === "count") {
+    base += `;COUNT=${end.count}`;
+  } else if (end.type === "until") {
+    const d = end.date;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    base += `;UNTIL=${y}${m}${day}T235959Z`;
+  }
+
+  return base;
+}
+
+// ── RRULE 문자열 → RecurrenceOption ───────────────────────────────────────
+
+export function parseRRuleToOption(rrule: string | null): RecurrenceOption {
+  if (!rrule) return "none";
+  if (rrule.includes("FREQ=YEARLY")) return "yearly";
+  if (rrule.includes("FREQ=MONTHLY")) return "monthly";
+  if (rrule.includes("FREQ=WEEKLY")) {
+    const intervalMatch = /INTERVAL=(\d+)/.exec(rrule);
+    if (intervalMatch && parseInt(intervalMatch[1]!, 10) === 2) return "biweekly";
+    return "weekly";
+  }
+  if (rrule.includes("FREQ=DAILY")) return "daily";
+  return "none";
+}
+
+// ── RRULE 문자열 → RecurrenceEnd ──────────────────────────────────────────
+
+export function parseRRuleEnd(rrule: string | null): RecurrenceEnd {
+  if (!rrule) return { type: "never" };
+  const countMatch = /COUNT=(\d+)/.exec(rrule);
+  if (countMatch) return { type: "count", count: parseInt(countMatch[1]!, 10) };
+  const untilMatch = /UNTIL=(\d{8})/.exec(rrule);
+  if (untilMatch) {
+    const s = untilMatch[1]!;
+    const year = parseInt(s.substring(0, 4), 10);
+    const month = parseInt(s.substring(4, 6), 10) - 1;
+    const day = parseInt(s.substring(6, 8), 10);
+    return { type: "until", date: new Date(year, month, day) };
+  }
+  return { type: "never" };
+}
+
+// ── RRULE에서 COUNT/UNTIL 제거 ─────────────────────────────────────────────
+
+export function stripRRuleEnd(rrule: string): string {
+  return rrule.replace(/;?(COUNT|UNTIL)=[^;]+/g, "");
 }
 
 // ── 사람이 읽기 쉬운 반복 설명 ────────────────────────────────────────────
@@ -29,12 +94,15 @@ const DAY_KO: Record<string, string> = {
 };
 
 export function parseRRuleDescription(rrule: string): string {
+  if (rrule.includes("FREQ=YEARLY")) return "매년";
   if (rrule.includes("FREQ=DAILY")) return "매일";
   if (rrule.includes("FREQ=WEEKLY")) {
+    const intervalMatch = /INTERVAL=(\d+)/.exec(rrule);
+    const isbiweekly = intervalMatch && parseInt(intervalMatch[1]!, 10) === 2;
     const match = /BYDAY=([A-Z,]+)/.exec(rrule);
-    if (!match) return "매주";
-    const days = match[1]!.split(",").map((d) => DAY_KO[d] ?? d).join("·");
-    return `매주 ${days}`;
+    const days = match ? match[1]!.split(",").map((d) => DAY_KO[d] ?? d).join("·") : "";
+    if (isbiweekly) return days ? `2주마다 ${days}` : "2주마다";
+    return days ? `매주 ${days}` : "매주";
   }
   if (rrule.includes("FREQ=MONTHLY")) {
     const match = /BYMONTHDAY=(\d+)/.exec(rrule);
