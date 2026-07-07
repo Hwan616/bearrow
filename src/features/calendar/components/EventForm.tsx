@@ -70,7 +70,7 @@ interface Props {
 
 export const EventForm = React.forwardRef<EventFormHandle, Props>(
 function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onDelete, onCancel }, ref) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = makeStyles(colors);
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -368,6 +368,7 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onDe
                 onChange={field.onChange}
                 isAllDay={isAllDay}
                 colors={colors}
+                isDark={isDark}
               />
             )}
           />
@@ -382,6 +383,7 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onDe
                 onChange={field.onChange}
                 isAllDay={isAllDay}
                 colors={colors}
+                isDark={isDark}
               />
             )}
           />
@@ -411,6 +413,7 @@ function EventForm({ initialEvent, initialDate, hideHeader = false, onSave, onDe
                 end={recurrenceEnd}
                 onEndChange={(e) => setValue("recurrenceEnd", e)}
                 colors={colors}
+                isDark={isDark}
               />
             )}
           />
@@ -462,12 +465,14 @@ interface DateTimeFieldProps {
   onChange: (d: Date) => void;
   isAllDay: boolean;
   colors: ColorTokens;
+  isDark: boolean;
 }
 
-function DateTimeField({ label, value, onChange, isAllDay, colors }: DateTimeFieldProps) {
+function DateTimeField({ label, value, onChange, isAllDay, colors, isDark }: DateTimeFieldProps) {
   const styles = makeStyles(colors);
   const [showAndroid, setShowAndroid] = useState(false);
   const [androidPhase, setAndroidPhase] = useState<"date" | "time">("date");
+  const themeVariant = isDark ? "dark" : "light";
 
   // 웹: DateTimePicker 없이 레이블만 표시
   if (Platform.OS === "web" || !DateTimePicker) {
@@ -490,6 +495,8 @@ function DateTimeField({ label, value, onChange, isAllDay, colors }: DateTimeFie
           value={value}
           mode={isAllDay ? "date" : "datetime"}
           display="compact"
+          themeVariant={themeVariant}
+          accentColor={colors.accent.primary}
           onChange={(_: unknown, selected?: Date) => {
             if (selected) onChange(selected);
           }}
@@ -543,6 +550,7 @@ function DateTimeField({ label, value, onChange, isAllDay, colors }: DateTimeFie
           value={value}
           mode={androidPhase}
           display="default"
+          themeVariant={themeVariant}
           onChange={handleAndroidChange}
         />
       )}
@@ -567,9 +575,10 @@ interface RecurrencePickerProps {
   end: RecurrenceEnd;
   onEndChange: (e: RecurrenceEnd) => void;
   colors: ColorTokens;
+  isDark: boolean;
 }
 
-function RecurrencePicker({ value, onChange, end, onEndChange, colors }: RecurrencePickerProps) {
+function RecurrencePicker({ value, onChange, end, onEndChange, colors, isDark }: RecurrencePickerProps) {
   const styles = makeStyles(colors);
   const [expanded, setExpanded] = useState(false);
   const selectedLabel = RECURRENCE_OPTIONS.find((o) => o.value === value)?.label ?? "반복 없음";
@@ -602,7 +611,7 @@ function RecurrencePicker({ value, onChange, end, onEndChange, colors }: Recurre
       {value !== "none" && (
         <>
           <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
-          <RecurrenceEndPicker value={end} onChange={onEndChange} colors={colors} />
+          <RecurrenceEndPicker value={end} onChange={onEndChange} colors={colors} isDark={isDark} />
         </>
       )}
     </View>
@@ -615,9 +624,10 @@ interface RecurrenceEndPickerProps {
   value: RecurrenceEnd;
   onChange: (e: RecurrenceEnd) => void;
   colors: ColorTokens;
+  isDark: boolean;
 }
 
-function RecurrenceEndPicker({ value, onChange, colors }: RecurrenceEndPickerProps) {
+function RecurrenceEndPicker({ value, onChange, colors, isDark }: RecurrenceEndPickerProps) {
   const styles = makeStyles(colors);
   const [expanded, setExpanded] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -689,6 +699,7 @@ function RecurrenceEndPicker({ value, onChange, colors }: RecurrenceEndPickerPro
               value={value.type === "until" ? value.date : new Date()}
               mode="date"
               display={Platform.OS === "ios" ? "spinner" : "default"}
+              themeVariant={isDark ? "dark" : "light"}
               onChange={(_: unknown, selected?: Date) => {
                 if (selected) onChange({ type: "until", date: selected });
                 if (Platform.OS !== "ios") setShowDatePicker(false);

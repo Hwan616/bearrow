@@ -92,20 +92,22 @@ export const lightTokens: ColorTokens = {
 };
 
 export const darkTokens: ColorTokens = {
+  // 다크 모드 회색을 팔레트보다 한 단계 밝게 조정 (grey900/800/700 → 아래 값)
   background: {
-    primary: palette.grey900,
-    secondary: palette.grey800,
-    tertiary: palette.grey700,
+    primary: "#2A2E33",   // was grey900 #212529
+    secondary: "#3C4247", // was grey800 #343A40
+    tertiary: "#545B62",  // was grey700 #495057
   },
   surface: {
-    default: palette.grey800,
-    raised: palette.grey700,
+    default: "#3C4247",   // was grey800
+    raised: "#545B62",    // was grey700
     overlay: "rgba(0,0,0,0.6)",
   },
   text: {
     primary: palette.grey50,
     secondary: palette.grey400,
-    disabled: palette.grey600,
+    // 배경을 밝힌 만큼 흐린 회색 글씨가 묻히지 않도록 disabled도 밝게 (grey600 → 아래)
+    disabled: "#8B929A",  // was grey600 #6C757D
     inverse: palette.grey900,
   },
   border: {
