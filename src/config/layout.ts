@@ -69,6 +69,11 @@ export const MONTH_VIEW = {
   dayNumSize: 13,
   /** 오늘 날짜 원형 배경 지름 */
   dayCircleSize: 26,
+  /**
+   * 일정 박스 불투명도 (0=완전투명, 1=완전불투명).
+   * 직접 수정 후 저장하면 Fast Refresh로 즉시 반영됨.
+   */
+  eventBarOpacity: 0.85,
 } as const;
 
 // ── Year View ────────────────────────────────────────────────────────────────
@@ -77,18 +82,18 @@ export const YEAR_VIEW = {
    * 날짜 원형 배경 지름.
    * 셀 높이(cellHeight) = 2 + dayCircleSize 로 자동 계산됨.
    */
-  dayCircleSize: 16,
+  dayCircleSize: 13,
   /** 날짜 숫자 크기 */
-  dayTextSize: 11,
+  dayTextSize: 10,
   /**
    * "1월·2월…" 미니 달력 제목 크기.
    * 변경 시 MINI_TITLE_HEIGHT(≈ fontSize×1.32 + 4)가 자동 재계산됨.
    */
-  monthTitleSize: 19,
+  monthTitleSize: 21,
   /** 화면 베젤 ↔ 달력 수평 여백 (클수록 베젤에 더 붙음) */
-  outerPaddingH: 12,
+  outerPaddingH: 24,
   /** 달력 ↔ 달력 사이 수평 여백 한쪽 (작을수록 달력끼리 더 가까움) */
   monthPaddingH: 4,
   /** 달력 상하 여백 */
-  monthPaddingV: 8,
+  monthPaddingV: 18,
 } as const;

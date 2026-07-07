@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Text,
   View,
-  type ViewToken,
 } from "react-native";
 
 import { MONTH_VIEW } from "@/config/layout";
@@ -28,14 +27,23 @@ const MAX_TRACKS = 2;
 const EVENT_AREA_HEIGHT = MAX_TRACKS * (BAR_HEIGHT + BAR_MARGIN) + BAR_MARGIN;
 
 // ── 레이아웃 상수 ──────────────────────────────────────────────────────────────
-// iOS 시스템 폰트 lineHeight 계수 ≈ 1.32
-// MONTH_LABEL_HEIGHT: labelOnFirstSize × 1.32(lineHeight) + paddingTop(6) + paddingBottom(2)
 const MONTH_LABEL_HEIGHT = Math.round(MONTH_VIEW.labelOnFirstSize * 1.32) + 8;
 const WEEK_ROW_HEIGHT = MONTH_VIEW.weekRowHeight;
-const FIXED_WEEKS = 6;
-const MONTH_ITEM_HEIGHT = MONTH_LABEL_HEIGHT + FIXED_WEEKS * WEEK_ROW_HEIGHT;
+const DAY_CELL_HEIGHT = WEEK_ROW_HEIGHT - EVENT_AREA_HEIGHT; // 59px
 
 const MONTH_WINDOW = 49; // ±24 months
+
+// 해당 월에 필요한 주(행) 수
+function getWeekCount(year: number, month: number): number {
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  return Math.ceil((firstDay + daysInMonth) / 7);
+}
+
+// FlatList getItemLayout 용 높이 계산
+function getMonthItemHeight(year: number, month: number): number {
+  return MONTH_LABEL_HEIGHT + getWeekCount(year, month) * WEEK_ROW_HEIGHT;
+}
 
 // ── 타입 ──────────────────────────────────────────────────────────────────────
 
@@ -58,18 +66,6 @@ function generateMonthList(center: Date): YearMonth[] {
     const d = new Date(center.getFullYear(), center.getMonth() + (i - half), 1);
     return { year: d.getFullYear(), month: d.getMonth() };
   });
-}
-
-function padTo6Weeks(grid: CalendarDay[]): CalendarDay[] {
-  const padded = [...grid];
-  while (padded.length < 42) {
-    const last = padded[padded.length - 1]!;
-    const d = new Date(last.date);
-    d.setDate(last.date.getDate() + 1);
-    d.setHours(0, 0, 0, 0);
-    padded.push({ date: d, isCurrentMonth: false, isToday: false });
-  }
-  return padded;
 }
 
 function chunkBy7<T>(arr: T[]): T[][] {
@@ -102,6 +98,11 @@ function computeEventBars(
   events: Event[],
   getCategoryColor: (id: string | null | undefined) => string,
 ): EventBarData[] {
+  // 이번 주에서 현재 달에 속하는 첫/마지막 열 — 이 범위를 벗어난 셀에는 바를 그리지 않음
+  const firstCurrentCol = weekDays.findIndex((d) => d.isCurrentMonth);
+  const lastCurrentCol = weekDays.reduce((acc, d, i) => (d.isCurrentMonth ? i : acc), -1);
+  if (firstCurrentCol < 0) return [];
+
   const weekStart = weekDays[0]!.date;
   const weekEndDay = weekDays[6]!.date;
   const weekEndMs = weekEndDay.getTime() + 24 * 60 * 60 * 1000 - 1;
@@ -117,7 +118,10 @@ function computeEventBars(
     const cols = getEventColumns(weekDays, event);
     if (!cols) continue;
 
-    const { startCol, endCol } = cols;
+    // 현재 달 셀 범위로 클램핑 — 이전/다음 달 빈 셀 위에 바 표시 방지
+    const startCol = Math.max(cols.startCol, firstCurrentCol);
+    const endCol = Math.min(cols.endCol, lastCurrentCol);
+    if (startCol > endCol) continue;
 
     let track = -1;
     for (let t = 0; t < MAX_TRACKS; t++) {
@@ -212,17 +216,43 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
   const onVisibleMonthChangeRef = useRef(onVisibleMonthChange);
   onVisibleMonthChangeRef.current = onVisibleMonthChange;
 
-  const onViewableItemsChangedRef = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      const first = viewableItems[0];
-      if (first) {
-        const ym = first.item as YearMonth;
-        onVisibleMonthChangeRef.current?.(ym.year, ym.month);
+  // 월별 FlatList 아이템 높이·오프셋 (가변 행 수에 맞게 사전 계산)
+  const itemLayouts = useMemo(() => {
+    const result: { height: number; offset: number }[] = [];
+    let offset = 0;
+    for (const m of months) {
+      const height = getMonthItemHeight(m.year, m.month);
+      result.push({ height, offset });
+      offset += height;
+    }
+    return result;
+  }, [months]);
+
+  // 스크롤 위치 기반 서브타이틀 갱신 (Issue 6):
+  // 요일바 하단이 해당 달 마지막 행의 상단 구분선을 지나면 다음 달로 전환
+  const activeMonthIdxRef = useRef(initialIndex);
+  const handleScroll = useCallback(
+    (e: { nativeEvent: { contentOffset: { y: number } } }) => {
+      const scrollY = e.nativeEvent.contentOffset.y;
+      let newIdx = 0;
+      for (let i = 0; i < months.length; i++) {
+        const weekCount = getWeekCount(months[i]!.year, months[i]!.month);
+        const lastRowTopY =
+          itemLayouts[i]!.offset + MONTH_LABEL_HEIGHT + (weekCount - 1) * WEEK_ROW_HEIGHT;
+        if (scrollY > lastRowTopY) {
+          newIdx = i + 1;
+        } else {
+          break;
+        }
+      }
+      newIdx = Math.min(newIdx, months.length - 1);
+      if (newIdx !== activeMonthIdxRef.current) {
+        activeMonthIdxRef.current = newIdx;
+        onVisibleMonthChangeRef.current?.(months[newIdx]!.year, months[newIdx]!.month);
       }
     },
+    [months, itemLayouts],
   );
-  const onViewableItemsChanged = onViewableItemsChangedRef.current;
-  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
   const handleDayPress = useCallback(
     (date: Date) => {
@@ -234,11 +264,11 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
 
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({
-      length: MONTH_ITEM_HEIGHT,
-      offset: MONTH_ITEM_HEIGHT * index,
+      length: itemLayouts[index]!.height,
+      offset: itemLayouts[index]!.offset,
       index,
     }),
-    [],
+    [itemLayouts],
   );
 
   const renderItem = useCallback(
@@ -271,12 +301,12 @@ export const MonthView = React.forwardRef<MonthViewHandle, MonthViewProps>(
         initialScrollIndex={initialIndex}
         onScrollToIndexFailed={() => {
           listRef.current?.scrollToOffset({
-            offset: initialIndex * MONTH_ITEM_HEIGHT,
+            offset: itemLayouts[initialIndex]!.offset,
             animated: false,
           });
         }}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         windowSize={5}
         removeClippedSubviews
         showsVerticalScrollIndicator={false}
@@ -311,8 +341,7 @@ const MonthItem = React.memo(function MonthItem({
   const today = new Date();
   const isThisMonth = year === today.getFullYear() && month === today.getMonth();
   const rawGrid = buildMonthGrid(year, month, today);
-  const grid = padTo6Weeks(rawGrid);
-  const rows = chunkBy7(grid);
+  const rows = chunkBy7(rawGrid);
 
   // 첫 번째 주에서 현재 달 첫 번째 날의 열(column) 인덱스
   const firstDayCol = rows[0]?.findIndex((d) => d.isCurrentMonth) ?? 0;
@@ -355,7 +384,7 @@ const MonthItem = React.memo(function MonthItem({
                     <View key={`sp-${i}`} style={s.monthLabelSpacer} />
                   ))}
                   {/* 헤더 서브타이틀에 이미 표시되는 당월은 숨김 (레이아웃 높이 유지) */}
-                  <Text style={[s.monthLabelOnFirst, isThisMonth && s.monthLabelCurrent, isThisMonth && { opacity: 0 }]}>
+                  <Text style={[s.monthLabelOnFirst, isThisMonth && s.monthLabelCurrent]}>
                     {month + 1}월
                   </Text>
                 </View>
@@ -501,7 +530,7 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     dayCell: {
       width: `${100 / 7}%` as `${number}%`,
-      minHeight: 59,
+      height: DAY_CELL_HEIGHT,
       alignItems: "center",
       justifyContent: "center",
       position: "relative",
@@ -543,6 +572,7 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       paddingHorizontal: 3,
       justifyContent: "center",
       overflow: "hidden",
+      opacity: MONTH_VIEW.eventBarOpacity,
     },
     eventBarText: {
       fontSize: 10,
