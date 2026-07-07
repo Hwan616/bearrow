@@ -383,7 +383,6 @@ const MonthItem = React.memo(function MonthItem({
                     const isSelected = selectedDate !== null && isSameDay(date, selectedDate);
                     const isSun = date.getDay() === 0;
                     const isSat = date.getDay() === 6;
-                    const isHoliday = isCurrentMonth && holidayMap.has(date.getDate());
 
                     if (!isCurrentMonth) {
                       return <View key={date.toISOString()} style={s.dayCell} />;
@@ -408,8 +407,8 @@ const MonthItem = React.memo(function MonthItem({
                             style={[
                               s.dayText,
                               isToday && s.todayText,
-                              !isToday && (isSun || isHoliday) && s.sunday,
-                              !isToday && isSat && !isHoliday && s.saturday,
+                              !isToday && isSun && s.sunday,
+                              !isToday && isSat && s.saturday,
                             ]}
                           >
                             {date.getDate()}
@@ -467,8 +466,8 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       backgroundColor: colors.background.primary,
       paddingHorizontal: 4,
     },
-    sunday: { color: colors.status.error },
-    saturday: { color: "#2E5AAC" },
+    sunday: { color: colors.text.secondary },
+    saturday: { color: colors.text.secondary },
     monthLabelAboveRow: {
       flexDirection: "row",
       paddingTop: 6,

@@ -2,12 +2,10 @@ import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { YearMonthPicker } from "@/features/calendar/components/YearMonthPicker";
-import { useAppSettings } from "@/features/settings/AppSettingsContext";
 import { useTheme } from "@/theme";
 import type { ColorTokens } from "@/theme/tokens";
 
 import { buildMonthGrid, formatMonthTitle, isSameDay } from "../../calendar/utils/calendarUtils";
-import { getHolidaysForMonth } from "../../calendar/utils/koreanHolidays";
 import type { Todo } from "../types";
 
 const DAYS_OF_WEEK = ["일", "월", "화", "수", "목", "금", "토"] as const;
@@ -31,7 +29,6 @@ export function TodoMiniCalendar({
   const [pickerVisible, setPickerVisible] = useState(false);
 
   const { colors } = useTheme();
-  const { showHolidays } = useAppSettings();
   const s = makeStyles(colors);
 
   const grid = buildMonthGrid(year, month, now);
@@ -52,11 +49,6 @@ export function TodoMiniCalendar({
     }
     return map;
   }, [todos, year, month]);
-
-  const holidayMap = useMemo(
-    () => (showHolidays ? getHolidaysForMonth(year, month) : new Map<number, string>()),
-    [year, month, showHolidays],
-  );
 
   const goToPrev = () => {
     if (month === 0) { setYear((y) => y - 1); setMonth(11); }
@@ -117,8 +109,6 @@ export function TodoMiniCalendar({
         {grid.map(({ date, isCurrentMonth, isToday }) => {
           const isSun = date.getDay() === 0;
           const isSat = date.getDay() === 6;
-          const holidayName = isCurrentMonth ? (holidayMap.get(date.getDate()) ?? null) : null;
-          const isHoliday = holidayName !== null;
           const count = isCurrentMonth ? (todoCounts.get(date.getDate()) ?? 0) : 0;
 
           // 날짜 이동 모드에서 현재 대상 할일의 마감일
@@ -144,8 +134,8 @@ export function TodoMiniCalendar({
                     s.dayText,
                     !isCurrentMonth && s.outsideMonth,
                     isToday && s.todayText,
-                    !isToday && (isSun || isHoliday) && s.sunColor,
-                    !isToday && isSat && !isHoliday && s.satColor,
+                    !isToday && isSun && s.sunColor,
+                    !isToday && isSat && s.satColor,
                     isRescheduleCurrent && !isToday && s.todayText,
                   ]}
                 >
@@ -244,8 +234,8 @@ function makeStyles(colors: ColorTokens) {
       color: colors.text.secondary,
       paddingVertical: 2,
     },
-    sunColor: { color: colors.status.error },
-    satColor: { color: "#2E5AAC" },
+    sunColor: { color: colors.text.secondary },
+    satColor: { color: colors.text.secondary },
     grid: {
       flexDirection: "row",
       flexWrap: "wrap",

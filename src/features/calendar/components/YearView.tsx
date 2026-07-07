@@ -287,7 +287,7 @@ function makeStyles(colors: ColorTokens) {
       fontWeight: "700",
     },
     miniDayTextSun: {
-      color: colors.status.error,
+      color: colors.text.secondary,
     },
   });
 }

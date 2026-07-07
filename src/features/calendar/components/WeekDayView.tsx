@@ -280,8 +280,8 @@ const makeStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     dayHeaderCell: { flex: 1, alignItems: "center", minHeight: 44, justifyContent: "center" },
     dayShort: { fontSize: 11, color: colors.text.secondary },
-    sunday: { color: colors.status.error },
-    saturday: { color: "#2E5AAC" },
+    sunday: { color: colors.text.secondary },
+    saturday: { color: colors.text.secondary },
     dayCircle: {
       width: 28,
       height: 28,

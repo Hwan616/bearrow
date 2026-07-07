@@ -378,8 +378,8 @@ function AppContent() {
                 style={[
                   s.weekdayLabel,
                   { color: colors.text.secondary },
-                  d === "일" && { color: colors.status.error },
-                  d === "토" && { color: "#2E5AAC" },
+                  d === "일" && { color: colors.text.secondary },
+                  d === "토" && { color: colors.text.secondary },
                 ]}
               >
                 {d}
