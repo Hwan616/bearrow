@@ -78,21 +78,23 @@
 
 ### Phase 7 — 캘린더 기반 UI 전면 개편
 
+> 단계별 요구 → 수행 요약: [phase7/00-overview.md](phase7/00-overview.md)
+
 | # | 파일 | 작업 | 날짜 | 상태 |
 |---|---|---|---|---|
 | 7.1 | [phase7/7.1-app-shell.md](phase7/7.1-app-shell.md) | App.tsx 셸 재구성 (탭바 제거, Year/Month/Day 상태) | 2026-07-06 13:45 | ✅ |
 | 7.2 | [phase7/7.2-year-view.md](phase7/7.2-year-view.md) | YearView 컴포넌트 | 2026-07-06 13:56 | ✅ |
-| 7.3 | [phase7/7.3-month-view.md](phase7/7.3-month-view.md) | MonthView 개편 (이벤트 바, 투두 카운트) | 2026-07-06 14:30 | ✅ |
-| 7.4 | [phase7/7.4-day-view.md](phase7/7.4-day-view.md) | DayView 개편 (연속 세로 스크롤, 가상화) | 2026-07-06 15:10 | ✅ |
-| 7.5 | [phase7/7.5-bottom-sheet-panel.md](phase7/7.5-bottom-sheet-panel.md) | BottomSheet/SidePanel 컨테이너 시스템 | 2026-07-06 16:00 | ✅ |
-| 7.6 | [phase7/7.6-todo-sheet.md](phase7/7.6-todo-sheet.md) | 투두 시트 (스냅 2단계, ↑↓ 정렬) | 2026-07-06 23:00 | ✅ |
-| 7.7 | [phase7/7.7-settings-sheet.md](phase7/7.7-settings-sheet.md) | 설정 시트 | 2026-07-06 00:30 | ✅ |
-| 7.8 | [phase7/7.8-add-sheet.md](phase7/7.8-add-sheet.md) | 일정·할일 추가 시트 (세그먼트 토글) | 2026-07-06 01:00 | ✅ |
-| 7.9 | [phase7/7.9-search.md](phase7/7.9-search.md) | 검색 (제목 기반, 결과 → 뷰 이동) | 2026-07-06 02:00 | ✅ |
-| 7.10 | [phase7/7.10-todos-schema.md](phase7/7.10-todos-schema.md) | todos 스키마 변경·마이그레이션 | 2026-07-06 00:00 | ✅ |
-| 7.11 | [phase7/7.11-regression.md](phase7/7.11-regression.md) | 마무리·회귀 검증 | 2026-07-06 00:30 | ✅ |
-| 7.12 | [phase7/7.12-infinite-scroll-year-month.md](phase7/7.12-infinite-scroll-year-month.md) | YearView·MonthView 무한 세로 스크롤 + 버그 수정 | 2026-07-06 22:00 | ✅ |
-| 7.13 | [phase7/7.13-visual-color-event-category.md](phase7/7.13-visual-color-event-category.md) | YearView·MonthView 시각 개편 + 이벤트 카테고리 필수화 + 강조색 제거 | 2026-07-06 09:00 | ✅ |
+| 7.3 | [phase7/7.3-month-view.md](phase7/7.3-month-view.md) | MonthView 개편 (이벤트 바, 투두 카운트) | 2026-07-06 14:13 | ✅ |
+| 7.4 | [phase7/7.4-day-view.md](phase7/7.4-day-view.md) | DayView 개편 (연속 세로 스크롤, 가상화) | 2026-07-06 14:24 | ✅ |
+| 7.5 | [phase7/7.5-bottom-sheet-panel.md](phase7/7.5-bottom-sheet-panel.md) | BottomSheet/SidePanel 컨테이너 시스템 | 2026-07-06 16:19 | ✅ |
+| 7.6 | [phase7/7.6-todo-sheet.md](phase7/7.6-todo-sheet.md) | 투두 시트 (스냅 2단계, ↑↓ 정렬) | 2026-07-06 16:37 | ✅ |
+| 7.7 | [phase7/7.7-settings-sheet.md](phase7/7.7-settings-sheet.md) | 설정 시트 | 2026-07-06 16:41 | ✅ |
+| 7.8 | [phase7/7.8-add-sheet.md](phase7/7.8-add-sheet.md) | 일정·할일 추가 시트 (세그먼트 토글) | 2026-07-06 16:46 | ✅ |
+| 7.9 | [phase7/7.9-search.md](phase7/7.9-search.md) | 검색 (제목 기반, 결과 → 뷰 이동) | 2026-07-06 16:52 | ✅ |
+| 7.10 | [phase7/7.10-todos-schema.md](phase7/7.10-todos-schema.md) | todos 스키마 변경·마이그레이션 | 2026-07-06 17:03 | ✅ |
+| 7.11 | [phase7/7.11-regression.md](phase7/7.11-regression.md) | 마무리·회귀 검증 | 2026-07-06 17:09 | ✅ |
+| 7.12 | [phase7/7.12-infinite-scroll-year-month.md](phase7/7.12-infinite-scroll-year-month.md) | YearView·MonthView 무한 세로 스크롤 + 버그 수정 | 2026-07-06 17:42 | ✅ |
+| 7.13 | [phase7/7.13-visual-color-event-category.md](phase7/7.13-visual-color-event-category.md) | YearView·MonthView 시각 개편 + 이벤트 카테고리 필수화 + 강조색 제거 | 2026-07-06 18:00 | ✅ |
 | 7.14 | [phase7/7.14-layout-restructure.md](phase7/7.14-layout-restructure.md) | Year/Month/Day 뷰 상하 레이아웃 전면 재구성 (설정→헤더, 추가→푸터, pill 버튼, 투명 푸터) | 2026-07-07 05:41 | ✅ |
 | 7.15 | [phase7/7.15-category-ui-swipe.md](phase7/7.15-category-ui-swipe.md) | 카테고리 관리 UI 개편 (스와이프 삭제·행 탭 편집·+ 아이콘) | 2026-07-07 16:37 | ✅ |
 | 7.16 | [phase7/7.16-nav-theme-holiday.md](phase7/7.16-nav-theme-holiday.md) | 네비게이션·테마·공휴일 시각 개선 | 2026-07-07 16:51 | ✅ |
